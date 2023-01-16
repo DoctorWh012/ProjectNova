@@ -21,6 +21,7 @@ public enum ServerToClientId : ushort
     gunSpawned,
     gunDespawned,
     meleeAtack,
+    matchStart,
 }
 
 public enum ClientToServerId : ushort

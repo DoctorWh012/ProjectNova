@@ -14,23 +14,23 @@ public class Player : MonoBehaviour
     public PlayerMovement Movement => movement;
     public GunShoot GunShoot => gunShoot;
 
-    //Client Script
     [SerializeField] private PlayerHealth playerHealth;
-    [SerializeField] private Animator playerAnimator;
     [SerializeField] private Transform orientation;
     [SerializeField] private Transform cam;
     [SerializeField] private Interpolation interpolation;
     [SerializeField] public MultiplayerGunShoot multiplayerGunShoot;
     [SerializeField] public MultiplayerController multiplayerController;
+    [SerializeField] private PlayerEffects playerEffects;
     [SerializeField] public PlayerShooting playerShooting;
-
-    //Server Script
     [SerializeField] private PlayerMovement movement;
     [SerializeField] private GunShoot gunShoot;
     [SerializeField] private Rigidbody rb;
 
-    private int[] inputs;
 
+    private void Awake()
+    {
+        DontDestroyOnLoad(gameObject);
+    }
     // --------CLIENT--------
     private void OnDestroy()
     {
@@ -71,39 +71,6 @@ public class Player : MonoBehaviour
         list.Add(id, player);
 
         ScoreBoard.Instance.AddScoreBoarditem(list[id]);
-    }
-
-    private void PlayerAnimator(bool isSliding)
-    {
-        if (IsLocal) return;
-        if (isSliding) { playerAnimator.Play("Slide"); return; }
-        switch (inputs[0])
-        {
-            case 1:
-                playerAnimator.Play("Run");
-                return;
-            case -1:
-                playerAnimator.Play("RunBackwards");
-                return;
-        }
-        switch (inputs[1])
-        {
-            case 1:
-                playerAnimator.Play("RunRight");
-                return;
-            case -1:
-                playerAnimator.Play("RunLeft");
-                return;
-        }
-        playerAnimator.Play("Idle");
-    }
-
-    private void PlayAnimation(string animation)
-    {
-        if (!playerAnimator.GetCurrentAnimatorStateInfo(0).IsName(animation))
-        {
-            playerAnimator.Play(animation);
-        }
     }
 
     //--------SERVER Only Runs On The Host!--------
@@ -169,8 +136,9 @@ public class Player : MonoBehaviour
         if (list.TryGetValue(message.GetUShort(), out Player player))
         {
             player.Move(message.GetUShort(), message.GetVector3(), message.GetVector3(), message.GetQuaternion());
-            player.inputs = message.GetInts();
-            player.PlayerAnimator(message.GetBool());
+            int[] inputs = message.GetInts();
+            bool isSliding = message.GetBool();
+            player.playerEffects.PlayerAnimator(inputs, isSliding);
         }
     }
 

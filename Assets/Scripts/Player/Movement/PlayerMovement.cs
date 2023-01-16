@@ -34,6 +34,7 @@ public class PlayerMovement : MonoBehaviour
     private int[] movementInput;
     private bool jumping;
     private bool crouch;
+    [HideInInspector] public bool movementFreeze = false;
 
     // Movement related stuff
     private bool readyToJump = true;
@@ -136,12 +137,22 @@ public class PlayerMovement : MonoBehaviour
             ApplyMovement(orientation.forward);
             IncreaseFallGravity();
         }
-        rb.useGravity = !OnSlope();
+        if (!movementFreeze) rb.useGravity = !OnSlope();
         SendMovement();
+    }
+
+    public void FreezePlayerMovement(bool state)
+    {
+        ZeroMovementInput();
+        movementFreeze = state;
+        rb.useGravity = !state;
+        rb.velocity = Vector3.zero;
+        rb.angularVelocity = Vector3.zero;
     }
 
     private void ApplyMovement(Vector3 trueForward)
     {
+        if (movementFreeze) return;
         MoveDirection = trueForward * verticalInput + orientation.right * horizontalInput;
 
         if (grounded) rb.AddForce(MoveDirection.normalized * moveSpeed * 10, ForceMode.Force);
@@ -166,6 +177,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void Jump()
     {
+        if (movementFreeze) return;
         rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
 
         rb.AddForce(transform.up * jumpForce, ForceMode.Impulse);

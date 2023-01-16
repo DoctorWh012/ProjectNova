@@ -7,13 +7,16 @@ public class GameCanvas : MonoBehaviour
     public static GameCanvas Instance;
 
     [SerializeField] public TextMeshProUGUI uiPopUpText;
-    [SerializeField] TextMeshProUGUI ammoDisplayText;
-    [SerializeField] TextMeshProUGUI healthText;
+    [SerializeField] public TextMeshProUGUI bigPopUpText;
+    [SerializeField] public TextMeshProUGUI timerText;
+    [SerializeField] private TextMeshProUGUI ammoDisplayText;
+    [SerializeField] private TextMeshProUGUI healthText;
     [SerializeField] private TextMeshProUGUI pingText;
 
     private void Awake()
     {
         Instance = this;
+        DontDestroyOnLoad(gameObject);
     }
 
     void Update()

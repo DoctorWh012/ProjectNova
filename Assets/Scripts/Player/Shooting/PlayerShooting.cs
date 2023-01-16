@@ -12,6 +12,7 @@ public class PlayerShooting : MonoBehaviour
 
     [Header("Components")]
     [SerializeField] private Player player;
+    [SerializeField] private AudioSource playerAudioSource;
     [SerializeField] public GunComponents[] gunsSettings;
     [SerializeField] public MeleeComponents[] meleeSettings;
     [SerializeField] private HeadBobController headBobController;
@@ -114,7 +115,7 @@ public class PlayerShooting : MonoBehaviour
 
     public void ShootingAnimator(bool shouldPlay, bool playerIsLocal)
     {
-        if (shouldPlay) SoundManager.Instance.PlaySound(gunsSettings[activeGun].audioSource, gunsSettings[activeGun].gunShootSounds[0]);
+        if (shouldPlay) SoundManager.Instance.PlaySound(playerAudioSource, gunsSettings[activeGun].gunShootSounds[0]);
         if (playerIsLocal && shouldPlay) ShootShaker();
         weaponEffectParticle.Play();
         animator.Play("Recoil");
@@ -123,6 +124,7 @@ public class PlayerShooting : MonoBehaviour
     public void MeleeAtackAnimator()
     {
         animator.Play("Attack");
+        SoundManager.Instance.PlaySound(playerAudioSource, meleeSettings[activeGun].meleeSounds[0]);
         weaponEffectParticle.Play();
     }
 

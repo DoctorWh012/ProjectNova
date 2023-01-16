@@ -38,8 +38,8 @@ public class MainMenu : MonoBehaviour
         Message message = Message.Create(MessageSendMode.Reliable, ClientToServerId.name);
         message.AddString(usernameField.text);
 
-        if (SceneManager.GetActiveScene().name != "RiptideMultiplayer") SceneManager.LoadScene("RiptideMultiplayer");
-        while (SceneManager.GetActiveScene().name != "RiptideMultiplayer") yield return null;
+        if (SceneManager.GetActiveScene().name != "RiptideLobby") SceneManager.LoadScene("RiptideLobby");
+        while (SceneManager.GetActiveScene().name != "RiptideLobby") yield return null;
 
         NetworkManager.Singleton.Client.Send(message);
     }
