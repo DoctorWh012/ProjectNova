@@ -52,7 +52,7 @@ public class NetworkManager : MonoBehaviour
             else if (_singleton != value)
             {
                 Debug.Log($"{nameof(NetworkManager)} instance already exists, destroying duplicate");
-                Destroy(value);
+                Destroy(value.gameObject);
             }
 
         }

@@ -61,6 +61,17 @@ public class MatchManager : MonoBehaviour
         GameCanvas.Instance.timerText.SetText($"");
     }
 
+    public void ExitMatch()
+    {
+        NetworkManager.Singleton.Client.Disconnect();
+        if (NetworkManager.Singleton.Server.IsRunning) NetworkManager.Singleton.Server.Stop();
+
+        GameObject[] toBeDestroyed = GameObject.FindGameObjectsWithTag("Destroy");
+        foreach (GameObject go in toBeDestroyed) Destroy(go);
+        foreach (KeyValuePair<ushort, Player> player in Player.list) Destroy(player.Value.gameObject);
+
+    }
+
     private void FreezeAllPlayerMovement(bool state)
     {
         foreach (KeyValuePair<ushort, Player> player in Player.list)

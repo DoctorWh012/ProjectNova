@@ -8,6 +8,7 @@ public class UIManager : MonoBehaviour
     public bool focused { get; private set; } = true;
     public static UIManager Instance;
     [SerializeField] private Canvas gameUICanvas;
+    [SerializeField] private GameObject menuUI;
     [SerializeField] private GameObject settingsUI;
 
     private void Awake()
@@ -22,8 +23,14 @@ public class UIManager : MonoBehaviour
         else Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = focused;
         gameUICanvas.enabled = !focused;
-        settingsUI.SetActive(focused);
+        menuUI.SetActive(focused);
+        if (!focused) {settingsUI.SetActive(false);print("POTATO");}
         focused = !focused;
         return;
+    }
+
+    public void ExitMatch()
+    {
+        MatchManager.Singleton.ExitMatch();
     }
 }
