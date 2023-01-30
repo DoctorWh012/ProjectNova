@@ -48,6 +48,7 @@ public class HeadBobController : MonoBehaviour
 
     private void CheckMotion()
     {
+        if (!UIManager.Instance.focused) return;
         if (!(Input.GetAxisRaw("Vertical") != 0 || Input.GetAxisRaw("Horizontal") != 0)) return;
         if (!multiplayerController.isGrounded) return;
 

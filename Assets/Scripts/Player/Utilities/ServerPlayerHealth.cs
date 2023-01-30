@@ -58,8 +58,7 @@ public class ServerPlayerHealth : MonoBehaviour
         playerMovement.FreezePlayerMovement(true);
         playerMovement.enabled = false;
 
-        gunShoot.shootInput = false;
-        gunShoot.enabled = false;
+        gunShoot.FreezePlayerShooting(true);
         col.enabled = false;
         Invoke("Respawn", respawnTime);
         SendStatusMessage(true);
@@ -70,7 +69,7 @@ public class ServerPlayerHealth : MonoBehaviour
         transform.position = SpawnHandler.Instance.GetSpawnLocation();
         playerMovement.enabled = true;
         playerMovement.FreezePlayerMovement(false);
-        gunShoot.enabled = true;
+        gunShoot.FreezePlayerShooting(false);
         gunShoot.ReplenishAllAmmo();
         col.enabled = true;
         currentHealth = maxHealth;

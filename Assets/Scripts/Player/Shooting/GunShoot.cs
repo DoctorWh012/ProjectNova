@@ -32,7 +32,8 @@ public class GunShoot : MonoBehaviour
         }
     }
 
-    [HideInInspector] public bool shootInput;
+    private bool shootFreeze = false;
+    private bool shootInput;
     private bool canShoot = true;
     private bool isReloading = false;
     private float nextTimeToFire = 0f;
@@ -64,6 +65,7 @@ public class GunShoot : MonoBehaviour
 
     private void GetGunInput()
     {
+        if (shootFreeze) return;
         if (shootInput && canShoot && ammunition > 0 && Time.time >= nextTimeToFire)
         {
             nextTimeToFire = Time.time + 1f / activeGun.fireRate;
@@ -221,6 +223,12 @@ public class GunShoot : MonoBehaviour
         Guns pickedMelee = playerShooting.meleeSettings[pickedGunIndex].meleeSettings;
         currentPlayerGuns[2] = pickedMelee;
         currentPlayerGunsIndex[2] = pickedGunIndex;
+    }
+
+    public void FreezePlayerShooting(bool state)
+    {
+        shootFreeze = state;
+        if (!state) shootInput = false;
     }
 
     // Multiplayer Handler

@@ -6,14 +6,7 @@ public class PlayerEffects : MonoBehaviour
 {
     [Header("Components")]
     [SerializeField] private Player player;
-    [SerializeField] private AudioSource playerAudioSource;
     [SerializeField] private Animator playerAnimator;
-
-    [Header("Settings")]
-    [SerializeField] private float footStepsRate;
-    private float nextTimeToPlay = 0f;
-    private int lastStepI;
-    private bool isPlayingSlideSFX = false;
 
     public void PlayerAnimator(int[] inputs, bool isSliding)
     {

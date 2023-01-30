@@ -43,6 +43,7 @@ public class PlayerShooting : MonoBehaviour
         barrelTip = gunsSettings[index].barrelTip;
         animator = gunsSettings[index].animator;
         weaponEffectParticle = gunsSettings[index].muzzleFlash;
+        GameCanvas.Instance.ChangeGunSlotIcon(((int)gunsSettings[index].gunSettings.slot), gunsSettings[index].gunSettings.gunIcon);
         EnableActiveGunMesh(index);
     }
 
@@ -52,6 +53,7 @@ public class PlayerShooting : MonoBehaviour
         activeWeaponType = meleeSettings[index].meleeSettings.weaponType;
         animator = meleeSettings[index].animator;
         weaponEffectParticle = meleeSettings[index].meleeParticles;
+        GameCanvas.Instance.ChangeGunSlotIcon(((int)meleeSettings[index].meleeSettings.slot), meleeSettings[index].meleeSettings.gunIcon);
         EnableActiveGunMesh(index);
     }
 
