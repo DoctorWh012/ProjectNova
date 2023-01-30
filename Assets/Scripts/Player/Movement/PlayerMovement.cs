@@ -13,6 +13,7 @@ public class PlayerMovement : MonoBehaviour
     [Header("Components")]
     [SerializeField] private Player player;
     [SerializeField] public Rigidbody rb;
+    [SerializeField] private CapsuleCollider col;
     [SerializeField] private Transform orientation;
     [SerializeField] private Transform cam;
     [SerializeField] private LayerMask ground;
@@ -89,11 +90,11 @@ public class PlayerMovement : MonoBehaviour
 
         if (crouch && !isCrouching && !wallRunning)
         {
-            StartCrouch();
+            Crouch(true);
         }
         if (!crouch && isCrouching)
         {
-            EndCrouch();
+            Crouch(false);
         }
         movementInput[0] = verticalInput;
         movementInput[1] = horizontalInput;
@@ -254,17 +255,13 @@ public class PlayerMovement : MonoBehaviour
         rb.AddForce(Vector3.down * force);
     }
 
-    private void StartCrouch()
+    private void Crouch(bool state)
     {
-        isCrouching = true;
-        transform.localScale = new Vector3(1, 0.5f, 1);
-    }
+        isCrouching = state;
+        if (state) col.height = col.height / 2;
+        else col.height = col.height * 2;
 
-    private void EndCrouch()
-    {
-        isCrouching = false;
-
-        transform.localScale = new Vector3(1, 1, 1);
+        // transform.localScale = new Vector3(1, 0.5f, 1);
     }
 
     private bool OnSlope()
