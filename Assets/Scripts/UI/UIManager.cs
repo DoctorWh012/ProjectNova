@@ -5,21 +5,25 @@ using UnityEngine;
 
 public class UIManager : MonoBehaviour
 {
-    [Header("Connect")]
-    [SerializeField] private GameObject[] connectUI;
+    public bool focused { get; private set; } = true;
+    public static UIManager Instance;
+    [SerializeField] private Canvas gameUICanvas;
+    [SerializeField] private GameObject settingsUI;
 
-    private void Update()
+    private void Awake()
     {
-        if (NetworkManager.Singleton.Client.Connection != null) DisableUi();
+        Instance = this;
+        DontDestroyOnLoad(gameObject);
     }
 
-    public void DisableUi()
+    public void InGameFocusUnfocus()
     {
-        foreach (GameObject obj in connectUI)
-        {
-            obj.SetActive(false);
-        }
-
-        this.enabled = false;
+        if (focused) Cursor.lockState = CursorLockMode.None;
+        else Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = focused;
+        gameUICanvas.enabled = !focused;
+        settingsUI.SetActive(focused);
+        focused = !focused;
+        return;
     }
 }

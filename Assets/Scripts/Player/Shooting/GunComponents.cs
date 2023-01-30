@@ -13,7 +13,6 @@ public class GunComponents : MonoBehaviour
     public Animator animator;
     public ParticleSystem muzzleFlash;
     public AudioClip[] gunShootSounds;
-    public AudioSource audioSource;
     public float shakeIntensity;
     public float shakeRoughness;
     public float fadeinTime;

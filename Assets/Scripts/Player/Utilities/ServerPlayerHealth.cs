@@ -55,14 +55,10 @@ public class ServerPlayerHealth : MonoBehaviour
     {
 
         playerScore.deaths++;
-        playerMovement.rb.velocity = Vector3.zero;
-        playerMovement.rb.angularVelocity = Vector3.zero;
-        playerMovement.rb.useGravity = false;
-        playerMovement.ZeroMovementInput();
+        playerMovement.FreezePlayerMovement(true);
         playerMovement.enabled = false;
 
-        gunShoot.shootInput = false;
-        gunShoot.enabled = false;
+        gunShoot.FreezePlayerShooting(true);
         col.enabled = false;
         Invoke("Respawn", respawnTime);
         SendStatusMessage(true);
@@ -71,9 +67,9 @@ public class ServerPlayerHealth : MonoBehaviour
     private void Respawn()
     {
         transform.position = SpawnHandler.Instance.GetSpawnLocation();
-        playerMovement.rb.useGravity = true;
         playerMovement.enabled = true;
-        gunShoot.enabled = true;
+        playerMovement.FreezePlayerMovement(false);
+        gunShoot.FreezePlayerShooting(false);
         gunShoot.ReplenishAllAmmo();
         col.enabled = true;
         currentHealth = maxHealth;

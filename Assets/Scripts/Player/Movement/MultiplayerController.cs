@@ -20,6 +20,7 @@ public class MultiplayerController : MonoBehaviour
     [SerializeField] private KeyCode jump;
     [SerializeField] private KeyCode crouch;
     [SerializeField] public KeyCode interact;
+    [SerializeField] private KeyCode pause;
 
     public bool isGrounded { get; private set; }
     public bool[] inputs { get; private set; }
@@ -32,11 +33,15 @@ public class MultiplayerController : MonoBehaviour
     private void Update()
     {
         CheckIfGrounded();
+
+        if (Input.GetKeyDown(pause)) UIManager.Instance.InGameFocusUnfocus();
+        if (!UIManager.Instance.focused) return;
+
         if (Input.GetKey(forward)) inputs[0] = true;
         if (Input.GetKey(backward)) inputs[1] = true;
         if (Input.GetKey(left)) inputs[2] = true;
         if (Input.GetKey(right)) inputs[3] = true;
-        if (Input.GetKey(jump)) inputs[4] = true;
+        if (Input.GetKeyDown(jump)) inputs[4] = true;
         if (Input.GetKey(crouch)) inputs[5] = true;
         if (Input.GetKey(interact)) inputs[6] = true;
     }

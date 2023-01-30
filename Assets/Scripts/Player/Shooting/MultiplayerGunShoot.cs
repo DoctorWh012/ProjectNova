@@ -19,6 +19,7 @@ public class MultiplayerGunShoot : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
+        if (!UIManager.Instance.focused) return;
         if (Input.GetKeyDown(shootBTN))
         {
             SendShootMessage(true);

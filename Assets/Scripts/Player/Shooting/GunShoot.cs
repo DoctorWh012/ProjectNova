@@ -32,7 +32,8 @@ public class GunShoot : MonoBehaviour
         }
     }
 
-    [HideInInspector] public bool shootInput;
+    private bool shootFreeze = false;
+    private bool shootInput;
     private bool canShoot = true;
     private bool isReloading = false;
     private float nextTimeToFire = 0f;
@@ -64,6 +65,7 @@ public class GunShoot : MonoBehaviour
 
     private void GetGunInput()
     {
+        if (shootFreeze) return;
         if (shootInput && canShoot && ammunition > 0 && Time.time >= nextTimeToFire)
         {
             nextTimeToFire = Time.time + 1f / activeGun.fireRate;
@@ -102,10 +104,9 @@ public class GunShoot : MonoBehaviour
         rayHits = Physics.RaycastAll(playerCam.position, playerCam.forward, activeGun.range);
         System.Array.Sort(rayHits, (x, y) => x.distance.CompareTo(y.distance));
 
-        if (rayHits.Length <= 0) { print("HitNOthing"); SendShot(false, Vector2.zero, true); return; }
+        if (rayHits.Length <= 0) { SendShot(false, Vector2.zero, true); return; }
         for (int i = 0; i < rayHits.Length; i++)
         {
-            print($"{rayHits[i].collider.gameObject.name}");
             if (rayHits[i].collider == col) continue;
             rayHit = rayHits[i];
             if (!rayHits[i].collider.CompareTag(playerTag)) break;
@@ -124,7 +125,6 @@ public class GunShoot : MonoBehaviour
         float spreadY = 0;
         for (int i = 0; i < activeGun.pellets; i++)
         {
-            print($"Shot {i}");
             bool shouldPlay = (i == activeGun.pellets - 1);
             spreadX = Random.Range(-activeGun.spread, activeGun.spread);
             spreadY = Random.Range(-activeGun.spread, activeGun.spread);
@@ -136,7 +136,6 @@ public class GunShoot : MonoBehaviour
             if (rayHits.Length <= 0) { SendShot(false, new Vector2(spreadX, spreadY), shouldPlay); continue; }
             for (int j = 0; j < rayHits.Length; j++)
             {
-                print($"{rayHits[j].collider.gameObject.name}");
                 if (rayHits[j].collider == col) continue;
                 rayHit = rayHits[j];
                 if (!rayHits[j].collider.CompareTag(playerTag)) break;
@@ -224,6 +223,12 @@ public class GunShoot : MonoBehaviour
         Guns pickedMelee = playerShooting.meleeSettings[pickedGunIndex].meleeSettings;
         currentPlayerGuns[2] = pickedMelee;
         currentPlayerGunsIndex[2] = pickedGunIndex;
+    }
+
+    public void FreezePlayerShooting(bool state)
+    {
+        shootFreeze = state;
+        if (!state) shootInput = false;
     }
 
     // Multiplayer Handler

@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 
 public enum Gunslot : int
 {
@@ -20,6 +21,7 @@ public class Guns : ScriptableObject
     public Gunslot slot;
     public WeaponType weaponType;
     public GameObject gunModel;
+    public Sprite gunIcon;
     public bool canAim;
     [Range(1, 120)] public float scopeFov;
     public int damage;

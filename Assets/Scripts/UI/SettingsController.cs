@@ -9,7 +9,13 @@ public class SettingsController : MonoBehaviour
 {
     public static SettingsController Instance;
     [SerializeField] private Slider sensitivitySlider;
-    [SerializeField] private TextMeshProUGUI sliderText;
+    [SerializeField] private TextMeshProUGUI sensitivitySliderText;
+
+    [SerializeField] private Slider mainVolumeSlider;
+    [SerializeField] private TextMeshProUGUI mainVolumeSliderText;
+
+    [SerializeField] private Slider musicVolumeSlider;
+    [SerializeField] private TextMeshProUGUI musicVolumeSliderText;
 
     [SerializeField] private ButtonHover goodGraphicsBtn;
     [SerializeField] private TextMeshProUGUI goodGraphicsBtnText;
@@ -24,8 +30,11 @@ public class SettingsController : MonoBehaviour
     private void Awake()
     {
         Instance = this;
-        if (!System.IO.File.Exists($"{Application.dataPath}/PlayerPrefs.json")) CreateJson();
-        else LoadFromJson();
+    }
+
+    private void Start()
+    {
+        LoadFromJson();
     }
 
     public void SetDesiredGraphics(int i)
@@ -38,10 +47,10 @@ public class SettingsController : MonoBehaviour
     {
         switch (desiredGraphics)
         {
+
             case 0:
                 DoTheHighlighting(shitGraphicsBtnText, shitGraphicsBtn, goodGraphicsBtnText, goodGraphicsBtn);
                 break;
-
             case 1:
                 DoTheHighlighting(goodGraphicsBtnText, goodGraphicsBtn, shitGraphicsBtnText, shitGraphicsBtn);
                 break;
@@ -62,15 +71,32 @@ public class SettingsController : MonoBehaviour
         toFadeBTN.enabled = true;
     }
 
-    public void UpdateSliderValue()
+    public void UpdateSliderValue(TextMeshProUGUI sliderText)
     {
-        sliderText.text = sensitivitySlider.value.ToString("#.00");
+
+        if (sliderText == sensitivitySliderText)
+        {
+            sliderText.text = sensitivitySlider.value.ToString("#.00");
+            return;
+        }
+        if (sliderText == mainVolumeSliderText)
+        {
+            sliderText.text = mainVolumeSlider.value.ToString("#.00");
+            return;
+        }
+        if (sliderText == musicVolumeSliderText)
+        {
+            sliderText.text = musicVolumeSlider.value.ToString("#.00");
+            return;
+        }
     }
 
     public void SaveAndApply()
     {
         SaveToJson();
         LoadFromJson();
+        if (UIManager.Instance == null) return;
+        PlayerCam.Instance.GetSensitivity();
     }
 
     public void CreateJson()
@@ -79,8 +105,10 @@ public class SettingsController : MonoBehaviour
 
         playerPrefs.resHeight = Screen.currentResolution.height;
         playerPrefs.resWidth = Screen.currentResolution.width;
-        playerPrefs.graphics = 0;
+        playerPrefs.graphics = 1;
         playerPrefs.sensitivity = 20;
+        playerPrefs.mainVolume = 1;
+        playerPrefs.musicVolume = 1;
         playerPrefs.fullScreen = fullScreenToggle.isOn;
         playerPrefs.vSync = vSyncToggle.isOn;
 
@@ -98,6 +126,8 @@ public class SettingsController : MonoBehaviour
         playerPrefs.resWidth = savedRes.width;
         playerPrefs.graphics = desiredGraphics;
         playerPrefs.sensitivity = sensitivitySlider.value;
+        playerPrefs.mainVolume = mainVolumeSlider.value;
+        playerPrefs.musicVolume = musicVolumeSlider.value;
         playerPrefs.fullScreen = fullScreenToggle.isOn;
         playerPrefs.vSync = vSyncToggle.isOn;
 
@@ -115,10 +145,17 @@ public class SettingsController : MonoBehaviour
         desiredGraphics = playerPrefs.graphics;
         HighlightGraphicsBtn();
         QualitySettings.SetQualityLevel(desiredGraphics);
-        Debug.LogWarning($"Current graphics quality is {QualitySettings.GetQualityLevel()}");
 
         sensitivitySlider.value = playerPrefs.sensitivity;
-        UpdateSliderValue();
+        UpdateSliderValue(sensitivitySliderText);
+
+        mainVolumeSlider.value = playerPrefs.mainVolume;
+        AudioListener.volume = playerPrefs.mainVolume;
+        UpdateSliderValue(mainVolumeSliderText);
+
+        musicVolumeSlider.value = playerPrefs.musicVolume;
+        SoundManager.Instance.musicSource.volume = playerPrefs.musicVolume;
+        UpdateSliderValue(musicVolumeSliderText);
 
         Screen.SetResolution(playerPrefs.resWidth, playerPrefs.resHeight, playerPrefs.fullScreen);
         fullScreenToggle.isOn = playerPrefs.fullScreen;
@@ -136,6 +173,8 @@ public class PlayerPreferences
     public int resHeight;
     public int resWidth;
     public float sensitivity;
+    public float mainVolume;
+    public float musicVolume;
     public int graphics;
     public bool vSync;
     public bool fullScreen;

@@ -1,22 +1,39 @@
 using UnityEngine;
+using System.Collections;
 using System.IO;
+using Riptide;
 
 public class PlayerCam : MonoBehaviour
 {
+    public static PlayerCam Instance;
+
+    public bool isTilted { get; private set; }
+
     [Header("Components")]
     [SerializeField] private Transform orientation;
+    [SerializeField] private Transform mainCamera;
+
+    [Header("Settings")]
+    [SerializeField] private float rotationAmount;
+    [SerializeField] private float duration;
+
     private float yRotation, xRotation;
     private float sensitivity;
+    private float desiredRotation;
 
-    // Start is called before the first frame update
+    private void Awake()
+    {
+        Instance = this;
+    }
+
     void Start()
     {
         GetSensitivity();
     }
 
-    // Update is called once per frame
     void Update()
     {
+        if (!UIManager.Instance.focused) return;
         GetInput();
         MoveCam();
     }
@@ -44,4 +61,38 @@ public class PlayerCam : MonoBehaviour
         transform.rotation = Quaternion.Euler(xRotation, yRotation, 0);
         orientation.rotation = Quaternion.Euler(0, yRotation, 0);
     }
+
+    public void TiltCamera(bool shouldTilt, int rotateDirection)
+    {
+        if (rotateDirection == 0) desiredRotation = -rotationAmount;
+        else if (rotateDirection == 1) desiredRotation = rotationAmount;
+
+        //TILT
+        if (!isTilted && shouldTilt) { StopAllCoroutines(); StartCoroutine(LerpCameraRotation(desiredRotation)); print("Tilted"); }
+
+        //UNTILT
+        if (isTilted && !shouldTilt) { StopAllCoroutines(); StartCoroutine(LerpCameraRotation(0)); print("UNTILTED"); }
+    }
+
+    [MessageHandler((ushort)ServerToClientId.wallRun)]
+    private static void WallrunCameraTilt(Message message)
+    {
+        PlayerCam.Instance.TiltCamera(message.GetBool(), message.GetInt());
+    }
+
+    public IEnumerator LerpCameraRotation(float tiltAngle)
+    {
+        isTilted = !isTilted;
+        Quaternion startingAngle = mainCamera.localRotation;
+        Quaternion toAngle = Quaternion.Euler(new Vector3(0, 0, tiltAngle));
+        float rotationDuration = 0;
+
+        while (mainCamera.localRotation != toAngle)
+        {
+            mainCamera.localRotation = Quaternion.Lerp(startingAngle, toAngle, rotationDuration / duration);
+            rotationDuration += Time.deltaTime;
+            yield return null;
+        }
+    }
 }
+
