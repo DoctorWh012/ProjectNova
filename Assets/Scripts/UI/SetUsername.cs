@@ -13,10 +13,4 @@ public class SetUsername : MonoBehaviour
     {
         text.SetText(player.username);
     }
-
-    // Update is called once per frame
-    void Update()
-    {
-
-    }
 }

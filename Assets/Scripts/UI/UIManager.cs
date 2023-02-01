@@ -2,6 +2,7 @@ using System;
 using Riptide;
 using TMPro;
 using UnityEngine;
+using Steamworks;
 
 public class UIManager : MonoBehaviour
 {
@@ -10,6 +11,13 @@ public class UIManager : MonoBehaviour
     [SerializeField] private Canvas gameUICanvas;
     [SerializeField] private GameObject menuUI;
     [SerializeField] private GameObject settingsUI;
+
+    protected Callback<GameOverlayActivated_t> overlayActivated;
+
+    private void OnEnable()
+    {
+        if (SteamManager.Initialized) overlayActivated = Callback<GameOverlayActivated_t>.Create(OnGameOverlayActivated);
+    }
 
     private void Awake()
     {
@@ -24,9 +32,14 @@ public class UIManager : MonoBehaviour
         Cursor.visible = focused;
         gameUICanvas.enabled = !focused;
         menuUI.SetActive(focused);
-        if (!focused) {settingsUI.SetActive(false);print("POTATO");}
+        if (!focused) { settingsUI.SetActive(false); print("POTATO"); }
         focused = !focused;
         return;
+    }
+
+    private void OnGameOverlayActivated(GameOverlayActivated_t pCallback)
+    {
+        InGameFocusUnfocus();
     }
 
     public void ExitMatch()
