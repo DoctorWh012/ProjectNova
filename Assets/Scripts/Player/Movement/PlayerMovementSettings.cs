@@ -17,6 +17,8 @@ public class PlayerMovementSettings : ScriptableObject
     [SerializeField] public float maxSlopeAngle = 45;
     [SerializeField] public float gravity = 10;
     [SerializeField] public float wallRunGravity = 5;
+    [SerializeField] public float coyoteTime = 0.2f;
+    [SerializeField] public float jumpBufferTime = 0.2f;
 
     //----OTHER SETTINGS----
     [Space]

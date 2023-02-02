@@ -40,6 +40,8 @@ public class PlayerMovement : MonoBehaviour
     private RaycastHit slopeHit;
     private RaycastHit leftWallHit;
     private RaycastHit rightWallHit;
+    private float coyoteTimeCounter;
+    private float jumpBufferCounter;
 
     //----Multiplayer Part----
 
@@ -48,8 +50,16 @@ public class PlayerMovement : MonoBehaviour
         // if (!NetworkManager.Singleton.Server.IsRunning) { this.enabled = false; return; }
     }
 
+    private void Start()
+    {
+        movementInput = new int[2];
+        inputs = new bool[7];
+        rb.freezeRotation = true;
+    }
+
     public void SetInput(bool[] inputs, Vector3 forward, Quaternion cam)
     {
+        // print("Set input");
         this.inputs = inputs;
         if (NetworkManager.Singleton.Server.IsRunning && player.IsLocal) return;
         orientation.forward = forward;
@@ -76,12 +86,13 @@ public class PlayerMovement : MonoBehaviour
         if (inputs[1]) horizontalInput = -1;
         if (inputs[2]) verticalInput = -1;
         if (inputs[3]) horizontalInput = 1;
-        if (inputs[4]) jumping = true;
+        if (inputs[4]) { jumping = true; jumpBufferCounter = movementSettings.jumpBufferTime; }
+        else jumpBufferCounter -= Time.deltaTime;
         if (inputs[5]) crouch = true;
         if (inputs[6]) interact = true;
 
 
-        if (jumping && grounded && readyToJump)
+        if (jumpBufferCounter > 0 && coyoteTimeCounter > 0 && readyToJump)
         {
             readyToJump = false;
             Jump();
@@ -101,13 +112,6 @@ public class PlayerMovement : MonoBehaviour
     }
 
     //----MOVEMENT STUFF----
-
-    private void Start()
-    {
-        movementInput = new int[2];
-        inputs = new bool[7];
-        rb.freezeRotation = true;
-    }
     private void Update()
     {
         GetInput();
@@ -142,6 +146,7 @@ public class PlayerMovement : MonoBehaviour
             if (player.multiplayerController.serverSimulationState?.currentTick < tick)
             {
                 player.multiplayerController.serverSimulationState.position = newPosition;
+                player.multiplayerController.serverSimulationState.rotation = forward;
                 player.multiplayerController.serverSimulationState.velocity = velocity;
                 player.multiplayerController.serverSimulationState.currentTick = tick;
             }
@@ -177,7 +182,7 @@ public class PlayerMovement : MonoBehaviour
         if (!(onWallLeft && horizontalInput > 0) && !(onWallRight && horizontalInput < 0))
             rb.AddForce(-wallNormal * 100, ForceMode.Force);
 
-        if (jumping) WallJump();
+        if (jumpBufferCounter > 0) WallJump();
     }
 
     private void WallJump()
@@ -210,6 +215,7 @@ public class PlayerMovement : MonoBehaviour
         rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
 
         rb.AddForce(transform.up * movementSettings.jumpForce, ForceMode.Impulse);
+        coyoteTimeCounter = 0;
     }
 
     //----CHECKS----
@@ -241,6 +247,8 @@ public class PlayerMovement : MonoBehaviour
     private void CheckIfGrounded()
     {
         grounded = Physics.Raycast(groundCheck.position, Vector3.down, movementSettings.groundCheckHeight, ground);
+        if (grounded) coyoteTimeCounter = movementSettings.coyoteTime;
+        else coyoteTimeCounter -= Time.deltaTime;
     }
 
     private void ResetJump()
@@ -305,7 +313,7 @@ public class PlayerMovement : MonoBehaviour
         Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.playerMovement);
         message.AddUShort(player.Id);
         message.AddUShort(NetworkManager.Singleton.CurrentTick);
-        message.AddVector2(rb.velocity);
+        message.AddVector3(rb.velocity);
         message.AddVector3(transform.position);
         message.AddVector3(orientation.forward);
         message.AddQuaternion(cam.rotation);

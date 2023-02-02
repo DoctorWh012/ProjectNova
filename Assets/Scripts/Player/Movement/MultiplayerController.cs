@@ -4,6 +4,7 @@ using UnityEngine;
 public class SimulationState
 {
     public Vector3 position;
+    public Vector3 rotation;
     public Vector3 velocity;
     public int currentTick;
 }
@@ -37,6 +38,8 @@ public class MultiplayerController : MonoBehaviour
     [SerializeField] public KeyCode interact;
     [SerializeField] private KeyCode pause;
 
+
+
     //----Client Side Prediction---
     private SimulationState[] simulationStateCache = new SimulationState[StateCacheSize];
     private ClientInputState[] inputStateCache = new ClientInputState[StateCacheSize];
@@ -60,8 +63,8 @@ public class MultiplayerController : MonoBehaviour
         if (Input.GetKeyDown(pause)) UIManager.Instance.InGameFocusUnfocus();
         if (!UIManager.Instance.focused) return;
 
-        inputs = new ClientInputState();
-        inputs.inputs = new bool[7];
+        // inputs = new ClientInputState();
+        // inputs.inputs = new bool[7];
 
         if (Input.GetKey(forward)) inputs.inputs[0] = true;
         if (Input.GetKey(backward)) inputs.inputs[1] = true;
@@ -70,18 +73,17 @@ public class MultiplayerController : MonoBehaviour
         if (Input.GetKeyDown(jump)) inputs.inputs[4] = true;
         if (Input.GetKey(crouch)) inputs.inputs[5] = true;
         if (Input.GetKey(interact)) inputs.inputs[6] = true;
-
-
     }
 
     private void FixedUpdate()
     {
-        if (inputs == null) print("WHAT THE UNMCLE ROJE");
         inputs.currentTick = NetworkManager.Singleton.CurrentTick;
 
         playerMovement.SetInput(inputs.inputs, orientation.forward, cam.rotation);
 
         if (!NetworkManager.Singleton.Server.IsRunning) SendInput();
+
+        if (serverSimulationState != null) Reconciliate();
 
         SimulationState simulationState = CurrentSimulationState(inputs);
 
@@ -90,10 +92,10 @@ public class MultiplayerController : MonoBehaviour
         simulationStateCache[cacheIndex] = simulationState;
         inputStateCache[cacheIndex] = inputs;
 
-        // for (int i = 0; i < inputs.inputs.Length; i++)
-        // {
-        //     inputs.inputs[i] = false;
-        // }
+        for (int i = 0; i < inputs.inputs.Length; i++)
+        {
+            inputs.inputs[i] = false;
+        }
     }
 
     private void CheckIfGrounded()
@@ -106,6 +108,7 @@ public class MultiplayerController : MonoBehaviour
         return new SimulationState
         {
             position = transform.position,
+            rotation = orientation.forward,
             velocity = playerMovement.rb.velocity,
             currentTick = inputs.currentTick
         };
@@ -123,6 +126,7 @@ public class MultiplayerController : MonoBehaviour
         if (cachedInputState == null || cachedSimulationState == null)
         {
             transform.position = serverSimulationState.position;
+            orientation.forward = serverSimulationState.rotation;
             playerMovement.rb.velocity = serverSimulationState.velocity;
 
             lastCorrectedFrame = serverSimulationState.currentTick;
@@ -142,6 +146,7 @@ public class MultiplayerController : MonoBehaviour
         // A correction is necessary.
         if (differenceX > tolerance || differenceY > tolerance || differenceZ > tolerance)
         {
+            print("Correction was necessary");
             // Set the player's position to match the server's state. 
             transform.position = serverSimulationState.position;
             playerMovement.rb.velocity = serverSimulationState.velocity;
