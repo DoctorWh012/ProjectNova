@@ -65,7 +65,6 @@ public class GameCanvas : MonoBehaviour
                 break;
         }
         ChangeSlotOpacity(index);
-        print($"Changed icon on slot{index} to {image.name}");
     }
 
     public void ChangeSlotOpacity(int index)

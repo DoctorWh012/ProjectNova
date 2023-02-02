@@ -32,7 +32,7 @@ public class UIManager : MonoBehaviour
         Cursor.visible = focused;
         gameUICanvas.enabled = !focused;
         menuUI.SetActive(focused);
-        if (!focused) { settingsUI.SetActive(false); print("POTATO"); }
+        if (!focused) { settingsUI.SetActive(false); }
         focused = !focused;
         return;
     }

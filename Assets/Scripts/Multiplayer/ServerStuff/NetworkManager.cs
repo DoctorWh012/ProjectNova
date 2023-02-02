@@ -64,7 +64,6 @@ public class NetworkManager : MonoBehaviour
     public Server Server { get; private set; }
     public ushort CurrentTick { get; private set; } = 0;
 
-
     private ushort _serverTick;
     public ushort ServerTick
     {
@@ -87,7 +86,6 @@ public class NetworkManager : MonoBehaviour
         }
     }
 
-    [SerializeField] private ushort port;
     [SerializeField] public ushort maxClientCount;
     [Space(10)]
     [SerializeField] private ushort tickDivergenceTolerance = 1;

@@ -21,7 +21,7 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private LayerMask wallLayer;
     [SerializeField] private PlayerMovementSettings movementSettings;
 
-    //----Multiplayer movement bools----
+    //----Multiplayer movement----
     private bool[] inputs;
     private int[] movementInput;
     private bool jumping;
@@ -45,7 +45,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void Awake()
     {
-        if (!NetworkManager.Singleton.Server.IsRunning) { this.enabled = false; return; }
+        // if (!NetworkManager.Singleton.Server.IsRunning) { this.enabled = false; return; }
     }
 
     public void SetInput(bool[] inputs, Vector3 forward, Quaternion cam)
@@ -131,6 +131,25 @@ public class PlayerMovement : MonoBehaviour
 
         if (!movementFreeze && !wallRunning) rb.useGravity = !OnSlope();
         SendMovement();
+    }
+
+    public void Move(Player player, ushort tick, Vector3 velocity, Vector3 newPosition, Vector3 forward, Quaternion camRot)
+    {
+        player.interpolation.NewUpdate(tick, newPosition);
+
+        if (player.IsLocal)
+        {
+            if (player.multiplayerController.serverSimulationState?.currentTick < tick)
+            {
+                player.multiplayerController.serverSimulationState.position = newPosition;
+                player.multiplayerController.serverSimulationState.velocity = velocity;
+                player.multiplayerController.serverSimulationState.currentTick = tick;
+            }
+        }
+        if (!player.IsLocal && !NetworkManager.Singleton.Server.IsRunning) return;
+        orientation.forward = forward;
+        cam.rotation = camRot;
+
     }
 
     private void ApplyMovement(Vector3 trueForward)
@@ -281,10 +300,12 @@ public class PlayerMovement : MonoBehaviour
 
     private void SendMovement()
     {
-        // if (NetworkManager.Singleton.CurrentTick % 2 != 0) return;
+        if (!NetworkManager.Singleton.Server.IsRunning) return;
+        if (NetworkManager.Singleton.CurrentTick % 2 != 0) return;
         Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.playerMovement);
         message.AddUShort(player.Id);
         message.AddUShort(NetworkManager.Singleton.CurrentTick);
+        message.AddVector2(rb.velocity);
         message.AddVector3(transform.position);
         message.AddVector3(orientation.forward);
         message.AddQuaternion(cam.rotation);
@@ -295,6 +316,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void SendWallRun(bool state, int i)
     {
+        if (!NetworkManager.Singleton.Server.IsRunning) return;
         Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.wallRun);
         message.AddBool(state);
         message.AddInt(i);//0=Left / 1=Right
@@ -306,7 +328,22 @@ public class PlayerMovement : MonoBehaviour
     {
         if (Player.list.TryGetValue(fromClientId, out Player player))
         {
+            print("Client to server input");
             player.Movement.SetInput(message.GetBools(7), message.GetVector3(), message.GetQuaternion());
+        }
+    }
+
+    [MessageHandler((ushort)ServerToClientId.playerMovement)]
+    private static void PlayerMove(Message message)
+    {
+        if (Player.list.TryGetValue(message.GetUShort(), out Player player))
+        {
+            if (NetworkManager.Singleton.Server.IsRunning) return;
+            print("Server To Client Move");
+            player.Movement.Move(player, message.GetUShort(), message.GetVector3(), message.GetVector3(), message.GetVector3(), message.GetQuaternion());
+            int[] inputs = message.GetInts();
+            bool isSliding = message.GetBool();
+            player.playerEffects.PlayerAnimator(inputs, isSliding);
         }
     }
 
