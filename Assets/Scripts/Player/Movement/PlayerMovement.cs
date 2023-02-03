@@ -47,7 +47,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void Awake()
     {
-        // if (!NetworkManager.Singleton.Server.IsRunning) { this.enabled = false; return; }
+        // if (!NetworkManager.Singleton.Server.IsRunning && !player.IsLocal) { this.enabled = false; return; }
     }
 
     private void Start()
@@ -59,9 +59,9 @@ public class PlayerMovement : MonoBehaviour
 
     public void SetInput(bool[] inputs, Vector3 forward, Quaternion cam)
     {
-        // print("Set input");
         this.inputs = inputs;
-        if (NetworkManager.Singleton.Server.IsRunning && player.IsLocal) return;
+        // IF NetPlayers
+        if (!NetworkManager.Singleton.Server.IsRunning || player.IsLocal) return;
         orientation.forward = forward;
         this.cam.rotation = cam;
     }
@@ -118,7 +118,7 @@ public class PlayerMovement : MonoBehaviour
         SpeedCap();
         CheckIfGrounded();
         VerifyWallRun();
-        ApllyDrag();
+        ApplyDrag();
     }
 
     private void FixedUpdate()
@@ -139,19 +139,21 @@ public class PlayerMovement : MonoBehaviour
 
     public void Move(Player player, ushort tick, Vector3 velocity, Vector3 newPosition, Vector3 forward, Quaternion camRot)
     {
+        Debug.LogWarning("Client to server move Move");
         player.interpolation.NewUpdate(tick, newPosition);
 
-        if (player.IsLocal)
+        if (NetworkManager.Singleton.Server.IsRunning) return;
+
+        if (player.IsLocal && player.multiplayerController.serverSimulationState?.currentTick < tick)
         {
-            if (player.multiplayerController.serverSimulationState?.currentTick < tick)
-            {
-                player.multiplayerController.serverSimulationState.position = newPosition;
-                player.multiplayerController.serverSimulationState.rotation = forward;
-                player.multiplayerController.serverSimulationState.velocity = velocity;
-                player.multiplayerController.serverSimulationState.currentTick = tick;
-            }
+            Debug.LogWarning("this has to run client");
+            player.multiplayerController.serverSimulationState.position = newPosition;
+            player.multiplayerController.serverSimulationState.rotation = forward;
+            player.multiplayerController.serverSimulationState.velocity = velocity;
+            player.multiplayerController.serverSimulationState.currentTick = tick;
         }
-        if (!player.IsLocal && !NetworkManager.Singleton.Server.IsRunning) return;
+        // IF NetPlayer on Client
+        if (player.IsLocal) return;
         orientation.forward = forward;
         cam.rotation = camRot;
 
@@ -160,6 +162,7 @@ public class PlayerMovement : MonoBehaviour
     private void ApplyMovement(Vector3 trueForward)
     {
         if (movementFreeze) return;
+        if (!player.IsLocal) print("Applied movement");
         MoveDirection = trueForward * verticalInput + orientation.right * horizontalInput;
 
         if (grounded) rb.AddForce(MoveDirection.normalized * movementSettings.moveSpeed * 10, ForceMode.Force);
@@ -194,7 +197,7 @@ public class PlayerMovement : MonoBehaviour
         rb.AddForce(forceToApply, ForceMode.Impulse);
     }
 
-    private void ApllyDrag()
+    private void ApplyDrag()
     {
         if (grounded) rb.drag = movementSettings.groundDrag;
         else rb.drag = movementSettings.airDrag;
@@ -216,6 +219,7 @@ public class PlayerMovement : MonoBehaviour
 
         rb.AddForce(transform.up * movementSettings.jumpForce, ForceMode.Impulse);
         coyoteTimeCounter = 0;
+        print("Jumped");
     }
 
     //----CHECKS----
@@ -336,7 +340,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if (Player.list.TryGetValue(fromClientId, out Player player))
         {
-            print("Client to server input");
+            // print("Client to server input");
             player.Movement.SetInput(message.GetBools(7), message.GetVector3(), message.GetQuaternion());
         }
     }
@@ -346,7 +350,6 @@ public class PlayerMovement : MonoBehaviour
     {
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
-            if (NetworkManager.Singleton.Server.IsRunning) return;
             print("Server To Client Move");
             player.Movement.Move(player, message.GetUShort(), message.GetVector3(), message.GetVector3(), message.GetVector3(), message.GetQuaternion());
             int[] inputs = message.GetInts();

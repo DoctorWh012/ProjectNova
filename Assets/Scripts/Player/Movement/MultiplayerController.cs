@@ -43,7 +43,7 @@ public class MultiplayerController : MonoBehaviour
     //----Client Side Prediction---
     private SimulationState[] simulationStateCache = new SimulationState[StateCacheSize];
     private ClientInputState[] inputStateCache = new ClientInputState[StateCacheSize];
-    public SimulationState serverSimulationState;
+    public SimulationState serverSimulationState = new SimulationState();
     private int lastCorrectedFrame;
 
 
@@ -84,6 +84,7 @@ public class MultiplayerController : MonoBehaviour
         if (!NetworkManager.Singleton.Server.IsRunning) SendInput();
 
         if (serverSimulationState != null) Reconciliate();
+        else print("BABABOYE");
 
         SimulationState simulationState = CurrentSimulationState(inputs);
 
@@ -116,6 +117,7 @@ public class MultiplayerController : MonoBehaviour
 
     private void Reconciliate()
     {
+        print("Checked for reconciliation");
         if (serverSimulationState.currentTick <= lastCorrectedFrame) return;
 
         int cacheIndex = serverSimulationState.currentTick % StateCacheSize;
@@ -141,7 +143,7 @@ public class MultiplayerController : MonoBehaviour
         //  The amount of distance in units that we will allow the client's
         //  prediction to drift from it's position on the server, before a
         //  correction is necessary. 
-        float tolerance = 0F;
+        float tolerance = 0f;
 
         // A correction is necessary.
         if (differenceX > tolerance || differenceY > tolerance || differenceZ > tolerance)

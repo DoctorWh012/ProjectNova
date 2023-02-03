@@ -10,6 +10,7 @@ public class MainMenu : MonoBehaviour
     public static MainMenu Instance;
     [SerializeField] private TMP_InputField usernameField;
     [SerializeField] private TMP_InputField ipField;
+    [SerializeField] private TextMeshProUGUI versionTXT;
     [SerializeField] private GameObject mainMenu;
     [SerializeField] private GameObject[] otherMenus;
 
@@ -17,6 +18,7 @@ public class MainMenu : MonoBehaviour
     {
         Instance = this;
         GuaranteeStartAtMainMenu();
+        versionTXT.SetText(Application.version);
     }
 
     public void ConnectClicked()

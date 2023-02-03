@@ -45,7 +45,7 @@ public class Player : MonoBehaviour
         if (id == NetworkManager.Singleton.Client.Id)
         {
             player = Instantiate(GameLogic.Singleton.LocalPlayerPrefab, position, Quaternion.identity).GetComponent<Player>();
-            player.interpolation.enabled = true;
+            player.interpolation.enabled = false;
             player.IsLocal = true;
         }
         else
