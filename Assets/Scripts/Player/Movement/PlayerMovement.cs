@@ -148,7 +148,6 @@ public class PlayerMovement : MonoBehaviour
             player.multiplayerController.serverSimulationState.rotation = forward;
             player.multiplayerController.serverSimulationState.velocity = velocity;
             player.multiplayerController.serverSimulationState.currentTick = serverCSPTick;
-            Debug.LogWarning($"recieved the CSPTick of {serverCSPTick} from the server while the current CSPTIck is {cSPTick}");
         }
         // IF NetPlayer on Client
         if (player.IsLocal) return;

@@ -125,14 +125,11 @@ public class MultiplayerController : MonoBehaviour
 
         int cacheIndex = serverSimulationState.currentTick % StateCacheSize;
 
-        print($"Csptick == {playerMovement.cSPTick} server tick {serverSimulationState.currentTick}");
-
         ClientInputState cachedInputState = inputStateCache[cacheIndex];
         SimulationState cachedSimulationState = simulationStateCache[cacheIndex];
 
         if (cachedInputState == null || cachedSimulationState == null)
         {
-            Debug.LogError("Required Change of position");
             transform.position = serverSimulationState.position;
             orientation.forward = serverSimulationState.rotation;
             playerMovement.rb.velocity = serverSimulationState.velocity;
@@ -154,7 +151,6 @@ public class MultiplayerController : MonoBehaviour
         // A correction is necessary.
         if (differenceX > tolerance || differenceY > tolerance || differenceZ > tolerance)
         {
-            Debug.LogError("Required Change of position");
             // Set the player's position to match the server's state. 
             transform.position = serverSimulationState.position;
             playerMovement.rb.velocity = serverSimulationState.velocity;
