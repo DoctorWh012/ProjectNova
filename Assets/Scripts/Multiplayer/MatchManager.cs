@@ -65,9 +65,6 @@ public class MatchManager : MonoBehaviour
     {
         NetworkManager.Singleton.DisconnectClient();
         if (NetworkManager.Singleton.Server.IsRunning) NetworkManager.Singleton.StopServer();
-
-        GameObject[] toBeDestroyed = GameObject.FindGameObjectsWithTag("Destroy");
-        foreach (GameObject go in toBeDestroyed) Destroy(go);
     }
 
     private void FreezeAllPlayerMovement(bool state)

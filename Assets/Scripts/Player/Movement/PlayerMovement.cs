@@ -6,6 +6,7 @@ using UnityEngine;
 public class PlayerMovement : MonoBehaviour
 {
     //----READONLY VARIABLES----
+    public int cSPTick { get; private set; }
     public bool interact { get; private set; }
     public bool grounded { get; private set; }
 
@@ -24,9 +25,8 @@ public class PlayerMovement : MonoBehaviour
     //----Multiplayer movement----
     private bool[] inputs;
     private int[] movementInput;
-    private bool jumping;
     private bool crouch;
-    [HideInInspector] public bool movementFreeze = false;
+    public bool movementFreeze = false;
 
     //----Movement related stuff----
     private bool readyToJump = true;
@@ -43,12 +43,9 @@ public class PlayerMovement : MonoBehaviour
     private float coyoteTimeCounter;
     private float jumpBufferCounter;
 
-    //----Multiplayer Part----
+    private int clientTick;
 
-    private void Awake()
-    {
-        // if (!NetworkManager.Singleton.Server.IsRunning && !player.IsLocal) { this.enabled = false; return; }
-    }
+    //----Multiplayer Part----
 
     private void Start()
     {
@@ -70,7 +67,6 @@ public class PlayerMovement : MonoBehaviour
     {
         horizontalInput = 0;
         verticalInput = 0;
-        jumping = false;
         crouch = false;
         interact = false;
     }
@@ -86,7 +82,7 @@ public class PlayerMovement : MonoBehaviour
         if (inputs[1]) horizontalInput = -1;
         if (inputs[2]) verticalInput = -1;
         if (inputs[3]) horizontalInput = 1;
-        if (inputs[4]) { jumping = true; jumpBufferCounter = movementSettings.jumpBufferTime; }
+        if (inputs[4]) { jumpBufferCounter = movementSettings.jumpBufferTime; }
         else jumpBufferCounter -= Time.deltaTime;
         if (inputs[5]) crouch = true;
         if (inputs[6]) interact = true;
@@ -135,22 +131,24 @@ public class PlayerMovement : MonoBehaviour
 
         if (!movementFreeze && !wallRunning) rb.useGravity = !OnSlope();
         SendMovement();
+        cSPTick++;
     }
 
-    public void Move(Player player, ushort tick, Vector3 velocity, Vector3 newPosition, Vector3 forward, Quaternion camRot)
+    // This Receives Movement data from the Server
+    public void Move(Player player, ushort tick, int serverCSPTick, Vector3 velocity, Vector3 newPosition, Vector3 forward, Quaternion camRot)
     {
-        Debug.LogWarning("Client to server move Move");
-        player.interpolation.NewUpdate(tick, newPosition);
+        //Moves Netplayer With interpolation
+        if (!player.IsLocal) player.interpolation.NewUpdate(tick, newPosition);
 
         if (NetworkManager.Singleton.Server.IsRunning) return;
 
-        if (player.IsLocal && player.multiplayerController.serverSimulationState?.currentTick < tick)
+        if (player.IsLocal && player.multiplayerController.serverSimulationState?.currentTick < serverCSPTick)
         {
-            Debug.LogWarning("this has to run client");
             player.multiplayerController.serverSimulationState.position = newPosition;
             player.multiplayerController.serverSimulationState.rotation = forward;
             player.multiplayerController.serverSimulationState.velocity = velocity;
-            player.multiplayerController.serverSimulationState.currentTick = tick;
+            player.multiplayerController.serverSimulationState.currentTick = serverCSPTick;
+            Debug.LogWarning($"recieved the CSPTick of {serverCSPTick} from the server while the current CSPTIck is {cSPTick}");
         }
         // IF NetPlayer on Client
         if (player.IsLocal) return;
@@ -162,7 +160,7 @@ public class PlayerMovement : MonoBehaviour
     private void ApplyMovement(Vector3 trueForward)
     {
         if (movementFreeze) return;
-        if (!player.IsLocal) print("Applied movement");
+        // print("Applied movement");
         MoveDirection = trueForward * verticalInput + orientation.right * horizontalInput;
 
         if (grounded) rb.AddForce(MoveDirection.normalized * movementSettings.moveSpeed * 10, ForceMode.Force);
@@ -313,16 +311,17 @@ public class PlayerMovement : MonoBehaviour
     private void SendMovement()
     {
         if (!NetworkManager.Singleton.Server.IsRunning) return;
-        if (NetworkManager.Singleton.CurrentTick % 2 != 0) return;
         Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.playerMovement);
-        message.AddUShort(player.Id);
-        message.AddUShort(NetworkManager.Singleton.CurrentTick);
+        message.AddUShort(player.Id);//Player Id Correct
+        message.AddUShort(NetworkManager.Singleton.CurrentTick);//ServerTick correct
+        message.AddInt(clientTick);//ServerCSPTick Correct
         message.AddVector3(rb.velocity);
         message.AddVector3(transform.position);
         message.AddVector3(orientation.forward);
         message.AddQuaternion(cam.rotation);
         message.AddInts(movementInput);
-        message.AddBool(inputs[5]);
+        message.AddBool(crouch);
+
         NetworkManager.Singleton.Server.SendToAll(message);
     }
 
@@ -342,16 +341,17 @@ public class PlayerMovement : MonoBehaviour
         {
             // print("Client to server input");
             player.Movement.SetInput(message.GetBools(7), message.GetVector3(), message.GetQuaternion());
+            player.Movement.clientTick = message.GetInt();
         }
     }
+
 
     [MessageHandler((ushort)ServerToClientId.playerMovement)]
     private static void PlayerMove(Message message)
     {
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
-            print("Server To Client Move");
-            player.Movement.Move(player, message.GetUShort(), message.GetVector3(), message.GetVector3(), message.GetVector3(), message.GetQuaternion());
+            player.Movement.Move(player, message.GetUShort(), message.GetInt(), message.GetVector3(), message.GetVector3(), message.GetVector3(), message.GetQuaternion());
             int[] inputs = message.GetInts();
             bool isSliding = message.GetBool();
             player.playerEffects.PlayerAnimator(inputs, isSliding);

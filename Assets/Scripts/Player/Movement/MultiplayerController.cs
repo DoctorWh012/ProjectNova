@@ -17,7 +17,7 @@ public class ClientInputState
 
 public class MultiplayerController : MonoBehaviour
 {
-    public const int StateCacheSize = 1024;
+    public const int StateCacheSize = 256;
     [Header("Components")]
     [SerializeField] private PlayerMovement playerMovement;
     [SerializeField] private Transform orientation;
@@ -59,40 +59,44 @@ public class MultiplayerController : MonoBehaviour
     private void Update()
     {
         CheckIfGrounded();
-
-        if (Input.GetKeyDown(pause)) UIManager.Instance.InGameFocusUnfocus();
-        if (!UIManager.Instance.focused) return;
-
-        // inputs = new ClientInputState();
-        // inputs.inputs = new bool[7];
-
-        if (Input.GetKey(forward)) inputs.inputs[0] = true;
-        if (Input.GetKey(backward)) inputs.inputs[1] = true;
-        if (Input.GetKey(left)) inputs.inputs[2] = true;
-        if (Input.GetKey(right)) inputs.inputs[3] = true;
-        if (Input.GetKeyDown(jump)) inputs.inputs[4] = true;
-        if (Input.GetKey(crouch)) inputs.inputs[5] = true;
-        if (Input.GetKey(interact)) inputs.inputs[6] = true;
+        ResetInput();
+        GetInput();
     }
 
     private void FixedUpdate()
     {
-        inputs.currentTick = NetworkManager.Singleton.CurrentTick;
+        inputs.currentTick = playerMovement.cSPTick;
 
         playerMovement.SetInput(inputs.inputs, orientation.forward, cam.rotation);
 
         if (!NetworkManager.Singleton.Server.IsRunning) SendInput();
 
         if (serverSimulationState != null) Reconciliate();
-        else print("BABABOYE");
 
         SimulationState simulationState = CurrentSimulationState(inputs);
 
-        int cacheIndex = NetworkManager.Singleton.CurrentTick % StateCacheSize;
+        int cacheIndex = playerMovement.cSPTick % StateCacheSize;
 
         simulationStateCache[cacheIndex] = simulationState;
         inputStateCache[cacheIndex] = inputs;
+    }
 
+    private void GetInput()
+    {
+        if (Input.GetKeyDown(pause)) UIManager.Instance.InGameFocusUnfocus();
+        if (!UIManager.Instance.focused) return;
+
+        if (Input.GetKey(forward)) inputs.inputs[0] = true;
+        if (Input.GetKey(backward)) inputs.inputs[1] = true;
+        if (Input.GetKey(left)) inputs.inputs[2] = true;
+        if (Input.GetKey(right)) inputs.inputs[3] = true;
+        if (Input.GetKey(jump)) inputs.inputs[4] = true;
+        if (Input.GetKey(crouch)) inputs.inputs[5] = true;
+        if (Input.GetKey(interact)) inputs.inputs[6] = true;
+    }
+
+    private void ResetInput()
+    {
         for (int i = 0; i < inputs.inputs.Length; i++)
         {
             inputs.inputs[i] = false;
@@ -117,16 +121,18 @@ public class MultiplayerController : MonoBehaviour
 
     private void Reconciliate()
     {
-        print("Checked for reconciliation");
         if (serverSimulationState.currentTick <= lastCorrectedFrame) return;
 
         int cacheIndex = serverSimulationState.currentTick % StateCacheSize;
+
+        print($"Csptick == {playerMovement.cSPTick} server tick {serverSimulationState.currentTick}");
 
         ClientInputState cachedInputState = inputStateCache[cacheIndex];
         SimulationState cachedSimulationState = simulationStateCache[cacheIndex];
 
         if (cachedInputState == null || cachedSimulationState == null)
         {
+            Debug.LogError("Required Change of position");
             transform.position = serverSimulationState.position;
             orientation.forward = serverSimulationState.rotation;
             playerMovement.rb.velocity = serverSimulationState.velocity;
@@ -138,17 +144,17 @@ public class MultiplayerController : MonoBehaviour
         // Find the difference between the vector's values. 
         float differenceX = Mathf.Abs(cachedSimulationState.position.x - serverSimulationState.position.x);
         float differenceY = Mathf.Abs(cachedSimulationState.position.y - serverSimulationState.position.y);
-        float differenceZ = Mathf.Abs(cachedSimulationState.position.z - serverSimulationState.position.z);
+        float differenceZ = Mathf.Abs(cachedSimulationState.position.z - serverSimulationState.position.z);;
 
         //  The amount of distance in units that we will allow the client's
         //  prediction to drift from it's position on the server, before a
         //  correction is necessary. 
-        float tolerance = 0f;
+        float tolerance = 1.5f;
 
         // A correction is necessary.
         if (differenceX > tolerance || differenceY > tolerance || differenceZ > tolerance)
         {
-            print("Correction was necessary");
+            Debug.LogError("Required Change of position");
             // Set the player's position to match the server's state. 
             transform.position = serverSimulationState.position;
             playerMovement.rb.velocity = serverSimulationState.velocity;
@@ -158,7 +164,7 @@ public class MultiplayerController : MonoBehaviour
 
             // Loop through and apply cached inputs until we're 
             // caught up to our current simulation frame. 
-            while (rewindFrame < NetworkManager.Singleton.CurrentTick)
+            while (rewindFrame < playerMovement.cSPTick)
             {
                 // Determine the cache index 
                 int rewindCacheIndex = rewindFrame % StateCacheSize;
@@ -200,7 +206,7 @@ public class MultiplayerController : MonoBehaviour
         message.AddBools(inputs.inputs, false);
         message.AddVector3(orientation.forward);
         message.AddQuaternion(cam.rotation);
-        message.AddInt(NetworkManager.Singleton.CurrentTick);
+        message.AddInt(playerMovement.cSPTick);
         NetworkManager.Singleton.Client.Send(message);
     }
     #endregion

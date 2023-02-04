@@ -152,6 +152,8 @@ public class NetworkManager : MonoBehaviour
     {
         Client.Disconnect();
         DestroyAllPlayers();
+        GameObject[] toBeDestroyed = GameObject.FindGameObjectsWithTag("Destroy");
+        foreach (GameObject go in toBeDestroyed) Destroy(go);
     }
 
     private void DestroyAllPlayers()
@@ -182,6 +184,7 @@ public class NetworkManager : MonoBehaviour
 
     private void DidDisconnect(object sender, EventArgs e)
     {
+        DestroyAllPlayers();
         SceneManager.LoadScene("Menu");
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
