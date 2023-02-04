@@ -33,6 +33,11 @@ public class PlayerCam : MonoBehaviour
 
     void Update()
     {
+
+    }
+
+    private void FixedUpdate()
+    {
         if (!UIManager.Instance.focused) return;
         GetInput();
         MoveCam();
@@ -68,10 +73,10 @@ public class PlayerCam : MonoBehaviour
         else if (rotateDirection == 1) desiredRotation = rotationAmount;
 
         //TILT
-        if (!isTilted && shouldTilt) { StopAllCoroutines(); StartCoroutine(LerpCameraRotation(desiredRotation)); print("Tilted"); }
+        if (!isTilted && shouldTilt) { StopAllCoroutines(); StartCoroutine(LerpCameraRotation(desiredRotation)); }
 
         //UNTILT
-        if (isTilted && !shouldTilt) { StopAllCoroutines(); StartCoroutine(LerpCameraRotation(0)); print("UNTILTED"); }
+        if (isTilted && !shouldTilt) { StopAllCoroutines(); StartCoroutine(LerpCameraRotation(0)); }
     }
 
     [MessageHandler((ushort)ServerToClientId.wallRun)]

@@ -3,7 +3,8 @@ using Riptide.Utils;
 using System;
 using UnityEngine;
 using UnityEngine.SceneManagement;
-using System.Collections;
+using Riptide.Transports.Steam;
+using System.Collections.Generic;
 
 public enum ServerToClientId : ushort
 {
@@ -52,7 +53,7 @@ public class NetworkManager : MonoBehaviour
             else if (_singleton != value)
             {
                 Debug.Log($"{nameof(NetworkManager)} instance already exists, destroying duplicate");
-                Destroy(value);
+                Destroy(value.gameObject);
             }
 
         }
@@ -62,7 +63,6 @@ public class NetworkManager : MonoBehaviour
 
     public Server Server { get; private set; }
     public ushort CurrentTick { get; private set; } = 0;
-
 
     private ushort _serverTick;
     public ushort ServerTick
@@ -86,8 +86,7 @@ public class NetworkManager : MonoBehaviour
         }
     }
 
-    [SerializeField] private ushort port;
-    [SerializeField] private ushort maxClientCount;
+    [SerializeField] public ushort maxClientCount;
     [Space(10)]
     [SerializeField] private ushort tickDivergenceTolerance = 1;
 
@@ -100,12 +99,15 @@ public class NetworkManager : MonoBehaviour
 
     private void Start()
     {
+        if (!SteamManager.Initialized) { Debug.LogError("Steam is not initialized!"); Application.Quit(); return; }
+
         SceneManager.sceneLoaded += SceneChangeDebug;
-        Server = new Server();
+        SteamServer steamServer = new SteamServer();
+        Server = new Server(steamServer);
         Server.ClientDisconnected += PlayerLeft;
 
         RiptideLogger.Initialize(Debug.Log, Debug.Log, Debug.LogWarning, Debug.LogError, false);
-        Client = new Client();
+        Client = new Client(new SteamClient(steamServer));
         Client.Connected += DidConnect;
         Client.ConnectionFailed += FailedToConnect;
         Client.ClientDisconnected += PlayerLeft;
@@ -130,18 +132,33 @@ public class NetworkManager : MonoBehaviour
     private void OnApplicationQuit()
     {
         if (Server.IsRunning) Server.Stop();
+        Server.ClientDisconnected -= PlayerLeft;
+
         Client.Disconnect();
+        Client.Connected -= DidConnect;
+        Client.ConnectionFailed -= FailedToConnect;
+        Client.ClientDisconnected -= PlayerLeft;
+        Client.Disconnected -= DidDisconnect;
+
     }
 
-    public void ConnectHost()
+    internal void StopServer()
     {
-        Server.Start(port, maxClientCount);
-        Client.Connect($"127.0.0.1:{port}");
+        Server.Stop();
+        DestroyAllPlayers();
     }
 
-    public void Connect(string ip)
+    internal void DisconnectClient()
     {
-        Client.Connect($"{ip}:{port}");
+        Client.Disconnect();
+        DestroyAllPlayers();
+        GameObject[] toBeDestroyed = GameObject.FindGameObjectsWithTag("Destroy");
+        foreach (GameObject go in toBeDestroyed) Destroy(go);
+    }
+
+    private void DestroyAllPlayers()
+    {
+        foreach (KeyValuePair<ushort, Player> player in Player.list) Destroy(player.Value.gameObject);
     }
 
     private void DidConnect(object sender, EventArgs e)
@@ -167,6 +184,7 @@ public class NetworkManager : MonoBehaviour
 
     private void DidDisconnect(object sender, EventArgs e)
     {
+        DestroyAllPlayers();
         SceneManager.LoadScene("Menu");
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;

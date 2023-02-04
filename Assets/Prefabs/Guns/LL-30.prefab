@@ -72,7 +72,7 @@ MonoBehaviour:
   scopeCam: {fileID: 0}
   gunTrail: {fileID: 188673694116967493}
   animator: {fileID: 8291001714601515300}
-  muzzleFlash: {fileID: 0}
+  muzzleFlash: {fileID: 7351871348590923072}
   gunShootSounds:
   - {fileID: 8300000, guid: 6e25f839354b2284bbaaa464f45b0cba, type: 3}
   shakeIntensity: 1.5
@@ -287,7 +287,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4253950459583785113, guid: db490ac4bfab5fa4ca01ed88b1688201, type: 3}
       propertyPath: InitialModule.startSize.scalar
-      value: 0.13
+      value: 0.5
       objectReference: {fileID: 0}
     - target: {fileID: 4253950459583785113, guid: db490ac4bfab5fa4ca01ed88b1688201, type: 3}
       propertyPath: InitialModule.startSize.minScalar
@@ -299,27 +299,27 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 4253950459583785115, guid: db490ac4bfab5fa4ca01ed88b1688201, type: 3}
       propertyPath: m_LocalScale.x
-      value: 0.16621
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4253950459583785115, guid: db490ac4bfab5fa4ca01ed88b1688201, type: 3}
       propertyPath: m_LocalScale.y
-      value: 0.16621
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4253950459583785115, guid: db490ac4bfab5fa4ca01ed88b1688201, type: 3}
       propertyPath: m_LocalScale.z
-      value: 0.16621
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 4253950459583785115, guid: db490ac4bfab5fa4ca01ed88b1688201, type: 3}
       propertyPath: m_LocalPosition.x
-      value: 1.3769999
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4253950459583785115, guid: db490ac4bfab5fa4ca01ed88b1688201, type: 3}
       propertyPath: m_LocalPosition.y
-      value: 0.14500009
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4253950459583785115, guid: db490ac4bfab5fa4ca01ed88b1688201, type: 3}
       propertyPath: m_LocalPosition.z
-      value: 2.8229997
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 4253950459583785115, guid: db490ac4bfab5fa4ca01ed88b1688201, type: 3}
       propertyPath: m_LocalRotation.w
@@ -400,6 +400,11 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 4253950459583785115, guid: db490ac4bfab5fa4ca01ed88b1688201, type: 3}
   m_PrefabInstance: {fileID: 6705307261989529049}
   m_PrefabAsset: {fileID: 0}
+--- !u!198 &7351871348590923072 stripped
+ParticleSystem:
+  m_CorrespondingSourceObject: {fileID: 4253950459583785113, guid: db490ac4bfab5fa4ca01ed88b1688201, type: 3}
+  m_PrefabInstance: {fileID: 6705307261989529049}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &7496214704108878681
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -451,9 +456,21 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -7511558181221131132, guid: ad85587f93ad943468b9ae5beeaf5520, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: -3542852092398272455, guid: ad85587f93ad943468b9ae5beeaf5520, type: 3}
       propertyPath: m_RootOrder
       value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: -1461304994638716399, guid: ad85587f93ad943468b9ae5beeaf5520, type: 3}
+      propertyPath: m_Enabled
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: -678588488315902003, guid: ad85587f93ad943468b9ae5beeaf5520, type: 3}
+      propertyPath: m_Enabled
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -516098083770646512, guid: ad85587f93ad943468b9ae5beeaf5520, type: 3}
       propertyPath: m_Layer
@@ -518,3 +535,16 @@ Animator:
   m_HasTransformHierarchy: 1
   m_AllowConstantClipSamplingOptimization: 1
   m_KeepAnimatorStateOnDisable: 0
+--- !u!114 &7499804373492802232
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7261647989506377224}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: baaca723bdd29a04eb4aa40af6cfbdcf, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  audioSource: {fileID: 0}

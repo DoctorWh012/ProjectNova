@@ -72,8 +72,7 @@ public class Interactable : MonoBehaviour
                 animator.Play("Press");
                 if (!NetworkManager.Singleton.Server.IsRunning) break;
                 if (!player.IsLocal) break;
-
-                print("WTF");
+                
                 matchStart = !matchStart;
                 MatchManager.Singleton.SendMatchStartMessage(matchStart);
                 yield return new WaitForSeconds(1);

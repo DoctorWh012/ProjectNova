@@ -61,16 +61,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   gunSettings: {fileID: 11400000, guid: 57bd9f7900ea50444b6017b074dba3bc, type: 2}
+  gunSway: {fileID: 0}
   barrelTip: {fileID: 8074524265749238165}
   gunModelPos: {fileID: 2243457594008927612}
   gunMesh:
   - {fileID: 2857716632257678424}
+  scopeMesh: {fileID: 0}
+  scopeCam: {fileID: 0}
   gunTrail: {fileID: 2593737228977249269}
   animator: {fileID: 8749291064666151448}
   muzzleFlash: {fileID: 5406404701098753857}
   gunShootSounds:
   - {fileID: 8300000, guid: db47b98152137bc43b4c07de03a8f3b2, type: 3}
-  audioSource: {fileID: 0}
   shakeIntensity: 1.5
   shakeRoughness: 1
   fadeinTime: 0.2
@@ -101,7 +103,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 6151558757969567998}
   m_LocalRotation: {x: 0.7071068, y: -0, z: -0, w: 0.7071067}
-  m_LocalPosition: {x: 0, y: -19.896328, z: 1.0299236}
+  m_LocalPosition: {x: 0, y: -16.89, z: 0.28}
   m_LocalScale: {x: 8.527909, y: 8.52791, z: 8.52791}
   m_Children: []
   m_Father: {fileID: 3122114229280237081}
@@ -247,7 +249,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 8074524265749238164}
   m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.178, z: 2.372}
+  m_LocalPosition: {x: 0, y: 0.091, z: 2.019}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 5406404701098753859}
@@ -315,7 +317,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: -4683669308469848369, guid: b0bd8cf4f7f74d94ca0538f3ac1383e3, type: 3}
       propertyPath: m_Enabled
-      value: 0
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: b0bd8cf4f7f74d94ca0538f3ac1383e3, type: 3}
       propertyPath: m_Name

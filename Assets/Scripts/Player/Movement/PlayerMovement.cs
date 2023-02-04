@@ -6,6 +6,7 @@ using UnityEngine;
 public class PlayerMovement : MonoBehaviour
 {
     //----READONLY VARIABLES----
+    public int cSPTick { get; private set; }
     public bool interact { get; private set; }
     public bool grounded { get; private set; }
 
@@ -13,6 +14,7 @@ public class PlayerMovement : MonoBehaviour
     [Header("Components")]
     [SerializeField] private Player player;
     [SerializeField] public Rigidbody rb;
+    [SerializeField] private CapsuleCollider col;
     [SerializeField] private Transform orientation;
     [SerializeField] private Transform cam;
     [SerializeField] private LayerMask ground;
@@ -20,12 +22,11 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private LayerMask wallLayer;
     [SerializeField] private PlayerMovementSettings movementSettings;
 
-    //----Multiplayer movement bools----
+    //----Multiplayer movement----
     private bool[] inputs;
     private int[] movementInput;
-    private bool jumping;
     private bool crouch;
-    [HideInInspector] public bool movementFreeze = false;
+    public bool movementFreeze = false;
 
     //----Movement related stuff----
     private bool readyToJump = true;
@@ -39,18 +40,25 @@ public class PlayerMovement : MonoBehaviour
     private RaycastHit slopeHit;
     private RaycastHit leftWallHit;
     private RaycastHit rightWallHit;
+    private float coyoteTimeCounter;
+    private float jumpBufferCounter;
+
+    private int clientTick;
 
     //----Multiplayer Part----
 
-    private void Awake()
+    private void Start()
     {
-        if (!NetworkManager.Singleton.Server.IsRunning) { this.enabled = false; return; }
+        movementInput = new int[2];
+        inputs = new bool[7];
+        rb.freezeRotation = true;
     }
 
     public void SetInput(bool[] inputs, Vector3 forward, Quaternion cam)
     {
         this.inputs = inputs;
-        if (NetworkManager.Singleton.Server.IsRunning && player.IsLocal) return;
+        // IF NetPlayers
+        if (!NetworkManager.Singleton.Server.IsRunning || player.IsLocal) return;
         orientation.forward = forward;
         this.cam.rotation = cam;
     }
@@ -59,7 +67,6 @@ public class PlayerMovement : MonoBehaviour
     {
         horizontalInput = 0;
         verticalInput = 0;
-        jumping = false;
         crouch = false;
         interact = false;
     }
@@ -75,12 +82,13 @@ public class PlayerMovement : MonoBehaviour
         if (inputs[1]) horizontalInput = -1;
         if (inputs[2]) verticalInput = -1;
         if (inputs[3]) horizontalInput = 1;
-        if (inputs[4]) jumping = true;
+        if (inputs[4]) { jumpBufferCounter = movementSettings.jumpBufferTime; }
+        else jumpBufferCounter -= Time.deltaTime;
         if (inputs[5]) crouch = true;
         if (inputs[6]) interact = true;
 
 
-        if (jumping && grounded && readyToJump)
+        if (jumpBufferCounter > 0 && coyoteTimeCounter > 0 && readyToJump)
         {
             readyToJump = false;
             Jump();
@@ -89,31 +97,24 @@ public class PlayerMovement : MonoBehaviour
 
         if (crouch && !isCrouching && !wallRunning)
         {
-            StartCrouch();
+            Crouch(true);
         }
         if (!crouch && isCrouching)
         {
-            EndCrouch();
+            Crouch(false);
         }
         movementInput[0] = verticalInput;
         movementInput[1] = horizontalInput;
     }
 
     //----MOVEMENT STUFF----
-
-    private void Start()
-    {
-        movementInput = new int[2];
-        inputs = new bool[7];
-        rb.freezeRotation = true;
-    }
     private void Update()
     {
         GetInput();
         SpeedCap();
         CheckIfGrounded();
         VerifyWallRun();
-        ApllyDrag();
+        ApplyDrag();
     }
 
     private void FixedUpdate()
@@ -130,11 +131,35 @@ public class PlayerMovement : MonoBehaviour
 
         if (!movementFreeze && !wallRunning) rb.useGravity = !OnSlope();
         SendMovement();
+        cSPTick++;
+    }
+
+    // This Receives Movement data from the Server
+    public void Move(Player player, ushort tick, int serverCSPTick, Vector3 velocity, Vector3 newPosition, Vector3 forward, Quaternion camRot)
+    {
+        //Moves Netplayer With interpolation
+        if (!player.IsLocal) player.interpolation.NewUpdate(tick, newPosition);
+
+        if (NetworkManager.Singleton.Server.IsRunning) return;
+
+        if (player.IsLocal && player.multiplayerController.serverSimulationState?.currentTick < serverCSPTick)
+        {
+            player.multiplayerController.serverSimulationState.position = newPosition;
+            player.multiplayerController.serverSimulationState.rotation = forward;
+            player.multiplayerController.serverSimulationState.velocity = velocity;
+            player.multiplayerController.serverSimulationState.currentTick = serverCSPTick;
+        }
+        // IF NetPlayer on Client
+        if (player.IsLocal) return;
+        orientation.forward = forward;
+        cam.rotation = camRot;
+
     }
 
     private void ApplyMovement(Vector3 trueForward)
     {
         if (movementFreeze) return;
+        // print("Applied movement");
         MoveDirection = trueForward * verticalInput + orientation.right * horizontalInput;
 
         if (grounded) rb.AddForce(MoveDirection.normalized * movementSettings.moveSpeed * 10, ForceMode.Force);
@@ -157,7 +182,7 @@ public class PlayerMovement : MonoBehaviour
         if (!(onWallLeft && horizontalInput > 0) && !(onWallRight && horizontalInput < 0))
             rb.AddForce(-wallNormal * 100, ForceMode.Force);
 
-        if (jumping) WallJump();
+        if (jumpBufferCounter > 0) WallJump();
     }
 
     private void WallJump()
@@ -169,7 +194,7 @@ public class PlayerMovement : MonoBehaviour
         rb.AddForce(forceToApply, ForceMode.Impulse);
     }
 
-    private void ApllyDrag()
+    private void ApplyDrag()
     {
         if (grounded) rb.drag = movementSettings.groundDrag;
         else rb.drag = movementSettings.airDrag;
@@ -190,6 +215,8 @@ public class PlayerMovement : MonoBehaviour
         rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
 
         rb.AddForce(transform.up * movementSettings.jumpForce, ForceMode.Impulse);
+        coyoteTimeCounter = 0;
+        print("Jumped");
     }
 
     //----CHECKS----
@@ -221,6 +248,8 @@ public class PlayerMovement : MonoBehaviour
     private void CheckIfGrounded()
     {
         grounded = Physics.Raycast(groundCheck.position, Vector3.down, movementSettings.groundCheckHeight, ground);
+        if (grounded) coyoteTimeCounter = movementSettings.coyoteTime;
+        else coyoteTimeCounter -= Time.deltaTime;
     }
 
     private void ResetJump()
@@ -254,17 +283,13 @@ public class PlayerMovement : MonoBehaviour
         rb.AddForce(Vector3.down * force);
     }
 
-    private void StartCrouch()
+    private void Crouch(bool state)
     {
-        isCrouching = true;
-        transform.localScale = new Vector3(1, 0.5f, 1);
-    }
+        isCrouching = state;
+        if (state) col.height = col.height / 2;
+        else col.height = col.height * 2;
 
-    private void EndCrouch()
-    {
-        isCrouching = false;
-
-        transform.localScale = new Vector3(1, 1, 1);
+        // transform.localScale = new Vector3(1, 0.5f, 1);
     }
 
     private bool OnSlope()
@@ -284,20 +309,24 @@ public class PlayerMovement : MonoBehaviour
 
     private void SendMovement()
     {
-        // if (NetworkManager.Singleton.CurrentTick % 2 != 0) return;
+        if (!NetworkManager.Singleton.Server.IsRunning) return;
         Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.playerMovement);
-        message.AddUShort(player.Id);
-        message.AddUShort(NetworkManager.Singleton.CurrentTick);
+        message.AddUShort(player.Id);//Player Id Correct
+        message.AddUShort(NetworkManager.Singleton.CurrentTick);//ServerTick correct
+        message.AddInt(clientTick);//ServerCSPTick Correct
+        message.AddVector3(rb.velocity);
         message.AddVector3(transform.position);
         message.AddVector3(orientation.forward);
         message.AddQuaternion(cam.rotation);
         message.AddInts(movementInput);
-        message.AddBool(inputs[5]);
+        message.AddBool(crouch);
+
         NetworkManager.Singleton.Server.SendToAll(message);
     }
 
     private void SendWallRun(bool state, int i)
     {
+        if (!NetworkManager.Singleton.Server.IsRunning) return;
         Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.wallRun);
         message.AddBool(state);
         message.AddInt(i);//0=Left / 1=Right
@@ -309,7 +338,22 @@ public class PlayerMovement : MonoBehaviour
     {
         if (Player.list.TryGetValue(fromClientId, out Player player))
         {
+            // print("Client to server input");
             player.Movement.SetInput(message.GetBools(7), message.GetVector3(), message.GetQuaternion());
+            player.Movement.clientTick = message.GetInt();
+        }
+    }
+
+
+    [MessageHandler((ushort)ServerToClientId.playerMovement)]
+    private static void PlayerMove(Message message)
+    {
+        if (Player.list.TryGetValue(message.GetUShort(), out Player player))
+        {
+            player.Movement.Move(player, message.GetUShort(), message.GetInt(), message.GetVector3(), message.GetVector3(), message.GetVector3(), message.GetQuaternion());
+            int[] inputs = message.GetInts();
+            bool isSliding = message.GetBool();
+            player.playerEffects.PlayerAnimator(inputs, isSliding);
         }
     }
 

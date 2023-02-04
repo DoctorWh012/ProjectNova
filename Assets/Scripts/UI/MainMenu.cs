@@ -3,12 +3,14 @@ using Riptide;
 using System.Collections;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using Steamworks;
 
 public class MainMenu : MonoBehaviour
 {
     public static MainMenu Instance;
     [SerializeField] private TMP_InputField usernameField;
     [SerializeField] private TMP_InputField ipField;
+    [SerializeField] private TextMeshProUGUI versionTXT;
     [SerializeField] private GameObject mainMenu;
     [SerializeField] private GameObject[] otherMenus;
 
@@ -16,16 +18,17 @@ public class MainMenu : MonoBehaviour
     {
         Instance = this;
         GuaranteeStartAtMainMenu();
+        versionTXT.SetText(Application.version);
     }
 
     public void ConnectClicked()
     {
-        NetworkManager.Singleton.Connect(ipField.text);
+        LobbyManager.Singleton.JoinLobby(ulong.Parse(ipField.text));
     }
 
     public void ConnectLocal()
     {
-        NetworkManager.Singleton.ConnectHost();
+        LobbyManager.Singleton.CreateLobby();
     }
 
     public void QuitGame()
@@ -35,8 +38,12 @@ public class MainMenu : MonoBehaviour
 
     public IEnumerator SendName()
     {
+        string playerName;
+        if (SteamManager.Initialized) playerName = SteamFriends.GetPersonaName();
+        else playerName = "";
+
         Message message = Message.Create(MessageSendMode.Reliable, ClientToServerId.name);
-        message.AddString(usernameField.text);
+        message.AddString(playerName);
 
         if (SceneManager.GetActiveScene().name != "RiptideLobby") SceneManager.LoadScene("RiptideLobby");
         while (SceneManager.GetActiveScene().name != "RiptideLobby") yield return null;

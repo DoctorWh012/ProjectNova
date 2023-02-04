@@ -61,6 +61,12 @@ public class MatchManager : MonoBehaviour
         GameCanvas.Instance.timerText.SetText($"");
     }
 
+    public void ExitMatch()
+    {
+        NetworkManager.Singleton.DisconnectClient();
+        if (NetworkManager.Singleton.Server.IsRunning) NetworkManager.Singleton.StopServer();
+    }
+
     private void FreezeAllPlayerMovement(bool state)
     {
         foreach (KeyValuePair<ushort, Player> player in Player.list)
