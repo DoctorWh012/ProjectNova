@@ -174,7 +174,7 @@ public class MatchManager : MonoBehaviour
         {
             case TimerAction.StartMatch:
                 GameCanvas.Instance.timerText.SetText($"");
-                StartCoroutine(SwitchMatchScene("RiptideMultiplayer", TimerAction.StartMatch));
+                StartCoroutine(SwitchMatchScene("Facility", TimerAction.StartMatch));
                 break;
 
             case TimerAction.PrepareForMatch:

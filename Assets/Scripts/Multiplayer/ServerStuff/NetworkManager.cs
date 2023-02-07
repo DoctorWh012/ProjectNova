@@ -24,7 +24,6 @@ public enum ServerToClientId : ushort
     meleeAtack,
     matchStart,
     matchOver,
-    wallRun,
 }
 
 public enum ClientToServerId : ushort

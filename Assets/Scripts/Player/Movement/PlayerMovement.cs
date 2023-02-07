@@ -115,6 +115,7 @@ public class PlayerMovement : MonoBehaviour
         CheckIfGrounded();
         VerifyWallRun();
         ApplyDrag();
+        CheckCameraTilt();
     }
 
     private void FixedUpdate()
@@ -159,7 +160,6 @@ public class PlayerMovement : MonoBehaviour
     private void ApplyMovement(Vector3 trueForward)
     {
         if (movementFreeze) return;
-        // print("Applied movement");
         MoveDirection = trueForward * verticalInput + orientation.right * horizontalInput;
 
         if (grounded) rb.AddForce(MoveDirection.normalized * movementSettings.moveSpeed * 10, ForceMode.Force);
@@ -192,6 +192,8 @@ public class PlayerMovement : MonoBehaviour
 
         rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
         rb.AddForce(forceToApply, ForceMode.Impulse);
+
+        player.playerEffects.PlayJumpEffects();
     }
 
     private void ApplyDrag()
@@ -216,7 +218,7 @@ public class PlayerMovement : MonoBehaviour
 
         rb.AddForce(transform.up * movementSettings.jumpForce, ForceMode.Impulse);
         coyoteTimeCounter = 0;
-        print("Jumped");
+        player.playerEffects.PlayJumpEffects();
     }
 
     //----CHECKS----
@@ -230,23 +232,27 @@ public class PlayerMovement : MonoBehaviour
     private void VerifyWallRun()
     {
         CheckForWall();
-
-        int i = onWallLeft ? 0 : 1;
-
         if ((onWallLeft || onWallRight) && !grounded)
         {
             if (!wallRunning)
             {
-                wallRunning = true; SendWallRun(wallRunning, i);
+                wallRunning = true;
                 rb.velocity = new Vector3(rb.velocity.x, rb.velocity.y / 2, rb.velocity.z);
             }
         }
 
-        else { if (wallRunning) wallRunning = false; SendWallRun(wallRunning, i); }
+        else
+        {
+            if (wallRunning)
+            {
+                wallRunning = false;
+            }
+        }
     }
 
     private void CheckIfGrounded()
     {
+        if (!grounded && Physics.Raycast(groundCheck.position, Vector3.down, movementSettings.groundCheckHeight, ground)) player.playerEffects.jumpSmokeParticle.Play();
         grounded = Physics.Raycast(groundCheck.position, Vector3.down, movementSettings.groundCheckHeight, ground);
         if (grounded) coyoteTimeCounter = movementSettings.coyoteTime;
         else coyoteTimeCounter -= Time.deltaTime;
@@ -257,6 +263,32 @@ public class PlayerMovement : MonoBehaviour
         readyToJump = true;
     }
 
+    private void CheckCameraTilt()
+    {
+        print(grounded);
+        if (grounded)
+        {
+            switch (horizontalInput)
+            {
+                case 1:
+                    PlayerCam.Instance.TiltCamera(true, 0, 4, 0.3f);
+                    break;
+                case -1:
+                    PlayerCam.Instance.TiltCamera(true, 1, 4, 0.3f);
+                    break;
+                case 0:
+                    PlayerCam.Instance.TiltCamera(false, 0, 4, 0.2f);
+                    break;
+            }
+        }
+        else
+        {
+            int i = onWallLeft ? 0 : 1;
+            if (wallRunning) { PlayerCam.Instance.TiltCamera(true, i, 15, 0.2f); }
+            else { PlayerCam.Instance.TiltCamera(false, i, 15, 0.2f); }
+        }
+    }
+
     private void SpeedCap()
     {
         Vector3 flatVel = new Vector3(rb.velocity.x, 0, rb.velocity.z);
@@ -264,6 +296,7 @@ public class PlayerMovement : MonoBehaviour
         {
             if (flatVel.magnitude > movementSettings.moveSpeed)
             {
+                player.playerEffects.PlaySlideEffects(false);
                 Vector3 limitedVel = flatVel.normalized * movementSettings.moveSpeed;
                 rb.velocity = new Vector3(limitedVel.x, rb.velocity.y, limitedVel.z);
             }
@@ -272,6 +305,7 @@ public class PlayerMovement : MonoBehaviour
         {
             if (flatVel.magnitude > movementSettings.moveSpeed)
             {
+                if (grounded) player.playerEffects.PlaySlideEffects(true);
                 Vector3 limitedVel = flatVel.normalized * (movementSettings.moveSpeed * movementSettings.crouchedSpeedMultiplier);
                 rb.velocity = new Vector3(limitedVel.x, rb.velocity.y, limitedVel.z);
             }
@@ -288,8 +322,6 @@ public class PlayerMovement : MonoBehaviour
         isCrouching = state;
         if (state) col.height = col.height / 2;
         else col.height = col.height * 2;
-
-        // transform.localScale = new Vector3(1, 0.5f, 1);
     }
 
     private bool OnSlope()
@@ -322,15 +354,6 @@ public class PlayerMovement : MonoBehaviour
         message.AddBool(crouch);
 
         NetworkManager.Singleton.Server.SendToAll(message);
-    }
-
-    private void SendWallRun(bool state, int i)
-    {
-        if (!NetworkManager.Singleton.Server.IsRunning) return;
-        Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.wallRun);
-        message.AddBool(state);
-        message.AddInt(i);//0=Left / 1=Right
-        NetworkManager.Singleton.Server.Send(message, player.Id);
     }
 
     [MessageHandler((ushort)ClientToServerId.input)]
