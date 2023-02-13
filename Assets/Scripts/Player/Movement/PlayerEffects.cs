@@ -10,6 +10,7 @@ public class PlayerEffects : MonoBehaviour
     [SerializeField] public ParticleSystem jumpSmokeParticle;
     [SerializeField] public ParticleSystem slideGrindParticle;
     [SerializeField] public AudioSource slideGrindAudioSRC;
+    private bool isGrinding = false;
 
     public void PlayerAnimator(int[] inputs, bool isSliding)
     {
@@ -51,7 +52,8 @@ public class PlayerEffects : MonoBehaviour
 
     public void PlaySlideEffects(bool state)
     {
-        if (state && !slideGrindParticle.isPlaying) { slideGrindParticle.Play(); slideGrindAudioSRC.Play(); }
-        else if (!state && slideGrindParticle.isPlaying) { slideGrindParticle.Stop(); slideGrindAudioSRC.Stop(); }
+
+        if (state && !isGrinding) { slideGrindParticle.Play(); slideGrindAudioSRC.Play(); isGrinding = true; }
+        else if (!state && isGrinding) { slideGrindParticle.Stop(); slideGrindAudioSRC.Stop(); isGrinding = false; }
     }
 }

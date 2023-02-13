@@ -116,7 +116,7 @@ public class PlayerMovement : MonoBehaviour
         VerifyWallRun();
         ApplyDrag();
         CheckCameraTilt();
-        
+
     }
 
     private void FixedUpdate()
@@ -137,8 +137,10 @@ public class PlayerMovement : MonoBehaviour
     }
 
     // This Receives Movement data from the Server
-    public void Move(Player player, ushort tick, int serverCSPTick, Vector3 velocity, Vector3 newPosition, Vector3 forward, Quaternion camRot)
+    public void Move(Player player, ushort tick, int serverCSPTick, Vector3 velocity, Vector3 newPosition, Vector3 forward, Quaternion camRot, bool isSliding)
     {
+        CheckSlideGrind(isSliding, velocity);
+
         //Moves Netplayer With interpolation
         if (!player.IsLocal) player.interpolation.NewUpdate(tick, newPosition);
 
@@ -219,7 +221,6 @@ public class PlayerMovement : MonoBehaviour
 
         rb.AddForce(transform.up * movementSettings.jumpForce, ForceMode.Impulse);
         coyoteTimeCounter = 0;
-        // player.playerEffects.PlayJumpEffects();
     }
 
     //----CHECKS----
@@ -264,6 +265,12 @@ public class PlayerMovement : MonoBehaviour
     private void ResetJump()
     {
         readyToJump = true;
+    }
+
+    private void CheckSlideGrind(bool sliding, Vector3 velocity)
+    {
+        if (sliding && velocity.magnitude > 5f && grounded) player.playerEffects.PlaySlideEffects(true);
+        else player.playerEffects.PlaySlideEffects(false);
     }
 
     private void CheckCameraTilt()
@@ -321,8 +328,16 @@ public class PlayerMovement : MonoBehaviour
     private void Crouch(bool state)
     {
         isCrouching = state;
-        if (state) col.height = col.height / 2;
-        else col.height = col.height * 2;
+        if (state)
+        {
+            col.height = col.height / 2;
+            groundCheck.localPosition = new Vector3(0, groundCheck.localPosition.y / 2, 0);
+        }
+        else
+        {
+            col.height = col.height * 2;
+            groundCheck.localPosition = new Vector3(0, groundCheck.localPosition.y * 2, 0);
+        }
     }
 
     private bool OnSlope()
@@ -345,6 +360,7 @@ public class PlayerMovement : MonoBehaviour
         if (!NetworkManager.Singleton.Server.IsRunning) return;
         Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.playerMovement);
         message.AddUShort(player.Id);//Player Id Correct
+        message.AddBool(crouch);
         message.AddUShort(NetworkManager.Singleton.CurrentTick);//ServerTick correct
         message.AddInt(clientTick);//ServerCSPTick Correct
         message.AddVector3(rb.velocity);
@@ -352,7 +368,6 @@ public class PlayerMovement : MonoBehaviour
         message.AddVector3(orientation.forward);
         message.AddQuaternion(cam.rotation);
         message.AddInts(movementInput);
-        message.AddBool(crouch);
 
         NetworkManager.Singleton.Server.SendToAll(message);
     }
@@ -374,9 +389,9 @@ public class PlayerMovement : MonoBehaviour
     {
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
-            player.Movement.Move(player, message.GetUShort(), message.GetInt(), message.GetVector3(), message.GetVector3(), message.GetVector3(), message.GetQuaternion());
-            int[] inputs = message.GetInts();
             bool isSliding = message.GetBool();
+            player.Movement.Move(player, message.GetUShort(), message.GetInt(), message.GetVector3(), message.GetVector3(), message.GetVector3(), message.GetQuaternion(), isSliding);
+            int[] inputs = message.GetInts();
             player.playerEffects.PlayerAnimator(inputs, isSliding);
         }
     }
