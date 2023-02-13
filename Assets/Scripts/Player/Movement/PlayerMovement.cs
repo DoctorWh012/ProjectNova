@@ -116,6 +116,7 @@ public class PlayerMovement : MonoBehaviour
         VerifyWallRun();
         ApplyDrag();
         CheckCameraTilt();
+        
     }
 
     private void FixedUpdate()
@@ -218,7 +219,7 @@ public class PlayerMovement : MonoBehaviour
 
         rb.AddForce(transform.up * movementSettings.jumpForce, ForceMode.Impulse);
         coyoteTimeCounter = 0;
-        player.playerEffects.PlayJumpEffects();
+        // player.playerEffects.PlayJumpEffects();
     }
 
     //----CHECKS----
@@ -252,8 +253,10 @@ public class PlayerMovement : MonoBehaviour
 
     private void CheckIfGrounded()
     {
-        if (!grounded && Physics.Raycast(groundCheck.position, Vector3.down, movementSettings.groundCheckHeight, ground)) player.playerEffects.jumpSmokeParticle.Play();
-        grounded = Physics.Raycast(groundCheck.position, Vector3.down, movementSettings.groundCheckHeight, ground);
+        bool i = Physics.Raycast(groundCheck.position, Vector3.down, movementSettings.groundCheckHeight, ground);
+        if (!grounded && i) player.playerEffects.jumpSmokeParticle.Play();
+        else if (grounded && !i) player.playerEffects.jumpSmokeParticle.Play();
+        grounded = i;
         if (grounded) coyoteTimeCounter = movementSettings.coyoteTime;
         else coyoteTimeCounter -= Time.deltaTime;
     }
@@ -265,19 +268,19 @@ public class PlayerMovement : MonoBehaviour
 
     private void CheckCameraTilt()
     {
-        print(grounded);
+        if (!player.IsLocal) return;
         if (grounded)
         {
             switch (horizontalInput)
             {
                 case 1:
-                    PlayerCam.Instance.TiltCamera(true, 0, 4, 0.3f);
+                    PlayerCam.Instance.TiltCamera(true, 0, 2, 0.3f);
                     break;
                 case -1:
-                    PlayerCam.Instance.TiltCamera(true, 1, 4, 0.3f);
+                    PlayerCam.Instance.TiltCamera(true, 1, 2, 0.3f);
                     break;
                 case 0:
-                    PlayerCam.Instance.TiltCamera(false, 0, 4, 0.2f);
+                    PlayerCam.Instance.TiltCamera(false, 0, 2, 0.2f);
                     break;
             }
         }
@@ -296,7 +299,6 @@ public class PlayerMovement : MonoBehaviour
         {
             if (flatVel.magnitude > movementSettings.moveSpeed)
             {
-                player.playerEffects.PlaySlideEffects(false);
                 Vector3 limitedVel = flatVel.normalized * movementSettings.moveSpeed;
                 rb.velocity = new Vector3(limitedVel.x, rb.velocity.y, limitedVel.z);
             }
@@ -305,7 +307,6 @@ public class PlayerMovement : MonoBehaviour
         {
             if (flatVel.magnitude > movementSettings.moveSpeed)
             {
-                if (grounded) player.playerEffects.PlaySlideEffects(true);
                 Vector3 limitedVel = flatVel.normalized * (movementSettings.moveSpeed * movementSettings.crouchedSpeedMultiplier);
                 rb.velocity = new Vector3(limitedVel.x, rb.velocity.y, limitedVel.z);
             }

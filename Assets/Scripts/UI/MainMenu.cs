@@ -36,21 +36,6 @@ public class MainMenu : MonoBehaviour
         Application.Quit();
     }
 
-    public IEnumerator SendName()
-    {
-        string playerName;
-        if (SteamManager.Initialized) playerName = SteamFriends.GetPersonaName();
-        else playerName = "";
-
-        Message message = Message.Create(MessageSendMode.Reliable, ClientToServerId.name);
-        message.AddString(playerName);
-
-        if (SceneManager.GetActiveScene().name != "RiptideLobby") SceneManager.LoadScene("RiptideLobby");
-        while (SceneManager.GetActiveScene().name != "RiptideLobby") yield return null;
-
-        NetworkManager.Singleton.Client.Send(message);
-    }
-
     private void GuaranteeStartAtMainMenu()
     {
         mainMenu.SetActive(true);

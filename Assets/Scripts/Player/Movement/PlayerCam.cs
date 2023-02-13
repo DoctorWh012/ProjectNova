@@ -70,7 +70,6 @@ public class PlayerCam : MonoBehaviour
         else if (rotateDirection == 1) desiredRotation = rotationAmount;
 
 
-
         if (!isTilted && shouldTilt || rotatedDirection != rotateDirection)
         {
             StopAllCoroutines();
@@ -101,7 +100,6 @@ public class PlayerCam : MonoBehaviour
                 rotationDuration += Time.deltaTime;
                 yield return null;
             }
-            print("UNTILTED");
         }
         else { isTilted = !isTilted; }
         rotationDuration = 0;

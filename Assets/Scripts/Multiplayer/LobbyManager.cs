@@ -1,6 +1,8 @@
 using Steamworks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using System.Collections;
+using Riptide;
 
 public class LobbyManager : MonoBehaviour
 {
@@ -52,6 +54,7 @@ public class LobbyManager : MonoBehaviour
 
     private void OnLobbyCreated(LobbyCreated_t callback)
     {
+
         if (callback.m_eResult != EResult.k_EResultOK)
         {
             Debug.LogError("Failed to create steam lobby");
@@ -95,5 +98,20 @@ public class LobbyManager : MonoBehaviour
         NetworkManager.Singleton.StopServer();
         NetworkManager.Singleton.DisconnectClient();
         SteamMatchmaking.LeaveLobby(lobbyId);
+    }
+    
+    public IEnumerator SendName()
+    {
+        string playerName;
+        if (SteamManager.Initialized) playerName = SteamFriends.GetPersonaName();
+        else playerName = "";
+
+        Message message = Message.Create(MessageSendMode.Reliable, ClientToServerId.name);
+        message.AddString(playerName);
+
+        if (SceneManager.GetActiveScene().name != "RiptideLobby") SceneManager.LoadScene("RiptideLobby");
+        while (SceneManager.GetActiveScene().name != "RiptideLobby") yield return null;
+
+        NetworkManager.Singleton.Client.Send(message);
     }
 }

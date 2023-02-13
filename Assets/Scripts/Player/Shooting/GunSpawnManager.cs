@@ -13,6 +13,10 @@ public class GunSpawnManager : MonoBehaviour
     {
         Instance = this;
         SetGunSpawnerIndex();
+    }
+
+    private void Start()
+    {
         if (!NetworkManager.Singleton.Server.IsRunning) return;
         StartGunSpawnTimers();
         NetworkManager.Singleton.Client.ClientConnected += SendGunsSpawners;

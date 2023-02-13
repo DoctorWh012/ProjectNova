@@ -47,7 +47,6 @@ public class PlayerEffects : MonoBehaviour
     public void PlayJumpEffects()
     {
         jumpSmokeParticle.Play();
-        PlayerCam.Instance.TiltCamera(false, 0, 0, 0.2f);
     }
 
     public void PlaySlideEffects(bool state)
