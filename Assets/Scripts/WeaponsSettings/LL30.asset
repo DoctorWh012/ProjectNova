@@ -12,21 +12,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fbb41ebf3dabb4849a6bc4b1be01b6cf, type: 3}
   m_Name: LL30
   m_EditorClassIdentifier: 
-  currentAmmo: 0
+  currentAmmo: 5
   slot: 1
-  weaponType: 0
+  weaponType: 1
   gunModel: {fileID: 919132149155446097, guid: ad85587f93ad943468b9ae5beeaf5520, type: 3}
   gunIcon: {fileID: 21300000, guid: 0029170d14ce6c04c9f45c22cdae5559, type: 3}
   canAim: 0
   scopeFov: 0
-  damage: 75
+  damage: 100
   range: 100
   fireRate: 1.2
   reloadTime: 2
   reloadSpins: 3
   maxAmmo: 5
-  recoilForce: 0
-  maxRecoilDistance: 0
-  isShotgun: 0
-  pellets: 0
-  spread: 0
+  recoilForce: 10
+  maxRecoilDistance: 6
+  isShotgun: 1
+  pellets: 3
+  spread: 0.06

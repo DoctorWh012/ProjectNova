@@ -24,7 +24,6 @@ public enum ServerToClientId : ushort
     meleeAtack,
     matchStart,
     matchOver,
-    wallRun,
 }
 
 public enum ClientToServerId : ushort
@@ -163,7 +162,7 @@ public class NetworkManager : MonoBehaviour
 
     private void DidConnect(object sender, EventArgs e)
     {
-        StartCoroutine(MainMenu.Instance.SendName());
+        StartCoroutine(LobbyManager.Singleton.SendName());
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
@@ -217,4 +216,5 @@ public class NetworkManager : MonoBehaviour
     {
         Singleton.SetTick(message.GetUShort());
     }
+
 }

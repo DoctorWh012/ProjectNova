@@ -7,6 +7,9 @@ public class PlayerEffects : MonoBehaviour
     [Header("Components")]
     [SerializeField] private Player player;
     [SerializeField] private Animator playerAnimator;
+    [SerializeField] public ParticleSystem jumpSmokeParticle;
+    [SerializeField] public ParticleSystem slideGrindParticle;
+    [SerializeField] public AudioSource slideGrindAudioSRC;
 
     public void PlayerAnimator(int[] inputs, bool isSliding)
     {
@@ -39,5 +42,16 @@ public class PlayerEffects : MonoBehaviour
         {
             playerAnimator.Play(animation);
         }
+    }
+
+    public void PlayJumpEffects()
+    {
+        jumpSmokeParticle.Play();
+    }
+
+    public void PlaySlideEffects(bool state)
+    {
+        if (state && !slideGrindParticle.isPlaying) { slideGrindParticle.Play(); slideGrindAudioSRC.Play(); }
+        else if (!state && slideGrindParticle.isPlaying) { slideGrindParticle.Stop(); slideGrindAudioSRC.Stop(); }
     }
 }

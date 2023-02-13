@@ -40,7 +40,7 @@ namespace DitzelGames.FastIK
 
 
         protected float[] BonesLength; //Target to Origin
-        protected float CompleteLength;
+        public float CompleteLength;
         protected Transform[] Bones;
         protected Vector3[] Positions;
         protected Vector3[] StartDirectionSucc;

@@ -6,7 +6,7 @@ public class HeadBobController : MonoBehaviour
     [SerializeField] private Transform cam;
     [SerializeField] private Transform gunCam;
     [SerializeField] private Transform cameraHolder;
-    [SerializeField] private MultiplayerController multiplayerController;
+    [SerializeField] private PlayerMovement playerMovement;
 
     [Header("Settings")]
     [SerializeField, Range(0, 0.1f)] private float stepAmplitude = 0.015f;
@@ -50,7 +50,7 @@ public class HeadBobController : MonoBehaviour
     {
         if (!UIManager.Instance.focused) return;
         if (!(Input.GetAxisRaw("Vertical") != 0 || Input.GetAxisRaw("Horizontal") != 0)) return;
-        if (!multiplayerController.isGrounded) return;
+        if (!playerMovement.grounded) return;
 
         if (envCamBob)
             PlayMotion(FootStepMotion(stepAmplitude));

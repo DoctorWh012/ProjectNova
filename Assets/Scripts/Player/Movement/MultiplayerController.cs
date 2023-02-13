@@ -22,11 +22,6 @@ public class MultiplayerController : MonoBehaviour
     [SerializeField] private PlayerMovement playerMovement;
     [SerializeField] private Transform orientation;
     [SerializeField] private Transform cam;
-    [SerializeField] private Transform groundCheck;
-    [SerializeField] private LayerMask groundLayer;
-
-    [Header("Settings")]
-    [SerializeField] private float groundCheckHeight;
 
     [Header("Keybinds")]
     [SerializeField] private KeyCode forward;
@@ -46,8 +41,6 @@ public class MultiplayerController : MonoBehaviour
     public SimulationState serverSimulationState = new SimulationState();
     private int lastCorrectedFrame;
 
-
-    public bool isGrounded { get; private set; }
     public ClientInputState inputs { get; private set; }
 
     private void Start()
@@ -58,7 +51,6 @@ public class MultiplayerController : MonoBehaviour
 
     private void Update()
     {
-        CheckIfGrounded();
         ResetInput();
         GetInput();
     }
@@ -87,8 +79,8 @@ public class MultiplayerController : MonoBehaviour
         if (!UIManager.Instance.focused) return;
 
         if (Input.GetKey(forward)) inputs.inputs[0] = true;
-        if (Input.GetKey(backward)) inputs.inputs[1] = true;
-        if (Input.GetKey(left)) inputs.inputs[2] = true;
+        if (Input.GetKey(left)) inputs.inputs[1] = true;
+        if (Input.GetKey(backward)) inputs.inputs[2] = true;
         if (Input.GetKey(right)) inputs.inputs[3] = true;
         if (Input.GetKey(jump)) inputs.inputs[4] = true;
         if (Input.GetKey(crouch)) inputs.inputs[5] = true;
@@ -101,11 +93,6 @@ public class MultiplayerController : MonoBehaviour
         {
             inputs.inputs[i] = false;
         }
-    }
-
-    private void CheckIfGrounded()
-    {
-        isGrounded = Physics.Raycast(groundCheck.position, Vector3.down, groundCheckHeight, groundLayer);
     }
 
     public SimulationState CurrentSimulationState(ClientInputState inputs)
@@ -141,7 +128,7 @@ public class MultiplayerController : MonoBehaviour
         // Find the difference between the vector's values. 
         float differenceX = Mathf.Abs(cachedSimulationState.position.x - serverSimulationState.position.x);
         float differenceY = Mathf.Abs(cachedSimulationState.position.y - serverSimulationState.position.y);
-        float differenceZ = Mathf.Abs(cachedSimulationState.position.z - serverSimulationState.position.z);;
+        float differenceZ = Mathf.Abs(cachedSimulationState.position.z - serverSimulationState.position.z); ;
 
         //  The amount of distance in units that we will allow the client's
         //  prediction to drift from it's position on the server, before a
