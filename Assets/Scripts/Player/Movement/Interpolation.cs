@@ -56,13 +56,11 @@ public class Interpolation : MonoBehaviour
         {
             if (to.Position != from.Position)
             {
-                print("Lerped Position on interpolation");
                 transform.position = Vector3.Lerp(from.Position, to.Position, lerpAmmount);
             }
             return;
         }
         transform.position = Vector3.LerpUnclamped(from.Position, to.Position, lerpAmmount);
-        print("Lerped Unclamped Position on interpolation");
     }
 
     public void NewUpdate(ushort tick, Vector3 position)

@@ -2,11 +2,12 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-public class GameLogic : MonoBehaviour
+public class GameManager : MonoBehaviour
 {
-    private static GameLogic _singleton;
+    public bool networking { get; private set; } = NetworkManager.Singleton != null;
 
-    public static GameLogic Singleton
+    private static GameManager _singleton;
+    public static GameManager Singleton
     {
         get => _singleton;
         private set
@@ -18,8 +19,8 @@ public class GameLogic : MonoBehaviour
 
             else if (_singleton != value)
             {
-                Debug.Log($"{nameof(GameLogic)} instance already exists, destroying duplicate");
-                Destroy(value);
+                Debug.Log($"{nameof(GameManager)} instance already exists, destroying duplicate");
+                Destroy(value.gameObject);
             }
 
         }
@@ -38,8 +39,11 @@ public class GameLogic : MonoBehaviour
     [SerializeField] private ParticleSystem playerHitPrefab;
     [SerializeField] private TrailRenderer shotTrail;
 
+
     private void Awake()
     {
         Singleton = this;
+        DontDestroyOnLoad(gameObject);
     }
+
 }

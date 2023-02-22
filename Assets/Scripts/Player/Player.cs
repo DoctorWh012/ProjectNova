@@ -8,7 +8,7 @@ public class Player : MonoBehaviour
     public static Dictionary<ushort, Player> list = new Dictionary<ushort, Player>();
 
     public ushort Id { get; private set; }
-    public bool IsLocal { get; private set; }
+    public bool IsLocal;//{ get; private set; }
     public string username { get; private set; }
     public bool isAlive { get; private set; } = true;
     public PlayerMovement Movement => movement;
@@ -31,10 +31,14 @@ public class Player : MonoBehaviour
     {
         DontDestroyOnLoad(gameObject);
     }
+    private void Start()
+    {
+        if (!GameManager.Singleton.networking) IsLocal = true;
+    }
     // --------CLIENT--------
     private void OnDestroy()
     {
-        ScoreBoard.Instance.RemoveScoreBoardItem(list[Id]);
+        if (ScoreBoard.Instance != null) ScoreBoard.Instance.RemoveScoreBoardItem(list[Id]);
         list.Remove(Id);
     }
 
@@ -44,13 +48,13 @@ public class Player : MonoBehaviour
         Player player;
         if (id == NetworkManager.Singleton.Client.Id)
         {
-            player = Instantiate(GameLogic.Singleton.LocalPlayerPrefab, position, Quaternion.identity).GetComponent<Player>();
+            player = Instantiate(GameManager.Singleton.LocalPlayerPrefab, position, Quaternion.identity).GetComponent<Player>();
             player.interpolation.enabled = false;
             player.IsLocal = true;
         }
         else
         {
-            player = Instantiate(GameLogic.Singleton.PlayerPrefab, position, Quaternion.identity).GetComponent<Player>();
+            player = Instantiate(GameManager.Singleton.PlayerPrefab, position, Quaternion.identity).GetComponent<Player>();
             player.interpolation.enabled = true;
             player.IsLocal = false;
         }
@@ -73,13 +77,13 @@ public class Player : MonoBehaviour
         Player player;
         if (id == NetworkManager.Singleton.Client.Id)
         {
-            player = Instantiate(GameLogic.Singleton.LocalPlayerPrefab, SpawnHandler.Instance.GetSpawnLocation(), Quaternion.identity).GetComponent<Player>();
+            player = Instantiate(GameManager.Singleton.LocalPlayerPrefab, SpawnHandler.Instance.GetSpawnLocation(), Quaternion.identity).GetComponent<Player>();
             player.IsLocal = true;
         }
         //Spawns NetPlayer if im the Host
         else
         {
-            player = Instantiate(GameLogic.Singleton.PlayerPrefab, SpawnHandler.Instance.GetSpawnLocation(), Quaternion.identity).GetComponent<Player>();
+            player = Instantiate(GameManager.Singleton.PlayerPrefab, SpawnHandler.Instance.GetSpawnLocation(), Quaternion.identity).GetComponent<Player>();
             player.IsLocal = false;
         }
         player.name = $"Player {id} ({(string.IsNullOrEmpty(username) ? "Guest" : username)}";

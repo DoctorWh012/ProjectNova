@@ -8,8 +8,11 @@ public class PlayerEffects : MonoBehaviour
     [SerializeField] private Player player;
     [SerializeField] private Animator playerAnimator;
     [SerializeField] public ParticleSystem jumpSmokeParticle;
+    [SerializeField] private AudioClip jumpSFX;
     [SerializeField] public ParticleSystem slideGrindParticle;
     [SerializeField] public AudioSource slideGrindAudioSRC;
+    [SerializeField] private AudioSource mainAudioSRC;
+    [SerializeField] private AudioClip[] walkingSFX;
     private bool isGrinding = false;
 
     public void PlayerAnimator(int[] inputs, bool isSliding)
@@ -45,6 +48,12 @@ public class PlayerEffects : MonoBehaviour
         }
     }
 
+    public void PlayWalkingSound()
+    {
+        AudioClip audio = walkingSFX[Random.Range(0, walkingSFX.Length)];
+        mainAudioSRC.PlayOneShot(audio, Random.Range(-0.1f, 0.1f));
+    }
+
     public void PlayJumpEffects()
     {
         jumpSmokeParticle.Play();
@@ -53,7 +62,17 @@ public class PlayerEffects : MonoBehaviour
     public void PlaySlideEffects(bool state)
     {
 
-        if (state && !isGrinding) { slideGrindParticle.Play(); slideGrindAudioSRC.Play(); isGrinding = true; }
-        else if (!state && isGrinding) { slideGrindParticle.Stop(); slideGrindAudioSRC.Stop(); isGrinding = false; }
+        if (state && !isGrinding)
+        {
+            slideGrindParticle.Play();
+            slideGrindAudioSRC.Play();
+            isGrinding = true;
+        }
+        else if (!state && isGrinding)
+        {
+            slideGrindParticle.Stop();
+            slideGrindAudioSRC.Stop();
+            isGrinding = false;
+        }
     }
 }

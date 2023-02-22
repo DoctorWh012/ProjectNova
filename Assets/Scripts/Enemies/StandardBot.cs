@@ -40,7 +40,6 @@ public class StandardBot : MonoBehaviour
         if (Time.time >= nextTimeToFire)
         {
             nextTimeToFire = Time.time + 1f / (fireRate + Random.Range(-fireRateRand, fireRateRand));
-            BotShoot();
         }
     }
 
@@ -65,13 +64,6 @@ public class StandardBot : MonoBehaviour
         lowerArm.AddForce(Vector3.up * (0f - y));
     }
 
-    private void BotShoot()
-    {
-        muzzleFlash.Play();
-        Rigidbody bulletRb = Instantiate(bullet, muzzleFlash.transform.position, muzzleFlash.transform.rotation).GetComponent<Rigidbody>();
-        bulletRb.AddForce(bulletRb.transform.right * bulletForce);
-    }
-
     private void CheckSight()
     {
         float targetDist = 0;
@@ -89,6 +81,6 @@ public class StandardBot : MonoBehaviour
     {
         if (target == null) return;
         Gizmos.color = Color.blue;
-        Gizmos.DrawRay(lowerArm.transform.position, lowerArm.transform.up * 30);
+        Gizmos.DrawRay(muzzleFlash.transform.position, muzzleFlash.transform.up * 30);
     }
 }

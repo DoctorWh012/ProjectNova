@@ -10,7 +10,6 @@ GameObject:
   m_Component:
   - component: {fileID: 6809415558016481230}
   - component: {fileID: 6809415558016481229}
-  - component: {fileID: 6809415558016481231}
   m_Layer: 0
   m_Name: NetworkManager
   m_TagString: Untagged
@@ -46,20 +45,3 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   maxClientCount: 10
   tickDivergenceTolerance: 1
---- !u!114 &6809415558016481231
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 6809415558016481228}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: e8764ee99230a1a498c6df73499da2bf, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  localPlayerPrefab: {fileID: 8238085930288991305, guid: 665fb6b0cdf7df54ab90662328ca391d, type: 3}
-  playerPrefab: {fileID: 8238085930288991305, guid: 451dc5ec540e1a74ea8561a1fb6c0b4b, type: 3}
-  hitPrefab: {fileID: 3201369399165217504, guid: 110d06a7d0f890547b0099607ca6c56c, type: 3}
-  playerHitPrefab: {fileID: 6458353546420662939, guid: f4a8adbead42ee14b8085a6b7d7eb9fb, type: 3}
-  shotTrail: {fileID: 2188262497842549205, guid: 2b53652ae09a2c848b6b51ec2aad1ace, type: 3}

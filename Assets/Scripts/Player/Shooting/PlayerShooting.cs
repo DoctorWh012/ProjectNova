@@ -28,10 +28,10 @@ public class PlayerShooting : MonoBehaviour
     private Transform barrelTip;
     private Animator animator;
     private ParticleSystem weaponEffectParticle;
-    private int range;
+    public int range;
 
     // Start is called before the first frame update
-    void Awake()
+    private void Start()
     {
         SendGunSettings(0);
     }
@@ -63,10 +63,9 @@ public class PlayerShooting : MonoBehaviour
         DisableAllGunMeshes();
         if (activeWeaponType != WeaponType.melee)
         {
-            foreach (MeshRenderer mesh in gunsSettings[index].gunMesh)
-            {
-                mesh.enabled = true;
-            }
+            foreach (MeshRenderer mesh in gunsSettings[index].gunMesh) mesh.enabled = true;
+
+            foreach (SkinnedMeshRenderer armMesh in gunsSettings[index].armMesh) armMesh.enabled = true;
             gunsSettings[index].gunTrail.enabled = true;
 
             if (!gunsSettings[index].gunSettings.canAim || !player.IsLocal) return;
@@ -80,6 +79,7 @@ public class PlayerShooting : MonoBehaviour
         {
             mesh.enabled = true;
         }
+        foreach (SkinnedMeshRenderer armMesh in meleeSettings[index].armMesh) armMesh.enabled = true;
 
     }
 
@@ -87,10 +87,9 @@ public class PlayerShooting : MonoBehaviour
     {
         for (int i = 0; i < gunsSettings.Length; i++)
         {
-            foreach (MeshRenderer mesh in gunsSettings[i].gunMesh) { mesh.enabled = false; }
-
+            foreach (MeshRenderer mesh in gunsSettings[i].gunMesh) mesh.enabled = false;
+            foreach (SkinnedMeshRenderer armMesh in gunsSettings[i].armMesh) armMesh.enabled = false;
             gunsSettings[i].gunTrail.enabled = false;
-
             if (!gunsSettings[i].gunSettings.canAim || !player.IsLocal) continue;
             gunsSettings[i].scopeMesh.enabled = false;
             scopeCam.enabled = false;
@@ -101,7 +100,8 @@ public class PlayerShooting : MonoBehaviour
     {
         for (int i = 0; i < meleeSettings.Length; i++)
         {
-            foreach (MeshRenderer mesh in meleeSettings[i].meleeMesh) { mesh.enabled = false; }
+            foreach (MeshRenderer mesh in meleeSettings[i].meleeMesh) mesh.enabled = false;
+            foreach (SkinnedMeshRenderer armMesh in meleeSettings[i].armMesh) armMesh.enabled = false;
         }
     }
 
@@ -130,9 +130,9 @@ public class PlayerShooting : MonoBehaviour
         weaponEffectParticle.Play();
     }
 
-    private void HitParticle(Vector3 hitPos)
+    public void HitParticle(Vector3 hitPos)
     {
-        Instantiate(GameLogic.Singleton.HitPrefab, hitPos, Quaternion.identity);
+        Instantiate(GameManager.Singleton.HitPrefab, hitPos, Quaternion.identity);
     }
 
     public void BulletTrailEffect(bool didHit, Vector3 hitPos, Vector2 spread)
@@ -141,7 +141,7 @@ public class PlayerShooting : MonoBehaviour
         if (didHit)
         {
             HitParticle(hitPos);
-            TrailRenderer tracer = Instantiate(GameLogic.Singleton.ShotTrail, barrelTip.position, Quaternion.identity);
+            TrailRenderer tracer = Instantiate(GameManager.Singleton.ShotTrail, barrelTip.position, Quaternion.identity);
             tracer.AddPosition(barrelTip.position);
             tracer.transform.position = hitPos;
         }
@@ -149,7 +149,7 @@ public class PlayerShooting : MonoBehaviour
         // If it didn't hit something just moves the GameObject foward
         else
         {
-            TrailRenderer tracer = Instantiate(GameLogic.Singleton.ShotTrail, barrelTip.position, Quaternion.LookRotation(barrelTip.forward));
+            TrailRenderer tracer = Instantiate(GameManager.Singleton.ShotTrail, barrelTip.position, Quaternion.LookRotation(barrelTip.forward));
             tracer.AddPosition(barrelTip.position);
             tracer.transform.position += (barrelTip.forward + new Vector3(spread.x, spread.y, 0)) * range;
         }
@@ -157,7 +157,7 @@ public class PlayerShooting : MonoBehaviour
 
     private void HitEffect(Vector3 position)
     {
-        ParticleSystem hitEffect = Instantiate(GameLogic.Singleton.PlayerHitPrefab, position, Quaternion.identity);
+        ParticleSystem hitEffect = Instantiate(GameManager.Singleton.PlayerHitPrefab, position, Quaternion.identity);
     }
 
     private void PlayHitmarker(bool shouldPlay)
@@ -178,9 +178,13 @@ public class PlayerShooting : MonoBehaviour
     #region Messages
     public void SendGunSettings(int index)
     {
-        Message message = Message.Create(MessageSendMode.Reliable, ClientToServerId.gunChange);
-        message.AddInt(index);
-        NetworkManager.Singleton.Client.Send(message);
+        if (GameManager.Singleton.networking)
+        {
+            Message message = Message.Create(MessageSendMode.Reliable, ClientToServerId.gunChange);
+            message.AddInt(index);
+            NetworkManager.Singleton.Client.Send(message);
+        }
+        else player.GunShoot.SwitchGun(index, true);
     }
 
     [MessageHandler((ushort)ServerToClientId.playerShot)]
@@ -232,13 +236,12 @@ public class PlayerShooting : MonoBehaviour
 
     private IEnumerator RotateGun(int times, float duration)
     {
-        yield return new WaitForSeconds(0.2f);
         SoundManager.Instance.PlaySound(audioSource, spinSFX);
         isReloading = true;
         gunsSettings[activeGun].animator.enabled = false;
 
         Vector3 toAngle = new Vector3(-89.98f + -(times * 360), 0, 0);
-        for (float t = 0f; t < 1f; t += Time.deltaTime / (duration * 0.7f))
+        for (float t = 0f; t < 1f; t += Time.deltaTime / duration)
         {
             gunsSettings[activeGun].gunModelPos.localRotation = Quaternion.Euler(toAngle * t);
             yield return null;

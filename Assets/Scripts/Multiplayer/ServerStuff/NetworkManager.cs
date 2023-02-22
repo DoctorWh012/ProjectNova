@@ -163,8 +163,6 @@ public class NetworkManager : MonoBehaviour
     private void DidConnect(object sender, EventArgs e)
     {
         StartCoroutine(LobbyManager.Singleton.SendName());
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
     }
 
     private void FailedToConnect(object sender, EventArgs e)
@@ -183,7 +181,7 @@ public class NetworkManager : MonoBehaviour
 
     private void DidDisconnect(object sender, EventArgs e)
     {
-        DestroyAllPlayers();
+        DisconnectClient();
         SceneManager.LoadScene("Menu");
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;

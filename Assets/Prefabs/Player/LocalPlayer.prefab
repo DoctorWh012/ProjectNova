@@ -237,7 +237,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0484733b2540a6548b2a772ac8cf5ab3, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  isTilted: 0
   orientation: {fileID: 5508337895294359433}
   mainCamera: {fileID: 2294964982503512742}
 --- !u!1 &5428018071669867611
@@ -637,7 +636,7 @@ Camera:
   m_GameObject: {fileID: 7490173083096745218}
   m_Enabled: 1
   serializedVersion: 2
-  m_ClearFlags: 1
+  m_ClearFlags: 4
   m_BackGroundColor: {r: 0.19215687, g: 0.3019608, b: 0.4745098, a: 0}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
@@ -653,7 +652,7 @@ Camera:
     height: 1
   near clip plane: 0.01
   far clip plane: 1000
-  field of view: 23
+  field of view: 25
   orthographic: 0
   orthographic size: 5
   m_Depth: 0
@@ -762,6 +761,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f9f393133505e2e49953bf8b1783f965, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  IsLocal: 0
   playerHealth: {fileID: 1504468562842230107}
   orientation: {fileID: 5508337895294359433}
   cam: {fileID: 5428018071057322716}
@@ -822,6 +822,7 @@ MonoBehaviour:
     m_Bits: 8
   movementSettings: {fileID: 11400000, guid: c32ef0ca8aacfc346932ad788e41b38d, type: 2}
   movementFreeze: 0
+  isCrouching: 0
   wallRunning: 0
 --- !u!114 &1283521944957988
 MonoBehaviour:
@@ -838,8 +839,11 @@ MonoBehaviour:
   player: {fileID: 8618157828869544815}
   playerAnimator: {fileID: 0}
   jumpSmokeParticle: {fileID: 4483560624069133740}
+  jumpSFX: {fileID: 0}
   slideGrindParticle: {fileID: 3719597123632373666}
   slideGrindAudioSRC: {fileID: 7233939580398604924}
+  mainAudioSRC: {fileID: 6556193952997409454}
+  walkingSFX: []
 --- !u!114 &6710085608534752756
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -852,7 +856,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f1f374686da406549a18e23151baf9f5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  playerShooting: {fileID: 3450311644243504909}
+  player: {fileID: 8618157828869544815}
   shootBTN: 323
   aimBTN: 324
   reloadKey: 114
@@ -879,6 +883,8 @@ MonoBehaviour:
   playerShooting: {fileID: 3450311644243504909}
   gunSlots: 3
   playerTag: Player
+  shootInput: 0
+  activeGun: {fileID: 0}
 --- !u!114 &3450311644243504909
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -911,6 +917,7 @@ MonoBehaviour:
   hitMarkerSfx: {fileID: 8300000, guid: 0311c8423cb17e04e98265805bc4a4b7, type: 3}
   spinSFX: {fileID: 8300000, guid: 2bcd552318991af4f91eac08804a20a4, type: 3}
   reloadSFX: {fileID: 8300000, guid: d3e77d5d17a857c409a0bdda6fd9cf06, type: 3}
+  range: 0
 --- !u!114 &3974419337605213726
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1337,6 +1344,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: LP-12
       objectReference: {fileID: 0}
+    - target: {fileID: 8994001213246116810, guid: bdf2bc875de501e498c06938e2c5a904, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: bdf2bc875de501e498c06938e2c5a904, type: 3}
 --- !u!114 &6155756903350855625 stripped
@@ -1410,6 +1421,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: LA-07
       objectReference: {fileID: 0}
+    - target: {fileID: 4408934036424074328, guid: 7479cf985e22936448b6bf3084ab4b37, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 7479cf985e22936448b6bf3084ab4b37, type: 3}
 --- !u!4 &1138548813269058816 stripped
@@ -1438,6 +1453,10 @@ PrefabInstance:
     - target: {fileID: 2285181764581115885, guid: 722aba349a4b0f64b9c6c5d6bf8dc308, type: 3}
       propertyPath: m_Name
       value: LS-03
+      objectReference: {fileID: 0}
+    - target: {fileID: 2285181764581115885, guid: 722aba349a4b0f64b9c6c5d6bf8dc308, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 5469870851160597201, guid: 722aba349a4b0f64b9c6c5d6bf8dc308, type: 3}
       propertyPath: m_RootOrder
@@ -1556,6 +1575,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: LL-30
       objectReference: {fileID: 0}
+    - target: {fileID: 6808689942518947966, guid: 0c747658ddead024abc38dd6d62423d9, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 7499804373492802232, guid: 0c747658ddead024abc38dd6d62423d9, type: 3}
       propertyPath: audioSource
       value: 
@@ -1636,6 +1659,10 @@ PrefabInstance:
     - target: {fileID: 4386201687322238917, guid: 52fd6386f2f55a34fb8a85b48a0c874f, type: 3}
       propertyPath: m_Name
       value: LS-50
+      objectReference: {fileID: 0}
+    - target: {fileID: 4386201687322238917, guid: 52fd6386f2f55a34fb8a85b48a0c874f, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 52fd6386f2f55a34fb8a85b48a0c874f, type: 3}
@@ -1783,6 +1810,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: LA-99
       objectReference: {fileID: 0}
+    - target: {fileID: 3767895186753924971, guid: 7abbc6c61bc41fa47aec90123aaead44, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 7abbc6c61bc41fa47aec90123aaead44, type: 3}
 --- !u!4 &5988406762048090199 stripped
@@ -1808,13 +1839,25 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 5508337895294359433}
     m_Modifications:
+    - target: {fileID: 3071588860976739138, guid: 9ea29f357aab7464d89e3f45a10a4cf2, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
     - target: {fileID: 4384846041072474513, guid: 9ea29f357aab7464d89e3f45a10a4cf2, type: 3}
       propertyPath: m_LocalPosition.z
       value: 1
       objectReference: {fileID: 0}
+    - target: {fileID: 5611283880038580888, guid: 9ea29f357aab7464d89e3f45a10a4cf2, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
     - target: {fileID: 6265297633783547610, guid: 9ea29f357aab7464d89e3f45a10a4cf2, type: 3}
       propertyPath: m_Name
       value: PlayerEffectsHolder
+      objectReference: {fileID: 0}
+    - target: {fileID: 6265297633783547610, guid: 9ea29f357aab7464d89e3f45a10a4cf2, type: 3}
+      propertyPath: m_Layer
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 6274850601179347271, guid: 9ea29f357aab7464d89e3f45a10a4cf2, type: 3}
       propertyPath: EmissionModule.rateOverTime.scalar
@@ -1897,6 +1940,10 @@ PrefabInstance:
       propertyPath: m_Name
       value: LA-87
       objectReference: {fileID: 0}
+    - target: {fileID: 3582557099956055, guid: 45f7eba254e5d3d4d8c8236ec47e1d86, type: 3}
+      propertyPath: m_IsActive
+      value: 1
+      objectReference: {fileID: 0}
     - target: {fileID: 6787689678669295057, guid: 45f7eba254e5d3d4d8c8236ec47e1d86, type: 3}
       propertyPath: m_RootOrder
       value: 2
@@ -1969,6 +2016,10 @@ PrefabInstance:
     - target: {fileID: 8276888900425697449, guid: 0661905d35453ac4caae64aa7ed90857, type: 3}
       propertyPath: m_Name
       value: LR-01
+      objectReference: {fileID: 0}
+    - target: {fileID: 8276888900425697449, guid: 0661905d35453ac4caae64aa7ed90857, type: 3}
+      propertyPath: m_IsActive
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 8276888900425697454, guid: 0661905d35453ac4caae64aa7ed90857, type: 3}
       propertyPath: m_RootOrder

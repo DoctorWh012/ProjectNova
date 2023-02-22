@@ -6,7 +6,7 @@ using UnityEngine;
 public class MultiplayerGunShoot : MonoBehaviour
 {
     [Header("Components")]
-    [SerializeField] PlayerShooting playerShooting;
+    [SerializeField] Player player;
 
     [Header("Keybinds")]
     [SerializeField] private KeyCode shootBTN;
@@ -22,24 +22,23 @@ public class MultiplayerGunShoot : MonoBehaviour
         if (!UIManager.Instance.focused) return;
         if (Input.GetKeyDown(shootBTN))
         {
-            SendShootMessage(true);
+            if (GameManager.Singleton.networking) SendShootMessage(true);
+            else player.GunShoot.shootInput = true;
         }
+
         if (Input.GetKeyUp(shootBTN))
         {
-            SendShootMessage(false);
+            if (GameManager.Singleton.networking) SendShootMessage(false);
+            else player.GunShoot.shootInput = false;
         }
 
-        if (Input.GetKeyDown(aimBTN))
-        {
-            playerShooting.AimDownSight(true);
-        }
-        if (Input.GetKeyUp(aimBTN))
-        {
-            playerShooting.AimDownSight(false);
-        }
+        if (Input.GetKeyDown(aimBTN)) player.playerShooting.AimDownSight(true);
+
+        if (Input.GetKeyUp(aimBTN)) player.playerShooting.AimDownSight(false);
 
 
-        if (playerShooting.isReloading) return;
+
+        if (player.playerShooting.isReloading) return;
 
         GetInput(primaryGun, 0);
         GetInput(secondaryGun, 1);
@@ -47,13 +46,15 @@ public class MultiplayerGunShoot : MonoBehaviour
 
         if (Input.GetKeyDown(reloadKey))
         {
-            SendReload();
+            if (GameManager.Singleton.networking) SendReload();
+            else player.GunShoot.StartGunReload(player.GunShoot.activeGun.reloadSpins, player.GunShoot.activeGun.reloadTime);
         }
+
     }
 
     private void GetInput(KeyCode keybind, int index)
     {
-        if (Input.GetKeyDown(keybind)) playerShooting.SendGunSettings(index);
+        if (Input.GetKeyDown(keybind)) player.playerShooting.SendGunSettings(index);
     }
 
     private void SendShootMessage(bool isShooting)
@@ -65,7 +66,6 @@ public class MultiplayerGunShoot : MonoBehaviour
 
     private void SendReload()
     {
-        StartCoroutine(WaitBeforeReload());
         Message message = Message.Create(MessageSendMode.Reliable, ClientToServerId.gunReload);
         NetworkManager.Singleton.Client.Send(message);
     }
@@ -77,10 +77,5 @@ public class MultiplayerGunShoot : MonoBehaviour
         {
             player.playerShooting.DoTheSpin(message.GetInt(), message.GetFloat());
         }
-    }
-
-    private IEnumerator WaitBeforeReload()
-    {
-        yield return new WaitForSeconds(0.2f);
     }
 }

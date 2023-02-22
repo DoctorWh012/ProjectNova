@@ -7,7 +7,6 @@ using TMPro;
 
 public class MatchManager : MonoBehaviour
 {
-
     private static MatchManager _singleton;
     public static MatchManager Singleton
     {

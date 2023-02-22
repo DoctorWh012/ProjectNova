@@ -61,8 +61,11 @@ public class MultiplayerController : MonoBehaviour
 
         playerMovement.SetInput(inputs.inputs, orientation.forward, cam.rotation);
 
+        if (!GameManager.Singleton.networking) { return; }
+        // Sends a message containing this player input to the server im not the host
         if (!NetworkManager.Singleton.Server.IsRunning) SendInput();
 
+        // Client side prediction stuff
         if (serverSimulationState != null) Reconciliate();
 
         SimulationState simulationState = CurrentSimulationState(inputs);
@@ -133,7 +136,7 @@ public class MultiplayerController : MonoBehaviour
         //  The amount of distance in units that we will allow the client's
         //  prediction to drift from it's position on the server, before a
         //  correction is necessary. 
-        float tolerance = 1.5f;
+        float tolerance = 0f;
 
         // A correction is necessary.
         if (differenceX > tolerance || differenceY > tolerance || differenceZ > tolerance)

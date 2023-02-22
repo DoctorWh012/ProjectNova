@@ -5,6 +5,8 @@ using UnityEngine;
 
 public class PlayerMovement : MonoBehaviour
 {
+    // THIS NEEDS URGENT REFACTORING
+
     //----READONLY VARIABLES----
     public int cSPTick { get; private set; }
     public bool interact { get; private set; }
@@ -30,7 +32,7 @@ public class PlayerMovement : MonoBehaviour
 
     //----Movement related stuff----
     private bool readyToJump = true;
-    private bool isCrouching;
+    [SerializeField] private bool isCrouching = false;
     public bool wallRunning;
     private bool onWallLeft;
     private bool onWallRight;
@@ -54,9 +56,12 @@ public class PlayerMovement : MonoBehaviour
         rb.freezeRotation = true;
     }
 
+    // receives a message from the client containing the pressed keys
     public void SetInput(bool[] inputs, Vector3 forward, Quaternion cam)
     {
         this.inputs = inputs;
+
+        if (!GameManager.Singleton.networking) return;
         // IF NetPlayers
         if (!NetworkManager.Singleton.Server.IsRunning || player.IsLocal) return;
         orientation.forward = forward;
@@ -110,9 +115,11 @@ public class PlayerMovement : MonoBehaviour
     //----MOVEMENT STUFF----
     private void Update()
     {
+        CheckIfGrounded();
+        if (GameManager.Singleton.networking)
+            if (!player.IsLocal && !NetworkManager.Singleton.Server.IsRunning) return;
         GetInput();
         SpeedCap();
-        CheckIfGrounded();
         VerifyWallRun();
         ApplyDrag();
         CheckCameraTilt();
@@ -132,17 +139,25 @@ public class PlayerMovement : MonoBehaviour
         }
 
         if (!movementFreeze && !wallRunning) rb.useGravity = !OnSlope();
-        SendMovement();
+
+        if (GameManager.Singleton.networking) SendMovement();
         cSPTick++;
     }
 
     // This Receives Movement data from the Server
     public void Move(Player player, ushort tick, int serverCSPTick, Vector3 velocity, Vector3 newPosition, Vector3 forward, Quaternion camRot, bool isSliding)
     {
+        //Moves Netplayer With interpolation
+        if (!player.IsLocal)
+        {
+            player.interpolation.NewUpdate(tick, newPosition);
+            print($"{isCrouching} {isSliding}");
+            if (!isCrouching && isSliding) { Crouch(true); print("Crouched"); }
+            else if (isCrouching && !isSliding) { Crouch(false); print("Uncrouched"); }
+        }
+
         CheckSlideGrind(isSliding, velocity);
 
-        //Moves Netplayer With interpolation
-        if (!player.IsLocal) player.interpolation.NewUpdate(tick, newPosition);
 
         if (NetworkManager.Singleton.Server.IsRunning) return;
 
@@ -243,20 +258,14 @@ public class PlayerMovement : MonoBehaviour
             }
         }
 
-        else
-        {
-            if (wallRunning)
-            {
-                wallRunning = false;
-            }
-        }
+        else if (wallRunning) wallRunning = false;
     }
 
     private void CheckIfGrounded()
     {
         bool i = Physics.Raycast(groundCheck.position, Vector3.down, movementSettings.groundCheckHeight, ground);
-        if (!grounded && i) player.playerEffects.jumpSmokeParticle.Play();
-        else if (grounded && !i) player.playerEffects.jumpSmokeParticle.Play();
+        if (!grounded && i) player.playerEffects.PlayJumpEffects();
+        else if (grounded && !i) player.playerEffects.PlayJumpEffects();
         grounded = i;
         if (grounded) coyoteTimeCounter = movementSettings.coyoteTime;
         else coyoteTimeCounter -= Time.deltaTime;
@@ -269,6 +278,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void CheckSlideGrind(bool sliding, Vector3 velocity)
     {
+        if (!player.IsLocal) print($"Statements are {sliding} {velocity.magnitude > 5f} {grounded}");
         if (sliding && velocity.magnitude > 5f && grounded) player.playerEffects.PlaySlideEffects(true);
         else player.playerEffects.PlaySlideEffects(false);
     }
@@ -377,7 +387,6 @@ public class PlayerMovement : MonoBehaviour
     {
         if (Player.list.TryGetValue(fromClientId, out Player player))
         {
-            // print("Client to server input");
             player.Movement.SetInput(message.GetBools(7), message.GetVector3(), message.GetQuaternion());
             player.Movement.clientTick = message.GetInt();
         }

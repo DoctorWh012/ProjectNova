@@ -7,7 +7,7 @@ public class PlayerCam : MonoBehaviour
 {
     public static PlayerCam Instance;
 
-    public bool isTilted;//{ get; private set; }
+    public bool isTilted { get; private set; }
 
     [Header("Components")]
     [SerializeField] private Transform orientation;
@@ -21,16 +21,13 @@ public class PlayerCam : MonoBehaviour
     private void Awake()
     {
         Instance = this;
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 
     void Start()
     {
         GetSensitivity();
-    }
-
-    void Update()
-    {
-
     }
 
     private void FixedUpdate()
