@@ -155,7 +155,6 @@ public class PlayerMovement : MonoBehaviour
             if (!isCrouching && isSliding) { Crouch(true); print("Crouched"); }
             else if (isCrouching && !isSliding) { Crouch(false); print("Uncrouched"); }
         }
-
         CheckSlideGrind(isSliding, velocity);
 
 

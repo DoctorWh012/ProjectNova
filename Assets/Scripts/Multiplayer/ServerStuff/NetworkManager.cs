@@ -162,6 +162,7 @@ public class NetworkManager : MonoBehaviour
 
     private void DidConnect(object sender, EventArgs e)
     {
+        GameManager.Singleton.networking = true;
         StartCoroutine(LobbyManager.Singleton.SendName());
     }
 

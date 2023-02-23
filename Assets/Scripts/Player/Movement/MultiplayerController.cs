@@ -61,7 +61,7 @@ public class MultiplayerController : MonoBehaviour
 
         playerMovement.SetInput(inputs.inputs, orientation.forward, cam.rotation);
 
-        if (!GameManager.Singleton.networking) { return; }
+        if (!GameManager.Singleton.networking) { Debug.LogWarning("NOT NETWORKING"); return; }
         // Sends a message containing this player input to the server im not the host
         if (!NetworkManager.Singleton.Server.IsRunning) SendInput();
 

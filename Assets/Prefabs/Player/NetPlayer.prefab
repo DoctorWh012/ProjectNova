@@ -662,6 +662,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f9f393133505e2e49953bf8b1783f965, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  IsLocal: 0
   playerHealth: {fileID: 4663254110780382738}
   orientation: {fileID: 5508337895294359433}
   cam: {fileID: 5508337894908285433}
@@ -745,6 +746,7 @@ MonoBehaviour:
   hitMarkerSfx: {fileID: 8300000, guid: 0311c8423cb17e04e98265805bc4a4b7, type: 3}
   spinSFX: {fileID: 0}
   reloadSFX: {fileID: 0}
+  range: 0
 --- !u!114 &4057735297404587721
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -793,6 +795,8 @@ MonoBehaviour:
   playerShooting: {fileID: 4189005478445021634}
   gunSlots: 3
   playerTag: Player
+  shootInput: 0
+  activeGun: {fileID: 0}
 --- !u!114 &8632789589864481747
 MonoBehaviour:
   m_ObjectHideFlags: 0

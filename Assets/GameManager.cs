@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class GameManager : MonoBehaviour
 {
-    public bool networking { get; private set; } = NetworkManager.Singleton != null;
+    public bool networking;//{ get; private set; }
 
     private static GameManager _singleton;
     public static GameManager Singleton

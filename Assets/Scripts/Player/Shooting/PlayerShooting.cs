@@ -64,8 +64,8 @@ public class PlayerShooting : MonoBehaviour
         if (activeWeaponType != WeaponType.melee)
         {
             foreach (MeshRenderer mesh in gunsSettings[index].gunMesh) mesh.enabled = true;
+            if (player.IsLocal) foreach (SkinnedMeshRenderer armMesh in gunsSettings[index].armMesh) armMesh.enabled = true;
 
-            foreach (SkinnedMeshRenderer armMesh in gunsSettings[index].armMesh) armMesh.enabled = true;
             gunsSettings[index].gunTrail.enabled = true;
 
             if (!gunsSettings[index].gunSettings.canAim || !player.IsLocal) return;
@@ -88,8 +88,10 @@ public class PlayerShooting : MonoBehaviour
         for (int i = 0; i < gunsSettings.Length; i++)
         {
             foreach (MeshRenderer mesh in gunsSettings[i].gunMesh) mesh.enabled = false;
-            foreach (SkinnedMeshRenderer armMesh in gunsSettings[i].armMesh) armMesh.enabled = false;
+            if (player.IsLocal) foreach (SkinnedMeshRenderer armMesh in gunsSettings[i].armMesh) armMesh.enabled = false;
+
             gunsSettings[i].gunTrail.enabled = false;
+
             if (!gunsSettings[i].gunSettings.canAim || !player.IsLocal) continue;
             gunsSettings[i].scopeMesh.enabled = false;
             scopeCam.enabled = false;
