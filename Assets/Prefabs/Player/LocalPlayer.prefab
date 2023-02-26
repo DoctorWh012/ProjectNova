@@ -764,12 +764,15 @@ MonoBehaviour:
   IsLocal: 0
   playerHealth: {fileID: 1504468562842230107}
   orientation: {fileID: 5508337895294359433}
-  cam: {fileID: 5428018071057322716}
+  mainCamera: {fileID: 5428018071975478723}
+  gunCamera: {fileID: 5428018070082272072}
+  cameraHolder: {fileID: 5428018071057322716}
   interpolation: {fileID: 712985554857894272}
   multiplayerGunShoot: {fileID: 6710085608534752756}
   multiplayerController: {fileID: 3770836774351706932}
   playerEffects: {fileID: 1283521944957988}
   playerShooting: {fileID: 3450311644243504909}
+  headBobController: {fileID: 6099368438867923500}
   movement: {fileID: 8518563724374079886}
   gunShoot: {fileID: 2072621626698893412}
   rb: {fileID: 6160378261275203424}
@@ -954,11 +957,7 @@ MonoBehaviour:
   controller: {fileID: 3770836774351706932}
   gunController: {fileID: 6710085608534752756}
   headBob: {fileID: 6099368438867923500}
-  playerModels:
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
-  - {fileID: 0}
+  playerModels: []
 --- !u!114 &6099368438867923500
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -971,10 +970,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d945fee8126e6b44ca8e6186126b3976, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  cam: {fileID: 5428018071975478723}
-  gunCam: {fileID: 5428018070082272072}
-  cameraHolder: {fileID: 5428018071057322716}
-  playerMovement: {fileID: 8518563724374079886}
+  player: {fileID: 8618157828869544815}
   stepAmplitude: 0.02
   gunAmplitude: 0.006
   frequency: 10

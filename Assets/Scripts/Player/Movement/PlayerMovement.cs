@@ -11,6 +11,7 @@ public class PlayerMovement : MonoBehaviour
     public int cSPTick { get; private set; }
     public bool interact { get; private set; }
     public bool grounded { get; private set; }
+    public bool isCrouching { get; private set; } = false;
 
     //----COMPONENTS----
     [Header("Components")]
@@ -32,7 +33,6 @@ public class PlayerMovement : MonoBehaviour
 
     //----Movement related stuff----
     private bool readyToJump = true;
-    [SerializeField] private bool isCrouching = false;
     public bool wallRunning;
     private bool onWallLeft;
     private bool onWallRight;

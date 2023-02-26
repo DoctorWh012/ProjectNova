@@ -16,12 +16,15 @@ public class Player : MonoBehaviour
 
     [SerializeField] private PlayerHealth playerHealth;
     [SerializeField] private Transform orientation;
-    [SerializeField] private Transform cam;
+    [SerializeField] public Transform mainCamera;
+    [SerializeField] public Transform gunCamera;
+    [SerializeField] public Transform cameraHolder;
     [SerializeField] public Interpolation interpolation;
     [SerializeField] public MultiplayerGunShoot multiplayerGunShoot;
     [SerializeField] public MultiplayerController multiplayerController;
     [SerializeField] public PlayerEffects playerEffects;
     [SerializeField] public PlayerShooting playerShooting;
+    [SerializeField] public HeadBobController headBobController;
     [SerializeField] private PlayerMovement movement;
     [SerializeField] private GunShoot gunShoot;
     [SerializeField] private Rigidbody rb;

@@ -66,12 +66,14 @@ public class PlayerEffects : MonoBehaviour
         {
             slideGrindParticle.Play();
             slideGrindAudioSRC.Play();
+            if (player.IsLocal && !player.playerShooting.isWeaponTilted) StartCoroutine(player.playerShooting.TiltWeapon(30, 0.3f));
             isGrinding = true;
         }
         else if (!state && isGrinding)
         {
             slideGrindParticle.Stop();
             slideGrindAudioSRC.Stop();
+            if (player.IsLocal && player.playerShooting.isWeaponTilted) StartCoroutine(player.playerShooting.TiltWeapon(0, 0.3f));
             isGrinding = false;
         }
     }

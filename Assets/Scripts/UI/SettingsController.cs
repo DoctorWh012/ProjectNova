@@ -17,10 +17,8 @@ public class SettingsController : MonoBehaviour
     [SerializeField] private Slider musicVolumeSlider;
     [SerializeField] private TextMeshProUGUI musicVolumeSliderText;
 
-    [SerializeField] private ButtonHover goodGraphicsBtn;
     [SerializeField] private TextMeshProUGUI goodGraphicsBtnText;
 
-    [SerializeField] private ButtonHover shitGraphicsBtn;
     [SerializeField] private TextMeshProUGUI shitGraphicsBtnText;
 
     [SerializeField] private Toggle fullScreenToggle;
@@ -49,26 +47,25 @@ public class SettingsController : MonoBehaviour
         {
 
             case 0:
-                DoTheHighlighting(shitGraphicsBtnText, shitGraphicsBtn, goodGraphicsBtnText, goodGraphicsBtn);
+                DoTheHighlighting(shitGraphicsBtnText, goodGraphicsBtnText);
                 break;
             case 1:
-                DoTheHighlighting(goodGraphicsBtnText, goodGraphicsBtn, shitGraphicsBtnText, shitGraphicsBtn);
+                DoTheHighlighting(goodGraphicsBtnText, shitGraphicsBtnText);
                 break;
         }
     }
 
-    private void DoTheHighlighting(TextMeshProUGUI toHighlightText, ButtonHover toHighlightBTN, TextMeshProUGUI toFadeText, ButtonHover toFadeBTN)
+    private void DoTheHighlighting(TextMeshProUGUI toHighlightText, TextMeshProUGUI toFadeText)
     {
         Color currentColor = toHighlightText.color;
         currentColor.a = 1;
         toHighlightText.fontSize = 45;
         toHighlightText.color = currentColor;
-        toHighlightBTN.enabled = false;
 
         currentColor.a = 0.3f;
         toFadeText.color = currentColor;
         toFadeText.fontSize = 40;
-        toFadeBTN.enabled = true;
+
     }
 
     public void UpdateSliderValue(TextMeshProUGUI sliderText)

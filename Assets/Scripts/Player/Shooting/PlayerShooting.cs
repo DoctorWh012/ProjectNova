@@ -7,6 +7,7 @@ public class PlayerShooting : MonoBehaviour
 {
     public bool isReloading { get; private set; } = false;
     public int activeGun { get; private set; }
+    public bool isWeaponTilted { get; private set; } = false;
     public WeaponType activeWeaponType { get; private set; }
 
 
@@ -255,5 +256,23 @@ public class PlayerShooting : MonoBehaviour
         SoundManager.Instance.PlaySound(audioSource, reloadSFX);
         yield return new WaitForSeconds(0.4f);
         audioSource.Stop();
+    }
+
+    public IEnumerator TiltWeapon(float tiltAngle, float duration)
+    {
+        print($"TILTED TO {tiltAngle}");
+        Transform weaponTransform = gunsSettings[activeGun].transform;
+        Quaternion startingAngle = weaponTransform.localRotation;
+        Quaternion toAngle = Quaternion.Euler(new Vector3(0, 0, tiltAngle));
+        float rotationDuration = 0;
+
+        isWeaponTilted = !isWeaponTilted;
+
+        while (weaponTransform.localRotation != toAngle)
+        {
+            weaponTransform.localRotation = Quaternion.Lerp(startingAngle, toAngle, rotationDuration / duration);
+            rotationDuration += Time.deltaTime;
+            yield return null;
+        }
     }
 }

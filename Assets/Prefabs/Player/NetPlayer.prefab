@@ -665,12 +665,15 @@ MonoBehaviour:
   IsLocal: 0
   playerHealth: {fileID: 4663254110780382738}
   orientation: {fileID: 5508337895294359433}
-  cam: {fileID: 5508337894908285433}
+  mainCamera: {fileID: 0}
+  gunCamera: {fileID: 0}
+  cameraHolder: {fileID: 0}
   interpolation: {fileID: 1197828964692781740}
   multiplayerGunShoot: {fileID: 0}
   multiplayerController: {fileID: 0}
   playerEffects: {fileID: 5378240294518382312}
   playerShooting: {fileID: 4189005478445021634}
+  headBobController: {fileID: 0}
   movement: {fileID: 4057735297404587721}
   gunShoot: {fileID: 1269596351038479994}
   rb: {fileID: 8053931014080268894}
@@ -773,7 +776,6 @@ MonoBehaviour:
     m_Bits: 8
   movementSettings: {fileID: 11400000, guid: c32ef0ca8aacfc346932ad788e41b38d, type: 2}
   movementFreeze: 0
-  isCrouching: 0
   wallRunning: 0
 --- !u!114 &1269596351038479994
 MonoBehaviour:
@@ -957,10 +959,10 @@ Rigidbody:
   m_Drag: 0
   m_AngularDrag: 0.05
   m_UseGravity: 1
-  m_IsKinematic: 1
+  m_IsKinematic: 0
   m_Interpolate: 1
   m_Constraints: 112
-  m_CollisionDetection: 3
+  m_CollisionDetection: 2
 --- !u!1 &9050622933490614674
 GameObject:
   m_ObjectHideFlags: 0
