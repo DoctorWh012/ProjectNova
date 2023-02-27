@@ -151,9 +151,8 @@ public class PlayerMovement : MonoBehaviour
         if (!player.IsLocal)
         {
             player.interpolation.NewUpdate(tick, newPosition);
-            print($"{isCrouching} {isSliding}");
-            if (!isCrouching && isSliding) { Crouch(true); print("Crouched"); }
-            else if (isCrouching && !isSliding) { Crouch(false); print("Uncrouched"); }
+            if (!isCrouching && isSliding) Crouch(true);
+            else if (isCrouching && !isSliding) Crouch(false);
         }
         CheckSlideGrind(isSliding, velocity);
 
@@ -277,7 +276,6 @@ public class PlayerMovement : MonoBehaviour
 
     private void CheckSlideGrind(bool sliding, Vector3 velocity)
     {
-        if (!player.IsLocal) print($"Statements are {sliding} {velocity.magnitude > 5f} {grounded}");
         if (sliding && velocity.magnitude > 5f && grounded) player.playerEffects.PlaySlideEffects(true);
         else player.playerEffects.PlaySlideEffects(false);
     }

@@ -182,7 +182,7 @@ public class NetworkManager : MonoBehaviour
 
     private void DidDisconnect(object sender, EventArgs e)
     {
-        DisconnectClient();
+        LobbyManager.Singleton.LeaveLobby();
         SceneManager.LoadScene("Menu");
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;

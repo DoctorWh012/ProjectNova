@@ -24,7 +24,7 @@ public class TestingManager : MonoBehaviour
         if (Input.GetKeyDown(playKey))
         {
             DisableTestingStuff();
-            LobbyManager.Singleton.CreateLobby();
+            // LobbyManager.Singleton.CreateLobby();
         }
     }
 

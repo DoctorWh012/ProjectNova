@@ -59,6 +59,8 @@ public class Player : MonoBehaviour
         {
             player = Instantiate(GameManager.Singleton.PlayerPrefab, position, Quaternion.identity).GetComponent<Player>();
             player.interpolation.enabled = true;
+            player.rb.collisionDetectionMode = CollisionDetectionMode.Discrete;
+            player.rb.isKinematic = true;
             player.IsLocal = false;
         }
         player.name = $"Player {id} {username}";

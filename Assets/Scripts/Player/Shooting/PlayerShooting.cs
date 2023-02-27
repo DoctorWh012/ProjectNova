@@ -80,7 +80,7 @@ public class PlayerShooting : MonoBehaviour
         {
             mesh.enabled = true;
         }
-        foreach (SkinnedMeshRenderer armMesh in meleeSettings[index].armMesh) armMesh.enabled = true;
+        if (player.IsLocal) foreach (SkinnedMeshRenderer armMesh in meleeSettings[index].armMesh) armMesh.enabled = true;
 
     }
 
@@ -89,7 +89,7 @@ public class PlayerShooting : MonoBehaviour
         for (int i = 0; i < gunsSettings.Length; i++)
         {
             foreach (MeshRenderer mesh in gunsSettings[i].gunMesh) mesh.enabled = false;
-            if (player.IsLocal) foreach (SkinnedMeshRenderer armMesh in gunsSettings[i].armMesh) armMesh.enabled = false;
+            foreach (SkinnedMeshRenderer armMesh in gunsSettings[i].armMesh) armMesh.enabled = false;
 
             gunsSettings[i].gunTrail.enabled = false;
 

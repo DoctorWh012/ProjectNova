@@ -238,6 +238,7 @@ public class GunShoot : MonoBehaviour
     {
         if (GameManager.Singleton.networking)
         {
+            if (!NetworkManager.Singleton.Server.IsRunning) return;
             Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.playerShot);
             message.AddUShort(player.Id);
             message.AddBool(didHit);
@@ -257,6 +258,7 @@ public class GunShoot : MonoBehaviour
     {
         if (GameManager.Singleton.networking)
         {
+            if (!NetworkManager.Singleton.Server.IsRunning) return;
             Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.meleeAtack);
             message.AddUShort(player.Id);
             message.AddBool(didHit);
@@ -285,6 +287,7 @@ public class GunShoot : MonoBehaviour
         if (GameManager.Singleton == null) return;
         if (GameManager.Singleton.networking)
         {
+            if (!NetworkManager.Singleton.Server.IsRunning) return;
             Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.gunChanged);
             message.AddUShort(player.Id);
             message.AddBool(isMelee);
@@ -307,6 +310,7 @@ public class GunShoot : MonoBehaviour
 
         if (GameManager.Singleton.networking)
         {
+            if (!NetworkManager.Singleton.Server.IsRunning) return;
             Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.gunReload);
             message.AddUShort(player.Id);
             message.AddInt(spins);
@@ -321,6 +325,7 @@ public class GunShoot : MonoBehaviour
         if (GameManager.Singleton == null) return;
         if (GameManager.Singleton.networking)
         {
+            if (!NetworkManager.Singleton.Server.IsRunning) return;
             Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.ammoChanged);
             message.AddInt(ammunition);
             message.AddInt(activeGun.maxAmmo);

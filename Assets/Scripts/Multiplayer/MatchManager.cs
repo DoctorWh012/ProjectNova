@@ -62,8 +62,7 @@ public class MatchManager : MonoBehaviour
 
     public void ExitMatch()
     {
-        NetworkManager.Singleton.DisconnectClient();
-        if (NetworkManager.Singleton.Server.IsRunning) NetworkManager.Singleton.StopServer();
+        LobbyManager.Singleton.LeaveLobby();
     }
 
     private void FreezeAllPlayerMovement(bool state)

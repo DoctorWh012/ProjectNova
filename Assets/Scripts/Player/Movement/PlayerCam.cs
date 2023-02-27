@@ -30,7 +30,7 @@ public class PlayerCam : MonoBehaviour
         GetSensitivity();
     }
 
-    private void FixedUpdate()
+    private void Update()
     {
         if (!UIManager.Instance.focused) return;
         GetInput();

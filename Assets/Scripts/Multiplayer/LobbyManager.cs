@@ -7,6 +7,7 @@ using Riptide;
 
 public class LobbyManager : MonoBehaviour
 {
+    private enum LobbyStatus { Waiting, Playing }
     private static LobbyManager _singleton;
     public static LobbyManager Singleton
     {
@@ -32,6 +33,10 @@ public class LobbyManager : MonoBehaviour
     private CSteamID lobbyId;
     private List<CSteamID> lobbyIDS = new List<CSteamID>();
 
+    private int playerCount;
+    private string lobbyName;
+    private LobbyStatus lobbyStatus;
+
     private void Awake()
     {
         Singleton = this;
@@ -52,10 +57,11 @@ public class LobbyManager : MonoBehaviour
         Callback_lobbyInfo = Callback<LobbyDataUpdate_t>.Create(OnGetLobbiesInfo);
     }
 
-    internal void CreateLobby()
+    internal void CreateLobby(ELobbyType lobbyType, int playerCount, string lobbyName)
     {
-        SteamMatchmaking.CreateLobby(ELobbyType.k_ELobbyTypePublic, NetworkManager.Singleton.maxClientCount);
-        print("createdLobby");
+        this.playerCount = playerCount;
+        this.lobbyName = lobbyName;
+        SteamMatchmaking.CreateLobby(lobbyType, playerCount);
     }
 
     private void OnLobbyCreated(LobbyCreated_t callback)
@@ -70,10 +76,10 @@ public class LobbyManager : MonoBehaviour
 
         lobbyId = new CSteamID(callback.m_ulSteamIDLobby);
         SteamMatchmaking.SetLobbyData(lobbyId, HostAddressKey, SteamUser.GetSteamID().ToString());
-        SteamMatchmaking.SetLobbyData(lobbyId, "name", "Generic Sigma Name");
-        SteamMatchmaking.SetLobbyData(lobbyId, "status", "Sick Status");
+        SteamMatchmaking.SetLobbyData(lobbyId, "name", lobbyName);
+        SteamMatchmaking.SetLobbyData(lobbyId, "status", "WIP");
 
-        NetworkManager.Singleton.Server.Start(0, NetworkManager.Singleton.maxClientCount);
+        NetworkManager.Singleton.Server.Start(0, (ushort)playerCount);
         NetworkManager.Singleton.Client.Connect("127.0.0.1");
     }
 
@@ -107,7 +113,7 @@ public class LobbyManager : MonoBehaviour
 
     public void GetLobbiesList()
     {
-        if (lobbyIDS.Count > 0) MainMenu.Instance.DestroyOldLobbiesDiplays();
+        if (lobbyIDS.Count > 0) lobbyIDS.Clear();
 
         SteamMatchmaking.AddRequestLobbyListFilterSlotsAvailable(1);
         SteamAPICall_t tyrGetList = SteamMatchmaking.RequestLobbyList();
@@ -116,6 +122,8 @@ public class LobbyManager : MonoBehaviour
     internal void OnGetLobbiesList(LobbyMatchList_t result)
     {
         print($"Found {result.m_nLobbiesMatching} lobbies");
+        if (MainMenu.Instance.lobbyDisplays.Count > 0) MainMenu.Instance.DestroyOldLobbiesDiplays();
+
         for (int i = 0; result.m_nLobbiesMatching > i; i++)
         {
             CSteamID lobbyID = SteamMatchmaking.GetLobbyByIndex(i);
@@ -126,7 +134,7 @@ public class LobbyManager : MonoBehaviour
 
     internal void OnGetLobbiesInfo(LobbyDataUpdate_t result)
     {
-        print($"{result.m_ulSteamIDLobby}");
+        print("Got lobby info");
         MainMenu.Instance.CreateLobbyList(lobbyIDS, result);
     }
 
