@@ -41,13 +41,13 @@ public class PlayerCam : MonoBehaviour
     {
         string json = File.ReadAllText($"{Application.dataPath}/PlayerPrefs.json");
         PlayerPreferences playerPrefs = JsonUtility.FromJson<PlayerPreferences>(json);
-        sensitivity = playerPrefs.sensitivity * 10;
+        sensitivity = playerPrefs.sensitivity / 10;
     }
 
     private void GetInput()
     {
-        float mouseX = Input.GetAxisRaw("Mouse X") * Time.deltaTime * sensitivity;
-        float mouseY = Input.GetAxisRaw("Mouse Y") * Time.deltaTime * sensitivity;
+        float mouseX = Input.GetAxisRaw("Mouse X") * sensitivity;
+        float mouseY = Input.GetAxisRaw("Mouse Y") * sensitivity;
 
         yRotation += mouseX;
         xRotation -= mouseY;

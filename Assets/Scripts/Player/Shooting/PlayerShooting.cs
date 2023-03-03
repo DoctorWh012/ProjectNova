@@ -31,6 +31,8 @@ public class PlayerShooting : MonoBehaviour
     private ParticleSystem weaponEffectParticle;
     public int range;
 
+    IEnumerator tiltWeaponCoroutine;
+
     // Start is called before the first frame update
     private void Start()
     {
@@ -237,6 +239,13 @@ public class PlayerShooting : MonoBehaviour
         StartCoroutine(RotateGun(times, duration));
     }
 
+    public void TiltGun(float angle, float duration)
+    {
+        if (tiltWeaponCoroutine != null) StopCoroutine(tiltWeaponCoroutine);
+        tiltWeaponCoroutine = TiltWeapon(angle, duration);
+        StartCoroutine(tiltWeaponCoroutine);
+    }
+
     private IEnumerator RotateGun(int times, float duration)
     {
         SoundManager.Instance.PlaySound(audioSource, spinSFX);
@@ -258,16 +267,14 @@ public class PlayerShooting : MonoBehaviour
         audioSource.Stop();
     }
 
-    public IEnumerator TiltWeapon(float tiltAngle, float duration)
+    private IEnumerator TiltWeapon(float tiltAngle, float duration)
     {
-        print($"TILTED TO {tiltAngle}");
         Transform weaponTransform = gunsSettings[activeGun].transform;
         Quaternion startingAngle = weaponTransform.localRotation;
         Quaternion toAngle = Quaternion.Euler(new Vector3(0, 0, tiltAngle));
         float rotationDuration = 0;
 
         isWeaponTilted = !isWeaponTilted;
-
         while (weaponTransform.localRotation != toAngle)
         {
             weaponTransform.localRotation = Quaternion.Lerp(startingAngle, toAngle, rotationDuration / duration);

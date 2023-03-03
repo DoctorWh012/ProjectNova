@@ -14,11 +14,6 @@ public class Interpolation : MonoBehaviour
     private Transformupdate from;
     private Transformupdate previous;
 
-    private void Awake()
-    {
-        this.enabled = false;
-    }
-
     // Start is called before the first frame update
     void Start()
     {

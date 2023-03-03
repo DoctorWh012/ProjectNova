@@ -21,7 +21,6 @@ public class Player : MonoBehaviour
     [SerializeField] public Transform cameraHolder;
     [SerializeField] public Interpolation interpolation;
     [SerializeField] public MultiplayerGunShoot multiplayerGunShoot;
-    [SerializeField] public MultiplayerController multiplayerController;
     [SerializeField] public PlayerEffects playerEffects;
     [SerializeField] public PlayerShooting playerShooting;
     [SerializeField] public HeadBobController headBobController;
@@ -48,20 +47,21 @@ public class Player : MonoBehaviour
     public static void Spawn(ushort id, string username, Vector3 position)
     {
         if (NetworkManager.Singleton.Server.IsRunning) return;
+
         Player player;
         if (id == NetworkManager.Singleton.Client.Id)
         {
             player = Instantiate(GameManager.Singleton.LocalPlayerPrefab, position, Quaternion.identity).GetComponent<Player>();
-            player.interpolation.enabled = false;
             player.IsLocal = true;
         }
         else
         {
             player = Instantiate(GameManager.Singleton.PlayerPrefab, position, Quaternion.identity).GetComponent<Player>();
-            player.interpolation.enabled = true;
-            player.rb.collisionDetectionMode = CollisionDetectionMode.Discrete;
-            player.rb.isKinematic = true;
             player.IsLocal = false;
+
+            player.rb.collisionDetectionMode = CollisionDetectionMode.Discrete;
+            player.rb.interpolation = RigidbodyInterpolation.None;
+            player.rb.isKinematic = true;
         }
         player.name = $"Player {id} {username}";
         player.Id = id;
@@ -78,6 +78,7 @@ public class Player : MonoBehaviour
         {
             otherPlayer.SendSpawned(id);
         }
+
         //Spawns LocalPlayer if im the Host
         Player player;
         if (id == NetworkManager.Singleton.Client.Id)
@@ -85,17 +86,19 @@ public class Player : MonoBehaviour
             player = Instantiate(GameManager.Singleton.LocalPlayerPrefab, SpawnHandler.Instance.GetSpawnLocation(), Quaternion.identity).GetComponent<Player>();
             player.IsLocal = true;
         }
+
         //Spawns NetPlayer if im the Host
         else
         {
             player = Instantiate(GameManager.Singleton.PlayerPrefab, SpawnHandler.Instance.GetSpawnLocation(), Quaternion.identity).GetComponent<Player>();
             player.IsLocal = false;
+            player.interpolation.enabled = false;
         }
+        
         player.name = $"Player {id} ({(string.IsNullOrEmpty(username) ? "Guest" : username)}";
         player.Id = id;
         player.username = string.IsNullOrEmpty(username) ? $"Guest {id}" : username;
         list.Add(id, player);
-        player.rb.isKinematic = false;
         ScoreBoard.Instance.AddScoreBoarditem(list[id]);
         player.SendSpawned();
     }

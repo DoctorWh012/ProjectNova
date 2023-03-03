@@ -7,7 +7,6 @@ public class PlayerHealth : MonoBehaviour
     [Header("Components")]
     [SerializeField] private Player player;
     [SerializeField] private PlayerShooting playerShooting;
-    [SerializeField] private MultiplayerController controller;
     [SerializeField] private MultiplayerGunShoot gunController;
     [SerializeField] private HeadBobController headBob;
     [SerializeField] private GameObject[] playerModels;
@@ -16,7 +15,7 @@ public class PlayerHealth : MonoBehaviour
     {
         DisableEnableModels(false);
         if (!player.IsLocal) return;
-        controller.enabled = false;
+        player.Movement.FreezePlayerMovement(true);
         gunController.enabled = false;
         headBob.enabled = false;
     }
@@ -25,7 +24,7 @@ public class PlayerHealth : MonoBehaviour
     {
         DisableEnableModels(true);
         if (!player.IsLocal) return;
-        controller.enabled = true;
+        player.Movement.FreezePlayerMovement(false);
         gunController.enabled = true;
         headBob.enabled = true;
     }

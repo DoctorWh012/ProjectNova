@@ -13,13 +13,54 @@ public class PlayerEffects : MonoBehaviour
     [SerializeField] public AudioSource slideGrindAudioSRC;
     [SerializeField] private AudioSource mainAudioSRC;
     [SerializeField] private AudioClip[] walkingSFX;
+    [SerializeField] private ParticleSystem speedLinesEffect;
+
+    [Header("Settings")]
+    [SerializeField] private float speedLineStartAtSpeed;
+    [SerializeField] private float speedLineMultiplier;
+    [SerializeField] private float speedLineSpoolTime;
+
     private bool isGrinding = false;
 
-    public void PlayerAnimator(int[] inputs, bool isSliding)
+    private bool isLerpingUp = false;
+    private ParticleSystem.EmissionModule emission;
+    private float lerpDuration = 0;
+
+    private void Start()
+    {
+        emission = speedLinesEffect.emission;
+    }
+
+    private void FixedUpdate()
+    {
+        if (player.IsLocal) UpdateSpeedLinesEmission();
+    }
+
+    private void UpdateSpeedLinesEmission()
+    {
+        float speed = player.Movement.rb.velocity.magnitude;
+
+        if (speed < speedLineStartAtSpeed && emission.rateOverTimeMultiplier > 0)
+        {
+            if (isLerpingUp) { lerpDuration = 0; isLerpingUp = false; }
+            emission.rateOverTime = Mathf.Lerp(emission.rateOverTimeMultiplier, 0, lerpDuration / speedLineSpoolTime);
+            lerpDuration += Time.deltaTime;
+        }
+
+        else if (speed > speedLineStartAtSpeed)
+        {
+            if (!isLerpingUp) { lerpDuration = 0; isLerpingUp = true; }
+            emission.rateOverTime = Mathf.Lerp(emission.rateOverTimeMultiplier, Mathf.Abs(speed * speedLineMultiplier), Time.deltaTime / (speedLineSpoolTime / 2));
+            lerpDuration += Time.deltaTime;
+        }
+    }
+
+
+    public void PlayerAnimator(float vertical, float horizontal, bool isSliding)
     {
         if (player.IsLocal) return;
         if (isSliding) { playerAnimator.Play("Slide"); return; }
-        switch (inputs[0])
+        switch (vertical)
         {
             case 1:
                 playerAnimator.Play("Run");
@@ -28,7 +69,7 @@ public class PlayerEffects : MonoBehaviour
                 playerAnimator.Play("RunBackwards");
                 return;
         }
-        switch (inputs[1])
+        switch (horizontal)
         {
             case 1:
                 playerAnimator.Play("RunRight");
@@ -66,14 +107,13 @@ public class PlayerEffects : MonoBehaviour
         {
             slideGrindParticle.Play();
             slideGrindAudioSRC.Play();
-            if (player.IsLocal && !player.playerShooting.isWeaponTilted) StartCoroutine(player.playerShooting.TiltWeapon(30, 0.3f));
+
             isGrinding = true;
         }
         else if (!state && isGrinding)
         {
             slideGrindParticle.Stop();
             slideGrindAudioSRC.Stop();
-            if (player.IsLocal && player.playerShooting.isWeaponTilted) StartCoroutine(player.playerShooting.TiltWeapon(0, 0.3f));
             isGrinding = false;
         }
     }

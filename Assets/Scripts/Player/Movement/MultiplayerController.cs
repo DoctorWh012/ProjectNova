@@ -11,13 +11,18 @@ public class SimulationState
 
 public class ClientInputState
 {
-    public bool[] inputs;
+    public float horizontal;
+    public float vertical;
+    public bool crouch;
+    public bool jump;
+    public bool interact;
+
     public int currentTick;
 }
 
 public class MultiplayerController : MonoBehaviour
 {
-    public const int StateCacheSize = 256;
+    public const int StateCacheSize = 1024;
     [Header("Components")]
     [SerializeField] private PlayerMovement playerMovement;
     [SerializeField] private Transform orientation;
@@ -33,8 +38,6 @@ public class MultiplayerController : MonoBehaviour
     [SerializeField] public KeyCode interact;
     [SerializeField] private KeyCode pause;
 
-
-
     //----Client Side Prediction---
     private SimulationState[] simulationStateCache = new SimulationState[StateCacheSize];
     private ClientInputState[] inputStateCache = new ClientInputState[StateCacheSize];
@@ -46,12 +49,10 @@ public class MultiplayerController : MonoBehaviour
     private void Start()
     {
         inputs = new ClientInputState();
-        inputs.inputs = new bool[7];
     }
 
     private void Update()
     {
-        ResetInput();
         GetInput();
     }
 
@@ -59,9 +60,9 @@ public class MultiplayerController : MonoBehaviour
     {
         inputs.currentTick = playerMovement.cSPTick;
 
-        playerMovement.SetInput(inputs.inputs, orientation.forward, cam.rotation);
+        playerMovement.SetInput(inputs.horizontal, inputs.vertical, inputs.jump, inputs.crouch, inputs.interact);
 
-        if (!GameManager.Singleton.networking) { Debug.LogWarning("NOT NETWORKING"); return; }
+        if (!GameManager.Singleton.networking) return;
         // Sends a message containing this player input to the server im not the host
         if (!NetworkManager.Singleton.Server.IsRunning) SendInput();
 
@@ -81,21 +82,12 @@ public class MultiplayerController : MonoBehaviour
         if (Input.GetKeyDown(pause)) UIManager.Instance.InGameFocusUnfocus();
         if (!UIManager.Instance.focused) return;
 
-        if (Input.GetKey(forward)) inputs.inputs[0] = true;
-        if (Input.GetKey(left)) inputs.inputs[1] = true;
-        if (Input.GetKey(backward)) inputs.inputs[2] = true;
-        if (Input.GetKey(right)) inputs.inputs[3] = true;
-        if (Input.GetKey(jump)) inputs.inputs[4] = true;
-        if (Input.GetKey(crouch)) inputs.inputs[5] = true;
-        if (Input.GetKey(interact)) inputs.inputs[6] = true;
-    }
+        inputs.horizontal = Input.GetAxisRaw("Horizontal");
+        inputs.vertical = Input.GetAxisRaw("Vertical");
 
-    private void ResetInput()
-    {
-        for (int i = 0; i < inputs.inputs.Length; i++)
-        {
-            inputs.inputs[i] = false;
-        }
+        inputs.jump = Input.GetKey(jump);
+        inputs.crouch = Input.GetKey(crouch);
+        inputs.interact = Input.GetKey(interact);
     }
 
     public SimulationState CurrentSimulationState(ClientInputState inputs)
@@ -120,6 +112,7 @@ public class MultiplayerController : MonoBehaviour
 
         if (cachedInputState == null || cachedSimulationState == null)
         {
+            Debug.LogError("Needed Reconciliation Because of cache error");
             transform.position = serverSimulationState.position;
             orientation.forward = serverSimulationState.rotation;
             playerMovement.rb.velocity = serverSimulationState.velocity;
@@ -133,14 +126,20 @@ public class MultiplayerController : MonoBehaviour
         float differenceY = Mathf.Abs(cachedSimulationState.position.y - serverSimulationState.position.y);
         float differenceZ = Mathf.Abs(cachedSimulationState.position.z - serverSimulationState.position.z); ;
 
+
+        print($"difference X = {differenceX} : Cached player pos = {cachedSimulationState.position.x} : Server Pos {serverSimulationState.position.x} ");
+        print($"difference y = {differenceY} : Cached player pos = {cachedSimulationState.position.y} : Server Pos {serverSimulationState.position.y} ");
+        print($"difference z = {differenceZ} : Cached player pos = {cachedSimulationState.position.z} : Server Pos {serverSimulationState.position.z} ");
+
         //  The amount of distance in units that we will allow the client's
         //  prediction to drift from it's position on the server, before a
         //  correction is necessary. 
-        float tolerance = 0f;
+        float tolerance = 0;
 
         // A correction is necessary.
         if (differenceX > tolerance || differenceY > tolerance || differenceZ > tolerance)
         {
+            Debug.LogError("Needed Reconciliation");
             // Set the player's position to match the server's state. 
             transform.position = serverSimulationState.position;
             playerMovement.rb.velocity = serverSimulationState.velocity;
@@ -168,7 +167,7 @@ public class MultiplayerController : MonoBehaviour
                 }
 
                 // Process the cached inputs. 
-                playerMovement.SetInput(rewindCachedInputState.inputs, orientation.forward, cam.rotation);
+                playerMovement.SetInput(inputs.horizontal, inputs.vertical, inputs.jump, inputs.crouch, inputs.interact);
 
                 // Replace the simulationStateCache index with the new value.
                 SimulationState rewoundSimulationState = CurrentSimulationState(inputs);
@@ -189,10 +188,16 @@ public class MultiplayerController : MonoBehaviour
     private void SendInput()
     {
         Message message = Message.Create(MessageSendMode.Unreliable, ClientToServerId.input);
-        message.AddBools(inputs.inputs, false);
+        // Inputs
+        message.AddFloat(inputs.horizontal);
+        message.AddFloat(inputs.vertical);
+        message.AddBool(inputs.jump);
+        message.AddBool(inputs.crouch);
+        message.AddBool(inputs.interact);
+        message.AddInt(playerMovement.cSPTick);
+
         message.AddVector3(orientation.forward);
         message.AddQuaternion(cam.rotation);
-        message.AddInt(playerMovement.cSPTick);
         NetworkManager.Singleton.Client.Send(message);
     }
     #endregion

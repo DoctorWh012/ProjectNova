@@ -9,8 +9,8 @@ using System.Collections.Generic;
 public enum ServerToClientId : ushort
 {
     sync = 1,
-    playerSpawned,
     playerMovement,
+    playerSpawned,
     playerShot,
     playerHit,
     playerDied,

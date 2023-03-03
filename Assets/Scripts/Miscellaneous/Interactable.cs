@@ -25,11 +25,11 @@ public class Interactable : MonoBehaviour
             switch (desiredAction)
             {
                 case Action.PickUpGun:
-                    GameCanvas.Instance.SetUiPopUpText($"Press [{player.multiplayerController.interact}] to PickUp the gun!");
+                    GameCanvas.Instance.SetUiPopUpText($"Press [{player.Movement.interacting}] to PickUp the gun!");
                     break;
 
                 case Action.StartMatch:
-                    GameCanvas.Instance.SetUiPopUpText($"Press [{player.multiplayerController.interact}] to Start the match!");
+                    GameCanvas.Instance.SetUiPopUpText($"Press [{player.Movement.interacting}] to Start the match!");
                     break;
             }
 
@@ -56,7 +56,7 @@ public class Interactable : MonoBehaviour
 
     private IEnumerator WaitForInteract(Player player)
     {
-        while (!player.Movement.interact)
+        while (!player.Movement.interacting)
         {
             yield return null;
         }
