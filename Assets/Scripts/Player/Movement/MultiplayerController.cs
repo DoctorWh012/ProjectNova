@@ -6,6 +6,7 @@ public class SimulationState
     public Vector3 position;
     public Vector3 rotation;
     public Vector3 velocity;
+    public Vector3 angularVelocity;
     public int currentTick;
 }
 
@@ -22,7 +23,9 @@ public class ClientInputState
 
 public class MultiplayerController : MonoBehaviour
 {
+    public int cSPTick { get; private set; }
     public const int StateCacheSize = 1024;
+    public const float ServerTickRate = 60f;
     [Header("Components")]
     [SerializeField] private PlayerMovement playerMovement;
     [SerializeField] private Transform orientation;
@@ -42,46 +45,61 @@ public class MultiplayerController : MonoBehaviour
     private SimulationState[] simulationStateCache = new SimulationState[StateCacheSize];
     private ClientInputState[] inputStateCache = new ClientInputState[StateCacheSize];
     public SimulationState serverSimulationState = new SimulationState();
+    private Vector3 positionError = Vector3.zero;
+    private Quaternion rotationError = Quaternion.identity;
     private int lastCorrectedFrame;
 
-    public ClientInputState inputs { get; private set; }
+    public ClientInputState inputs { get; private set; } = new ClientInputState();
+    private float minTimeBetweenTicks;
+    private float timer;
 
     private void Start()
     {
-        inputs = new ClientInputState();
+        minTimeBetweenTicks = 1f / ServerTickRate;
     }
 
     private void Update()
     {
         GetInput();
-    }
+        timer += Time.deltaTime;
 
-    private void FixedUpdate()
-    {
-        inputs.currentTick = playerMovement.cSPTick;
+        while (timer >= minTimeBetweenTicks)
+        {
+            timer -= minTimeBetweenTicks;
+            int cacheIndex = cSPTick % StateCacheSize;
 
-        playerMovement.SetInput(inputs.horizontal, inputs.vertical, inputs.jump, inputs.crouch, inputs.interact);
+            // Get the Inputs and store them in the cache
+            inputs.currentTick = cSPTick;
+            inputStateCache[cacheIndex] = inputs;
 
-        if (!GameManager.Singleton.networking) return;
-        // Sends a message containing this player input to the server im not the host
-        if (!NetworkManager.Singleton.Server.IsRunning) SendInput();
+            // Stores the current SimState on a cache
+            SimulationState simulationState = CurrentSimulationState(inputs);
+            simulationStateCache[cacheIndex] = simulationState;
 
-        // Client side prediction stuff
+            // Applies the movent
+            playerMovement.SetInput(inputs.horizontal, inputs.vertical, inputs.jump, inputs.crouch, inputs.interact);
+
+            if (!GameManager.Singleton.networking) return;
+            // Sends a message containing this player input to the server im not the host
+            if (!NetworkManager.Singleton.Server.IsRunning) SendInput();
+
+            cSPTick++;
+        }
+
+        // If there's a ServerSimState available checks for reconciliation
         if (serverSimulationState != null) Reconciliate();
 
-        SimulationState simulationState = CurrentSimulationState(inputs);
+        positionError *= 0.9f;
+        rotationError = Quaternion.Slerp(rotationError, Quaternion.identity, 0.1f);
 
-        int cacheIndex = playerMovement.cSPTick % StateCacheSize;
-
-        simulationStateCache[cacheIndex] = simulationState;
-        inputStateCache[cacheIndex] = inputs;
+        transform.position = playerMovement.rb.position + positionError;
+        orientation.rotation = orientation.rotation * rotationError;
     }
 
     private void GetInput()
     {
         if (Input.GetKeyDown(pause)) UIManager.Instance.InGameFocusUnfocus();
         if (!UIManager.Instance.focused) return;
-
         inputs.horizontal = Input.GetAxisRaw("Horizontal");
         inputs.vertical = Input.GetAxisRaw("Vertical");
 
@@ -94,15 +112,17 @@ public class MultiplayerController : MonoBehaviour
     {
         return new SimulationState
         {
-            position = transform.position,
+            position = playerMovement.rb.position,
             rotation = orientation.forward,
             velocity = playerMovement.rb.velocity,
+            angularVelocity = playerMovement.rb.angularVelocity,
             currentTick = inputs.currentTick
         };
     }
 
     private void Reconciliate()
     {
+        // Makes sure that the ServerSimState is not outdated
         if (serverSimulationState.currentTick <= lastCorrectedFrame) return;
 
         int cacheIndex = serverSimulationState.currentTick % StateCacheSize;
@@ -113,46 +133,43 @@ public class MultiplayerController : MonoBehaviour
         if (cachedInputState == null || cachedSimulationState == null)
         {
             Debug.LogError("Needed Reconciliation Because of cache error");
-            transform.position = serverSimulationState.position;
-            orientation.forward = serverSimulationState.rotation;
+            playerMovement.rb.position = serverSimulationState.position;
             playerMovement.rb.velocity = serverSimulationState.velocity;
+            playerMovement.rb.angularVelocity = serverSimulationState.angularVelocity;
+            orientation.forward = serverSimulationState.rotation;
 
             lastCorrectedFrame = serverSimulationState.currentTick;
             return;
         }
 
-        // Find the difference between the vector's values. 
-        float differenceX = Mathf.Abs(cachedSimulationState.position.x - serverSimulationState.position.x);
-        float differenceY = Mathf.Abs(cachedSimulationState.position.y - serverSimulationState.position.y);
-        float differenceZ = Mathf.Abs(cachedSimulationState.position.z - serverSimulationState.position.z); ;
+        // Find the difference between the Server Player Pos And the Client predicted Pos
 
-
-        print($"difference X = {differenceX} : Cached player pos = {cachedSimulationState.position.x} : Server Pos {serverSimulationState.position.x} ");
-        print($"difference y = {differenceY} : Cached player pos = {cachedSimulationState.position.y} : Server Pos {serverSimulationState.position.y} ");
-        print($"difference z = {differenceZ} : Cached player pos = {cachedSimulationState.position.z} : Server Pos {serverSimulationState.position.z} ");
-
-        //  The amount of distance in units that we will allow the client's
-        //  prediction to drift from it's position on the server, before a
-        //  correction is necessary. 
-        float tolerance = 0;
+        float posDif = Vector3.Distance(cachedSimulationState.position, serverSimulationState.position);
 
         // A correction is necessary.
-        if (differenceX > tolerance || differenceY > tolerance || differenceZ > tolerance)
+        if (posDif > 0.001f)
         {
-            Debug.LogError("Needed Reconciliation");
+            Debug.Log("Correcting for error at tick " + serverSimulationState.currentTick + " (rewinding " + (cSPTick - serverSimulationState.currentTick) + " ticks)");
+            print($"Comparing Server Tick {serverSimulationState.currentTick} With Client's {cachedSimulationState.currentTick}");
+            // Get the predicted correct position
+            Vector3 predictedPos = playerMovement.rb.position + positionError;
+            Quaternion predictedRot = orientation.rotation * rotationError;
+
             // Set the player's position to match the server's state. 
-            transform.position = serverSimulationState.position;
+            playerMovement.rb.position = serverSimulationState.position;
             playerMovement.rb.velocity = serverSimulationState.velocity;
+            playerMovement.rb.angularVelocity = serverSimulationState.angularVelocity;
+            orientation.forward = serverSimulationState.rotation;
 
             // Declare the rewindFrame as we're about to resimulate our cached inputs. 
-            int rewindFrame = serverSimulationState.currentTick;
+            int rewindTick = serverSimulationState.currentTick;
 
             // Loop through and apply cached inputs until we're 
             // caught up to our current simulation frame. 
-            while (rewindFrame < playerMovement.cSPTick)
+            while (rewindTick < cSPTick)
             {
                 // Determine the cache index 
-                int rewindCacheIndex = rewindFrame % StateCacheSize;
+                int rewindCacheIndex = rewindTick % StateCacheSize;
 
                 // Obtain the cached input and simulation states.
                 ClientInputState rewindCachedInputState = inputStateCache[rewindCacheIndex];
@@ -162,20 +179,32 @@ public class MultiplayerController : MonoBehaviour
                 // increment the rewindFrame and continue.
                 if (rewindCachedInputState == null || rewindCachedSimulationState == null)
                 {
-                    ++rewindFrame;
+                    ++rewindTick;
                     continue;
                 }
 
                 // Process the cached inputs. 
-                playerMovement.SetInput(inputs.horizontal, inputs.vertical, inputs.jump, inputs.crouch, inputs.interact);
+                playerMovement.SetInput(rewindCachedInputState.horizontal, rewindCachedInputState.vertical, rewindCachedInputState.jump, rewindCachedInputState.crouch, rewindCachedInputState.interact);
 
                 // Replace the simulationStateCache index with the new value.
-                SimulationState rewoundSimulationState = CurrentSimulationState(inputs);
-                rewoundSimulationState.currentTick = rewindFrame;
+                SimulationState rewoundSimulationState = CurrentSimulationState(rewindCachedInputState);
+                rewoundSimulationState.currentTick = rewindTick;
                 simulationStateCache[rewindCacheIndex] = rewoundSimulationState;
 
                 // Increase the amount of frames that we've rewound.
-                ++rewindFrame;
+                ++rewindTick;
+            }
+
+            if ((predictedPos - playerMovement.rb.position).sqrMagnitude > -4f)
+            {
+                positionError = Vector3.zero;
+                rotationError = Quaternion.identity;
+            }
+
+            else
+            {
+                positionError = positionError - playerMovement.rb.position;
+                rotationError = Quaternion.Inverse(playerMovement.rb.rotation) * rotationError;
             }
         }
 
@@ -194,7 +223,7 @@ public class MultiplayerController : MonoBehaviour
         message.AddBool(inputs.jump);
         message.AddBool(inputs.crouch);
         message.AddBool(inputs.interact);
-        message.AddInt(playerMovement.cSPTick);
+        message.AddInt(inputs.currentTick);
 
         message.AddVector3(orientation.forward);
         message.AddQuaternion(cam.rotation);

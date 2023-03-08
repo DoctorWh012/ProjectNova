@@ -8,7 +8,6 @@ public class PlayerMovement : MonoBehaviour
     // THIS NEEDS URGENT REFACTORING
 
     //----READONLY VARIABLES----
-    public int cSPTick;
     public bool interacting { get; private set; }
     public bool grounded { get; private set; }
     public bool isCrouching { get; private set; } = false;
@@ -59,7 +58,6 @@ public class PlayerMovement : MonoBehaviour
         VerifyWallRun();
         ApplyDrag();
         CheckCameraTilt();
-
     }
 
     private void FixedUpdate()
@@ -80,7 +78,6 @@ public class PlayerMovement : MonoBehaviour
         if (!movementFreeze && !wallRunning) rb.useGravity = !OnSlope();
 
         if (GameManager.Singleton.networking) SendMovement();
-        cSPTick++;
     }
 
     // This runs On LocalPlayer For CSP and on the NetPlayer on the server
@@ -109,7 +106,7 @@ public class PlayerMovement : MonoBehaviour
     }
 
     // This Receives Movement data from the Server
-    public void Move(Player player, ushort tick, int serverCSPTick, Vector3 velocity, Vector3 newPosition, Vector3 forward, Quaternion camRot, bool crouching)
+    public void Move(Player player, ushort tick, int serverCSPTick, Vector3 velocity, Vector3 newPosition, Vector3 angularVelocity, Vector3 forward, Quaternion camRot, bool crouching)
     {
         if (NetworkManager.Singleton.Server.IsRunning) return;
 
@@ -129,6 +126,7 @@ public class PlayerMovement : MonoBehaviour
             multiplayerController.serverSimulationState.position = newPosition;
             multiplayerController.serverSimulationState.rotation = forward;
             multiplayerController.serverSimulationState.velocity = velocity;
+            multiplayerController.serverSimulationState.angularVelocity = angularVelocity;
             multiplayerController.serverSimulationState.currentTick = serverCSPTick;
         }
     }
@@ -347,12 +345,12 @@ public class PlayerMovement : MonoBehaviour
         message.AddUShort(NetworkManager.Singleton.CurrentTick);
         message.AddInt(clientTick);//ServerCSPTick Correct
         message.AddVector3(rb.velocity);
-        message.AddVector3(transform.position);
+        message.AddVector3(rb.position);
+        message.AddVector3(rb.angularVelocity);
         message.AddVector3(orientation.forward);
         message.AddQuaternion(cam.rotation);
         message.AddFloat(horizontalInput);
         message.AddFloat(verticalInput);
-
         NetworkManager.Singleton.Server.SendToAll(message);
     }
 
@@ -362,7 +360,7 @@ public class PlayerMovement : MonoBehaviour
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
             bool crouching = message.GetBool();
-            player.Movement.Move(player, message.GetUShort(), message.GetInt(), message.GetVector3(), message.GetVector3(), message.GetVector3(), message.GetQuaternion(), crouching);
+            player.Movement.Move(player, message.GetUShort(), message.GetInt(), message.GetVector3(), message.GetVector3(), message.GetVector3(), message.GetVector3(), message.GetQuaternion(), crouching);
             player.playerEffects.PlayerAnimator(message.GetFloat(), message.GetFloat(), crouching);
         }
     }
