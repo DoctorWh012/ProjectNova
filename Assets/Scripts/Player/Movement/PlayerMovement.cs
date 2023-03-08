@@ -41,10 +41,16 @@ public class PlayerMovement : MonoBehaviour
     private RaycastHit rightWallHit;
 
     private int clientTick;
+    private float timer;
+    private float minTimeBetweenTicks;
 
     private void Awake()
     {
         rb.freezeRotation = true;
+    }
+    private void Start()
+    {
+        minTimeBetweenTicks = 1f / NetworkManager.ServerTickRate;
     }
 
     //----MOVEMENT STUFF----
@@ -58,26 +64,33 @@ public class PlayerMovement : MonoBehaviour
         VerifyWallRun();
         ApplyDrag();
         CheckCameraTilt();
+
+        timer += Time.deltaTime;
+        while (timer >= minTimeBetweenTicks)
+        {
+            timer -= minTimeBetweenTicks;
+            // Stops Movement PHYSICS from being applied on client's NetPlayers
+            if (GameManager.Singleton.networking && !player.IsLocal && !NetworkManager.Singleton.Server.IsRunning) return;
+
+            if (wallRunning) WallRunMovement();
+
+            else if (OnSlope()) ApplyMovement(GetSlopeMoveDirection());
+
+            else
+            {
+                ApplyMovement(orientation.forward);
+                IncreaseFallGravity(movementSettings.gravity);
+            }
+
+            if (!movementFreeze && !wallRunning) rb.useGravity = !OnSlope();
+
+            if (GameManager.Singleton.networking) SendMovement();
+        }
     }
 
     private void FixedUpdate()
     {
-        // Stops Movement PHYSICS from being applied on client's NetPlayers
-        if (GameManager.Singleton.networking && !player.IsLocal && !NetworkManager.Singleton.Server.IsRunning) return;
 
-        if (wallRunning) WallRunMovement();
-
-        else if (OnSlope()) ApplyMovement(GetSlopeMoveDirection());
-
-        else
-        {
-            ApplyMovement(orientation.forward);
-            IncreaseFallGravity(movementSettings.gravity);
-        }
-
-        if (!movementFreeze && !wallRunning) rb.useGravity = !OnSlope();
-
-        if (GameManager.Singleton.networking) SendMovement();
     }
 
     // This runs On LocalPlayer For CSP and on the NetPlayer on the server
@@ -370,8 +383,10 @@ public class PlayerMovement : MonoBehaviour
     {
         if (Player.list.TryGetValue(fromClientId, out Player player))
         {
-            player.Movement.SetInput(message.GetFloat(), message.GetFloat(), message.GetBool(), message.GetBool(), message.GetBool());
-            player.Movement.clientTick = message.GetInt();
+            int msgTick = message.GetInt();
+            if (msgTick <= player.Movement.clientTick) { print($"The received tick was{msgTick} while we already have the tick{player.Movement.clientTick}"); return; }
+            player.Movement.SetInput(message.GetSByte(), message.GetSByte(), message.GetBool(), message.GetBool(), message.GetBool());
+            player.Movement.clientTick = msgTick;
 
             if (player.IsLocal) return;
             player.Movement.SetNetPlayerOrientation(message.GetVector3(), message.GetQuaternion());

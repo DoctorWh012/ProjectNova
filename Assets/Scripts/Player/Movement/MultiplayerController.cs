@@ -12,8 +12,8 @@ public class SimulationState
 
 public class ClientInputState
 {
-    public float horizontal;
-    public float vertical;
+    public sbyte horizontal;
+    public sbyte vertical;
     public bool crouch;
     public bool jump;
     public bool interact;
@@ -25,7 +25,6 @@ public class MultiplayerController : MonoBehaviour
 {
     public int cSPTick { get; private set; }
     public const int StateCacheSize = 1024;
-    public const float ServerTickRate = 60f;
     [Header("Components")]
     [SerializeField] private PlayerMovement playerMovement;
     [SerializeField] private Transform orientation;
@@ -50,12 +49,12 @@ public class MultiplayerController : MonoBehaviour
     private int lastCorrectedFrame;
 
     public ClientInputState inputs { get; private set; } = new ClientInputState();
-    private float minTimeBetweenTicks;
+    public float minTimeBetweenTicks { get; private set; }
     private float timer;
 
     private void Start()
     {
-        minTimeBetweenTicks = 1f / ServerTickRate;
+        minTimeBetweenTicks = 1f / NetworkManager.ServerTickRate;
     }
 
     private void Update()
@@ -100,8 +99,8 @@ public class MultiplayerController : MonoBehaviour
     {
         if (Input.GetKeyDown(pause)) UIManager.Instance.InGameFocusUnfocus();
         if (!UIManager.Instance.focused) return;
-        inputs.horizontal = Input.GetAxisRaw("Horizontal");
-        inputs.vertical = Input.GetAxisRaw("Vertical");
+        inputs.horizontal = (sbyte)Input.GetAxisRaw("Horizontal");
+        inputs.vertical = (sbyte)Input.GetAxisRaw("Vertical");
 
         inputs.jump = Input.GetKey(jump);
         inputs.crouch = Input.GetKey(crouch);
@@ -149,8 +148,6 @@ public class MultiplayerController : MonoBehaviour
         // A correction is necessary.
         if (posDif > 0.001f)
         {
-            Debug.Log("Correcting for error at tick " + serverSimulationState.currentTick + " (rewinding " + (cSPTick - serverSimulationState.currentTick) + " ticks)");
-            print($"Comparing Server Tick {serverSimulationState.currentTick} With Client's {cachedSimulationState.currentTick}");
             // Get the predicted correct position
             Vector3 predictedPos = playerMovement.rb.position + positionError;
             Quaternion predictedRot = orientation.rotation * rotationError;
@@ -218,12 +215,12 @@ public class MultiplayerController : MonoBehaviour
     {
         Message message = Message.Create(MessageSendMode.Unreliable, ClientToServerId.input);
         // Inputs
-        message.AddFloat(inputs.horizontal);
-        message.AddFloat(inputs.vertical);
+        message.AddInt(inputs.currentTick);
+        message.AddSByte(inputs.horizontal);
+        message.AddSByte(inputs.vertical);
         message.AddBool(inputs.jump);
         message.AddBool(inputs.crouch);
         message.AddBool(inputs.interact);
-        message.AddInt(inputs.currentTick);
 
         message.AddVector3(orientation.forward);
         message.AddQuaternion(cam.rotation);
