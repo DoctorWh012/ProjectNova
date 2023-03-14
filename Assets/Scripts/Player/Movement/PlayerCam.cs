@@ -7,7 +7,7 @@ public class PlayerCam : MonoBehaviour
 {
     public static PlayerCam Instance;
 
-    public bool isTilted;//{ get; private set; }
+    public bool isTilted { get; private set; }
 
     [Header("Components")]
     [SerializeField] private Transform orientation;
@@ -21,6 +21,8 @@ public class PlayerCam : MonoBehaviour
     private void Awake()
     {
         Instance = this;
+        Cursor.lockState = CursorLockMode.Locked;
+        Cursor.visible = false;
     }
 
     void Start()
@@ -28,12 +30,7 @@ public class PlayerCam : MonoBehaviour
         GetSensitivity();
     }
 
-    void Update()
-    {
-
-    }
-
-    private void FixedUpdate()
+    private void Update()
     {
         if (!UIManager.Instance.focused) return;
         GetInput();
@@ -44,13 +41,13 @@ public class PlayerCam : MonoBehaviour
     {
         string json = File.ReadAllText($"{Application.dataPath}/PlayerPrefs.json");
         PlayerPreferences playerPrefs = JsonUtility.FromJson<PlayerPreferences>(json);
-        sensitivity = playerPrefs.sensitivity * 10;
+        sensitivity = playerPrefs.sensitivity / 10;
     }
 
     private void GetInput()
     {
-        float mouseX = Input.GetAxisRaw("Mouse X") * Time.deltaTime * sensitivity;
-        float mouseY = Input.GetAxisRaw("Mouse Y") * Time.deltaTime * sensitivity;
+        float mouseX = Input.GetAxisRaw("Mouse X") * sensitivity;
+        float mouseY = Input.GetAxisRaw("Mouse Y") * sensitivity;
 
         yRotation += mouseX;
         xRotation -= mouseY;

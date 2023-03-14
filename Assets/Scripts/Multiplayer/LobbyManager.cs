@@ -2,10 +2,12 @@ using Steamworks;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using System.Collections;
+using System.Collections.Generic;
 using Riptide;
 
 public class LobbyManager : MonoBehaviour
 {
+    private enum LobbyStatus { Waiting, Playing }
     private static LobbyManager _singleton;
     public static LobbyManager Singleton
     {
@@ -24,9 +26,16 @@ public class LobbyManager : MonoBehaviour
     protected Callback<LobbyCreated_t> lobbyCreated;
     protected Callback<GameLobbyJoinRequested_t> gameLobbyJoinRequested;
     protected Callback<LobbyEnter_t> lobbyEnter;
+    protected Callback<LobbyMatchList_t> Callback_lobbyList;
+    protected Callback<LobbyDataUpdate_t> Callback_lobbyInfo;
 
     private const string HostAddressKey = "HostAddress";
     private CSteamID lobbyId;
+    private List<CSteamID> lobbyIDS = new List<CSteamID>();
+
+    private int playerCount;
+    private string lobbyName;
+    private LobbyStatus lobbyStatus;
 
     private void Awake()
     {
@@ -44,12 +53,15 @@ public class LobbyManager : MonoBehaviour
         lobbyCreated = Callback<LobbyCreated_t>.Create(OnLobbyCreated);
         gameLobbyJoinRequested = Callback<GameLobbyJoinRequested_t>.Create(OnGameLobbyJoinRequested);
         lobbyEnter = Callback<LobbyEnter_t>.Create(OnLobbyEnter);
+        Callback_lobbyList = Callback<LobbyMatchList_t>.Create(OnGetLobbiesList);
+        Callback_lobbyInfo = Callback<LobbyDataUpdate_t>.Create(OnGetLobbiesInfo);
     }
 
-    internal void CreateLobby()
+    internal void CreateLobby(ELobbyType lobbyType, int playerCount, string lobbyName)
     {
-        SteamMatchmaking.CreateLobby(ELobbyType.k_ELobbyTypePublic, NetworkManager.Singleton.maxClientCount);
-        print("createdLobby");
+        this.playerCount = playerCount;
+        this.lobbyName = lobbyName;
+        SteamMatchmaking.CreateLobby(lobbyType, playerCount);
     }
 
     private void OnLobbyCreated(LobbyCreated_t callback)
@@ -64,10 +76,10 @@ public class LobbyManager : MonoBehaviour
 
         lobbyId = new CSteamID(callback.m_ulSteamIDLobby);
         SteamMatchmaking.SetLobbyData(lobbyId, HostAddressKey, SteamUser.GetSteamID().ToString());
+        SteamMatchmaking.SetLobbyData(lobbyId, "name", lobbyName);
+        SteamMatchmaking.SetLobbyData(lobbyId, "status", "WIP");
 
-        Debug.LogWarning(callback.m_ulSteamIDLobby.ToString());
-
-        NetworkManager.Singleton.Server.Start(0, NetworkManager.Singleton.maxClientCount);
+        NetworkManager.Singleton.Server.Start(0, (ushort)playerCount);
         NetworkManager.Singleton.Client.Connect("127.0.0.1");
     }
 
@@ -90,7 +102,6 @@ public class LobbyManager : MonoBehaviour
         string hostAddress = SteamMatchmaking.GetLobbyData(lobbyId, HostAddressKey);
 
         NetworkManager.Singleton.Client.Connect(hostAddress);
-        // UIManager.Singleton.LobbyEntered();
     }
 
     internal void LeaveLobby()
@@ -99,7 +110,34 @@ public class LobbyManager : MonoBehaviour
         NetworkManager.Singleton.DisconnectClient();
         SteamMatchmaking.LeaveLobby(lobbyId);
     }
-    
+
+    public void GetLobbiesList()
+    {
+        if (lobbyIDS.Count > 0) lobbyIDS.Clear();
+
+        SteamMatchmaking.AddRequestLobbyListFilterSlotsAvailable(1);
+        SteamAPICall_t tyrGetList = SteamMatchmaking.RequestLobbyList();
+    }
+
+    internal void OnGetLobbiesList(LobbyMatchList_t result)
+    {
+        print($"Found {result.m_nLobbiesMatching} lobbies");
+        if (MainMenu.Instance.lobbyDisplays.Count > 0) MainMenu.Instance.DestroyOldLobbiesDiplays();
+
+        for (int i = 0; result.m_nLobbiesMatching > i; i++)
+        {
+            CSteamID lobbyID = SteamMatchmaking.GetLobbyByIndex(i);
+            lobbyIDS.Add(lobbyID);
+            SteamMatchmaking.RequestLobbyData(lobbyID);
+        }
+    }
+
+    internal void OnGetLobbiesInfo(LobbyDataUpdate_t result)
+    {
+        print("Got lobby info");
+        MainMenu.Instance.CreateLobbyList(lobbyIDS, result);
+    }
+
     public IEnumerator SendName()
     {
         string playerName;

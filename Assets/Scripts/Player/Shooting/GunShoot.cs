@@ -4,7 +4,6 @@ using System.Collections;
 
 public class GunShoot : MonoBehaviour
 {
-    [Space]
     [Header("Components")]
     [SerializeField] private Player player;
     [SerializeField] private CapsuleCollider col;
@@ -33,24 +32,25 @@ public class GunShoot : MonoBehaviour
     }
 
     private bool shootFreeze = false;
-    private bool shootInput;
+    public bool shootInput;
     private bool canShoot = true;
     private bool isReloading = false;
     private float nextTimeToFire = 0f;
-    private Guns activeGun;
+    public Guns activeGun;
 
     // Start is called before the first frame update
-    void Awake()
+    private void Awake()
     {
-        if (!NetworkManager.Singleton.Server.IsRunning) { this.enabled = false; return; }
+        // if (!NetworkManager.Singleton.Server.IsRunning) { this.enabled = false; return; }
         currentPlayerGuns = new Guns[gunSlots];
         currentPlayerGunsIndex = new int[gunSlots];
+
         PickUpMelee(0);
         PickUpGun(0, 0);
     }
 
     // Update is called once per frame
-    void Update()
+    private void Update()
     {
         if (activeGun.weaponType == WeaponType.rifle || activeGun.weaponType == WeaponType.shotgun)
         {
@@ -95,7 +95,7 @@ public class GunShoot : MonoBehaviour
     {
         if (ammunition <= 0 && !isReloading && activeGun.weaponType != WeaponType.melee)
         {
-            StartAndSendGunReload(activeGun.reloadSpins, activeGun.reloadTime);
+            StartGunReload(activeGun.reloadSpins, activeGun.reloadTime);
         }
     }
 
@@ -105,6 +105,7 @@ public class GunShoot : MonoBehaviour
         System.Array.Sort(rayHits, (x, y) => x.distance.CompareTo(y.distance));
 
         if (rayHits.Length <= 0) { SendShot(false, Vector2.zero, true); return; }
+
         for (int i = 0; i < rayHits.Length; i++)
         {
             if (rayHits[i].collider == col) continue;
@@ -194,7 +195,7 @@ public class GunShoot : MonoBehaviour
         SendHitPlayer(playerHitId, shouldPlaySFx);
     }
 
-    private void SwitchGun(int slotIndex, bool shouldSwitch)
+    public void SwitchGun(int slotIndex, bool shouldSwitch)
     {
         if (currentPlayerGuns[slotIndex] == null) return;
 
@@ -235,22 +236,41 @@ public class GunShoot : MonoBehaviour
 
     private void SendShot(bool didHit, Vector2 spread, bool shouldPlaySFx)
     {
-        Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.playerShot);
-        message.AddUShort(player.Id);
-        message.AddBool(didHit);
-        message.AddVector3(rayHit.point);
-        message.AddVector2(spread);
-        message.AddBool(shouldPlaySFx);
-        NetworkManager.Singleton.Server.SendToAll(message);
+        if (GameManager.Singleton.networking)
+        {
+            if (!NetworkManager.Singleton.Server.IsRunning) return;
+            Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.playerShot);
+            message.AddUShort(player.Id);
+            message.AddBool(didHit);
+            message.AddVector3(rayHit.point);
+            message.AddVector2(spread);
+            message.AddBool(shouldPlaySFx);
+            NetworkManager.Singleton.Server.SendToAll(message);
+        }
+        else
+        {
+            player.playerShooting.BulletTrailEffect(didHit, rayHit.point, spread);
+            player.playerShooting.ShootingAnimator(shouldPlaySFx, player.IsLocal);
+        }
     }
 
     private void SendMeleeAttack(bool didHit)
     {
-        Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.meleeAtack);
-        message.AddUShort(player.Id);
-        message.AddBool(didHit);
-        message.AddVector3(rayHit.point);
-        NetworkManager.Singleton.Server.SendToAll(message);
+        if (GameManager.Singleton.networking)
+        {
+            if (!NetworkManager.Singleton.Server.IsRunning) return;
+            Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.meleeAtack);
+            message.AddUShort(player.Id);
+            message.AddBool(didHit);
+            message.AddVector3(rayHit.point);
+            NetworkManager.Singleton.Server.SendToAll(message);
+        }
+        else
+        {
+            player.playerShooting.MeleeAtackAnimator();
+            if (didHit) player.playerShooting.HitParticle(rayHit.point);
+        }
+
     }
 
     private void SendHitPlayer(ushort playerHitId, bool shouldPlaySFx)
@@ -264,30 +284,54 @@ public class GunShoot : MonoBehaviour
 
     private void SendGunSwitch(int gunIndex, bool isMelee)
     {
-        Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.gunChanged);
-        message.AddUShort(player.Id);
-        message.AddBool(isMelee);
-        message.AddInt(gunIndex);
-        message.AddInt(activeGun.range);
-        NetworkManager.Singleton.Server.SendToAll(message);
+        if (GameManager.Singleton == null) return;
+        if (GameManager.Singleton.networking)
+        {
+            if (!NetworkManager.Singleton.Server.IsRunning) return;
+            Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.gunChanged);
+            message.AddUShort(player.Id);
+            message.AddBool(isMelee);
+            message.AddInt(gunIndex);
+            message.AddInt(activeGun.range);
+            NetworkManager.Singleton.Server.SendToAll(message);
+        }
+        else
+        {
+            if (isMelee) player.playerShooting.SwitchMelee(gunIndex);
+            else player.playerShooting.SwitchGun(gunIndex);
+            player.playerShooting.range = activeGun.range;
+        }
     }
 
-    private void StartAndSendGunReload(int spins, float reloadTime)
+    public void StartGunReload(int spins, float reloadTime)
     {
+        if (player.GunShoot.ammunition == player.GunShoot.activeGun.maxAmmo) return;
         StartCoroutine(player.GunShoot.StartReload(reloadTime));
-        Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.gunReload);
-        message.AddUShort(player.Id);
-        message.AddInt(spins);
-        message.AddFloat(reloadTime + 0.5f);
-        NetworkManager.Singleton.Server.Send(message, player.Id);
+
+        if (GameManager.Singleton.networking)
+        {
+            if (!NetworkManager.Singleton.Server.IsRunning) return;
+            Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.gunReload);
+            message.AddUShort(player.Id);
+            message.AddInt(spins);
+            message.AddFloat(reloadTime + 0.1f);
+            NetworkManager.Singleton.Server.Send(message, player.Id);
+        }
+        else player.playerShooting.DoTheSpin(spins, reloadTime);
     }
 
     private void SendUpdatedAmmo()
     {
-        Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.ammoChanged);
-        message.AddInt(ammunition);
-        message.AddInt(activeGun.maxAmmo);
-        NetworkManager.Singleton.Server.Send(message, player.Id);
+        if (GameManager.Singleton == null) return;
+        if (GameManager.Singleton.networking)
+        {
+            if (!NetworkManager.Singleton.Server.IsRunning) return;
+            Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.ammoChanged);
+            message.AddInt(ammunition);
+            message.AddInt(activeGun.maxAmmo);
+            NetworkManager.Singleton.Server.Send(message, player.Id);
+        }
+        else GameCanvas.Instance.UpdateAmmunition(ammunition, activeGun.maxAmmo);
     }
 
 
@@ -316,8 +360,7 @@ public class GunShoot : MonoBehaviour
     {
         if (Player.list.TryGetValue(fromClientId, out Player player))
         {
-            if (player.GunShoot.ammunition == player.GunShoot.activeGun.maxAmmo) return;
-            player.GunShoot.StartAndSendGunReload(player.GunShoot.activeGun.reloadSpins, player.GunShoot.activeGun.reloadTime);
+            player.GunShoot.StartGunReload(player.GunShoot.activeGun.reloadSpins, player.GunShoot.activeGun.reloadTime);
         }
     }
     #endregion

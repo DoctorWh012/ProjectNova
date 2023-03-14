@@ -7,6 +7,7 @@ public class GunComponents : MonoBehaviour
     public Transform barrelTip;
     public Transform gunModelPos;
     public MeshRenderer[] gunMesh;
+    public SkinnedMeshRenderer[] armMesh;
     public MeshRenderer scopeMesh;
     public Camera scopeCam;
     public TrailRenderer gunTrail;

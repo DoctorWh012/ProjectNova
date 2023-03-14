@@ -29,11 +29,9 @@ public class GameCanvas : MonoBehaviour
 
     void Update()
     {
-        if (NetworkManager.Singleton == null) return;
-        if (NetworkManager.Singleton.Client.IsConnected)
-        {
+        if (!GameManager.Singleton.networking) return;
+        else if (NetworkManager.Singleton.Client.IsConnected)
             pingText.SetText($"Ping = {NetworkManager.Singleton.Client.RTT}Ms");
-        }
     }
 
     public void SetUiPopUpText(string text)
@@ -41,7 +39,7 @@ public class GameCanvas : MonoBehaviour
         uiPopUpText.SetText(text);
     }
 
-    private void UpdateAmmunition(int magazine, int ammo)
+    public void UpdateAmmunition(int magazine, int ammo)
     {
         ammoDisplayText.SetText(magazine + "/" + ammo);
     }

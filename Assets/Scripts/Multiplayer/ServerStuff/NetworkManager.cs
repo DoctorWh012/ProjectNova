@@ -9,8 +9,8 @@ using System.Collections.Generic;
 public enum ServerToClientId : ushort
 {
     sync = 1,
-    playerSpawned,
     playerMovement,
+    playerSpawned,
     playerShot,
     playerHit,
     playerDied,
@@ -85,6 +85,7 @@ public class NetworkManager : MonoBehaviour
         }
     }
 
+    public const float ServerTickRate = 60f;
     [SerializeField] public ushort maxClientCount;
     [Space(10)]
     [SerializeField] private ushort tickDivergenceTolerance = 1;
@@ -162,9 +163,8 @@ public class NetworkManager : MonoBehaviour
 
     private void DidConnect(object sender, EventArgs e)
     {
+        GameManager.Singleton.networking = true;
         StartCoroutine(LobbyManager.Singleton.SendName());
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
     }
 
     private void FailedToConnect(object sender, EventArgs e)
@@ -183,7 +183,7 @@ public class NetworkManager : MonoBehaviour
 
     private void DidDisconnect(object sender, EventArgs e)
     {
-        DestroyAllPlayers();
+        LobbyManager.Singleton.LeaveLobby();
         SceneManager.LoadScene("Menu");
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;

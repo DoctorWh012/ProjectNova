@@ -8,7 +8,7 @@ public class Player : MonoBehaviour
     public static Dictionary<ushort, Player> list = new Dictionary<ushort, Player>();
 
     public ushort Id { get; private set; }
-    public bool IsLocal { get; private set; }
+    public bool IsLocal;//{ get; private set; }
     public string username { get; private set; }
     public bool isAlive { get; private set; } = true;
     public PlayerMovement Movement => movement;
@@ -16,12 +16,14 @@ public class Player : MonoBehaviour
 
     [SerializeField] private PlayerHealth playerHealth;
     [SerializeField] private Transform orientation;
-    [SerializeField] private Transform cam;
+    [SerializeField] public Transform mainCamera;
+    [SerializeField] public Transform gunCamera;
+    [SerializeField] public Transform cameraHolder;
     [SerializeField] public Interpolation interpolation;
     [SerializeField] public MultiplayerGunShoot multiplayerGunShoot;
-    [SerializeField] public MultiplayerController multiplayerController;
     [SerializeField] public PlayerEffects playerEffects;
     [SerializeField] public PlayerShooting playerShooting;
+    [SerializeField] public HeadBobController headBobController;
     [SerializeField] private PlayerMovement movement;
     [SerializeField] private GunShoot gunShoot;
     [SerializeField] private Rigidbody rb;
@@ -31,28 +33,35 @@ public class Player : MonoBehaviour
     {
         DontDestroyOnLoad(gameObject);
     }
+    private void Start()
+    {
+        if (!GameManager.Singleton.networking) IsLocal = true;
+    }
     // --------CLIENT--------
     private void OnDestroy()
     {
-        ScoreBoard.Instance.RemoveScoreBoardItem(list[Id]);
+        if (ScoreBoard.Instance != null) ScoreBoard.Instance.RemoveScoreBoardItem(list[Id]);
         list.Remove(Id);
     }
 
     public static void Spawn(ushort id, string username, Vector3 position)
     {
         if (NetworkManager.Singleton.Server.IsRunning) return;
+
         Player player;
         if (id == NetworkManager.Singleton.Client.Id)
         {
-            player = Instantiate(GameLogic.Singleton.LocalPlayerPrefab, position, Quaternion.identity).GetComponent<Player>();
-            player.interpolation.enabled = false;
+            player = Instantiate(GameManager.Singleton.LocalPlayerPrefab, position, Quaternion.identity).GetComponent<Player>();
             player.IsLocal = true;
         }
         else
         {
-            player = Instantiate(GameLogic.Singleton.PlayerPrefab, position, Quaternion.identity).GetComponent<Player>();
-            player.interpolation.enabled = true;
+            player = Instantiate(GameManager.Singleton.PlayerPrefab, position, Quaternion.identity).GetComponent<Player>();
             player.IsLocal = false;
+
+            player.rb.collisionDetectionMode = CollisionDetectionMode.Discrete;
+            player.rb.interpolation = RigidbodyInterpolation.None;
+            player.rb.isKinematic = true;
         }
         player.name = $"Player {id} {username}";
         player.Id = id;
@@ -69,24 +78,27 @@ public class Player : MonoBehaviour
         {
             otherPlayer.SendSpawned(id);
         }
+
         //Spawns LocalPlayer if im the Host
         Player player;
         if (id == NetworkManager.Singleton.Client.Id)
         {
-            player = Instantiate(GameLogic.Singleton.LocalPlayerPrefab, SpawnHandler.Instance.GetSpawnLocation(), Quaternion.identity).GetComponent<Player>();
+            player = Instantiate(GameManager.Singleton.LocalPlayerPrefab, SpawnHandler.Instance.GetSpawnLocation(), Quaternion.identity).GetComponent<Player>();
             player.IsLocal = true;
         }
+
         //Spawns NetPlayer if im the Host
         else
         {
-            player = Instantiate(GameLogic.Singleton.PlayerPrefab, SpawnHandler.Instance.GetSpawnLocation(), Quaternion.identity).GetComponent<Player>();
+            player = Instantiate(GameManager.Singleton.PlayerPrefab, SpawnHandler.Instance.GetSpawnLocation(), Quaternion.identity).GetComponent<Player>();
             player.IsLocal = false;
+            player.interpolation.enabled = false;
         }
+        
         player.name = $"Player {id} ({(string.IsNullOrEmpty(username) ? "Guest" : username)}";
         player.Id = id;
         player.username = string.IsNullOrEmpty(username) ? $"Guest {id}" : username;
         list.Add(id, player);
-        player.rb.isKinematic = false;
         ScoreBoard.Instance.AddScoreBoarditem(list[id]);
         player.SendSpawned();
     }

@@ -41,7 +41,6 @@ public class RigidBot : MonoBehaviour
 
     private bool isRagdoll;
     private bool legGrounded;
-    private bool recovering;
     private int legAmmount;
     private float balancingForce;
     private float stateForceMultiplier;
@@ -91,7 +90,6 @@ public class RigidBot : MonoBehaviour
                 UpdateState(EnemyState.active);
                 CancelInvoke("GetUp");
                 ConfigureLegs(false);
-                recovering = false;
             }
             // If it falls and is not already invoking Getup It asks for it to get up
             else if (!IsInvoking("GetUp")) Invoke("GetUp", recoverTime + Random.Range(-recoverTimeRand, recoverTimeRand));
@@ -112,8 +110,6 @@ public class RigidBot : MonoBehaviour
             if ((rootAngle < getUpAngle && spineRb.velocity.magnitude < getUpMagT) || (distanceFromGround > botIk.heightAboveGround * 0.85f && distanceFromGround < botIk.heightAboveGround * 1.85f && rootAngle < 30f))
             {
                 UpdateState(EnemyState.active);
-                CancelInvoke("FinishRecovery");
-                Invoke("FinishRecovery", 2f);
             }
             return;
         }
@@ -288,7 +284,6 @@ public class RigidBot : MonoBehaviour
     {
         UpdateState(EnemyState.falling);
         ConfigureLegs(true);
-        recovering = true;
         Invoke("GetUp", recoverTime * Random.Range(-recoverTimeRand, recoverTimeRand));
     }
 
@@ -308,11 +303,6 @@ public class RigidBot : MonoBehaviour
             ConfigureLegs(false);
         }
         else Invoke("GetUp", recoverTime);
-    }
-
-    private void FinishRecovery()
-    {
-        recovering = false;
     }
 
     public Vector3 GetVelocity()
