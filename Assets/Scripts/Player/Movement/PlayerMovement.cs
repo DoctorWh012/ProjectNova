@@ -18,7 +18,7 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] public Rigidbody rb;
     [SerializeField] private CapsuleCollider col;
     [SerializeField] private Transform orientation;
-    [SerializeField] private Transform cam;
+    [SerializeField] public Transform cam;
     [SerializeField] private LayerMask ground;
     [SerializeField] private Transform groundCheck;
     [SerializeField] private LayerMask wallLayer;
@@ -40,7 +40,7 @@ public class PlayerMovement : MonoBehaviour
     private RaycastHit leftWallHit;
     private RaycastHit rightWallHit;
 
-    private int clientTick;
+    private ClientInputState lastReceivedInputs = new ClientInputState();
     private float timer;
     private float minTimeBetweenTicks;
 
@@ -88,11 +88,6 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    private void FixedUpdate()
-    {
-
-    }
-
     // This runs On LocalPlayer For CSP and on the NetPlayer on the server
     public void SetInput(float horizontal, float vertical, bool jump, bool crouch, bool interact)
     {
@@ -118,8 +113,31 @@ public class PlayerMovement : MonoBehaviour
         interacting = interact;
     }
 
+    private void HandleClientInput(ClientInputState[] inputs)
+    {
+        if (inputs.Length == 0) return;
+        // Last input in the array is the newest one
+        // Here we check to see if the inputs sent by the client are newer than the ones we already have received
+        if (inputs[inputs.Length - 1].currentTick >= lastReceivedInputs.currentTick)
+        {
+            // Here we check for were to start processing the inputs
+            // if the iputs we already have are newer than the first ones sent we start at their difference 
+            // if not we start at the first one
+            int start = lastReceivedInputs.currentTick > inputs[0].currentTick ? (lastReceivedInputs.currentTick - inputs[0].currentTick) : 0;
+
+            // Now that we have when to start we can simply apply all relevant inputs to the player
+            for (int i = start; i < inputs.Length - 1; i++)
+            {
+                SetInput(inputs[i].horizontal, inputs[i].vertical, inputs[i].jump, inputs[i].crouch, inputs[i].interact);
+            }
+
+            // Now we save the client newest input
+            lastReceivedInputs = inputs[inputs.Length - 1];
+        }
+    }
+
     // This Receives Movement data from the Server
-    public void Move(Player player, ushort tick, int serverCSPTick, Vector3 velocity, Vector3 newPosition, Vector3 angularVelocity, Vector3 forward, Quaternion camRot, bool crouching)
+    public void Move(Player player, ushort tick, ushort serverCSPTick, Vector3 velocity, Vector3 newPosition, Vector3 forward, Quaternion camRot, bool crouching)
     {
         if (NetworkManager.Singleton.Server.IsRunning) return;
 
@@ -139,7 +157,6 @@ public class PlayerMovement : MonoBehaviour
             multiplayerController.serverSimulationState.position = newPosition;
             multiplayerController.serverSimulationState.rotation = forward;
             multiplayerController.serverSimulationState.velocity = velocity;
-            multiplayerController.serverSimulationState.angularVelocity = angularVelocity;
             multiplayerController.serverSimulationState.currentTick = serverCSPTick;
         }
     }
@@ -194,7 +211,6 @@ public class PlayerMovement : MonoBehaviour
         movementFreeze = state;
         rb.useGravity = !state;
         rb.velocity = Vector3.zero;
-        rb.angularVelocity = Vector3.zero;
     }
 
     private void Jump()
@@ -356,10 +372,9 @@ public class PlayerMovement : MonoBehaviour
         message.AddUShort(player.Id);
         message.AddBool(isCrouching);
         message.AddUShort(NetworkManager.Singleton.CurrentTick);
-        message.AddInt(clientTick);//ServerCSPTick Correct
+        message.AddUShort(lastReceivedInputs.currentTick);//ServerCSPTick Correct
         message.AddVector3(rb.velocity);
         message.AddVector3(rb.position);
-        message.AddVector3(rb.angularVelocity);
         message.AddVector3(orientation.forward);
         message.AddQuaternion(cam.rotation);
         message.AddFloat(horizontalInput);
@@ -373,7 +388,7 @@ public class PlayerMovement : MonoBehaviour
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
             bool crouching = message.GetBool();
-            player.Movement.Move(player, message.GetUShort(), message.GetInt(), message.GetVector3(), message.GetVector3(), message.GetVector3(), message.GetVector3(), message.GetQuaternion(), crouching);
+            player.Movement.Move(player, message.GetUShort(), message.GetUShort(), message.GetVector3(), message.GetVector3(), message.GetVector3(), message.GetQuaternion(), crouching);
             player.playerEffects.PlayerAnimator(message.GetFloat(), message.GetFloat(), crouching);
         }
     }
@@ -383,10 +398,23 @@ public class PlayerMovement : MonoBehaviour
     {
         if (Player.list.TryGetValue(fromClientId, out Player player))
         {
-            int msgTick = message.GetInt();
-            if (msgTick <= player.Movement.clientTick) { print($"The received tick was{msgTick} while we already have the tick{player.Movement.clientTick}"); return; }
-            player.Movement.SetInput(message.GetSByte(), message.GetSByte(), message.GetBool(), message.GetBool(), message.GetBool());
-            player.Movement.clientTick = msgTick;
+            byte inputsQuantity = message.GetByte();
+            ClientInputState[] inputs = new ClientInputState[inputsQuantity];
+
+            for (int i = 0; i < inputsQuantity; i++)
+            {
+                inputs[i] = new ClientInputState
+                {
+                    horizontal = message.GetSByte(),
+                    vertical = message.GetSByte(),
+                    jump = message.GetBool(),
+                    crouch = message.GetBool(),
+                    interact = message.GetBool(),
+                    currentTick = message.GetUShort()
+                };
+            }
+
+            player.Movement.HandleClientInput(inputs);
 
             if (player.IsLocal) return;
             player.Movement.SetNetPlayerOrientation(message.GetVector3(), message.GetQuaternion());

@@ -25,11 +25,11 @@ public class Interactable : MonoBehaviour
             switch (desiredAction)
             {
                 case Action.PickUpGun:
-                    GameCanvas.Instance.SetUiPopUpText($"Press [{player.Movement.interacting}] to PickUp the gun!");
+                    GameCanvas.Instance.SetUiPopUpText($"Press [E] to PickUp the gun!");
                     break;
 
                 case Action.StartMatch:
-                    GameCanvas.Instance.SetUiPopUpText($"Press [{player.Movement.interacting}] to Start the match!");
+                    GameCanvas.Instance.SetUiPopUpText($"Press [E] to Start the match!");
                     break;
             }
 
@@ -72,7 +72,7 @@ public class Interactable : MonoBehaviour
                 animator.Play("Press");
                 if (!NetworkManager.Singleton.Server.IsRunning) break;
                 if (!player.IsLocal) break;
-                
+
                 matchStart = !matchStart;
                 MatchManager.Singleton.SendMatchStartMessage(matchStart);
                 yield return new WaitForSeconds(1);
