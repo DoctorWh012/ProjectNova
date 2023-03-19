@@ -1,4 +1,4 @@
-using System.Collections;
+using UnityEngine.SceneManagement;
 using System.Collections.Generic;
 using Riptide;
 using UnityEngine;
@@ -8,9 +8,9 @@ public class Player : MonoBehaviour
     public static Dictionary<ushort, Player> list = new Dictionary<ushort, Player>();
 
     public ushort Id { get; private set; }
-    public bool IsLocal;//{ get; private set; }
+    public bool IsLocal { get; private set; }
     public string username { get; private set; }
-    public bool isAlive { get; private set; } = true;
+    public PhysicsScene playerPhysicsScene { get; private set; }
     public PlayerMovement Movement => movement;
     public GunShoot GunShoot => gunShoot;
 
@@ -28,6 +28,7 @@ public class Player : MonoBehaviour
     [SerializeField] private GunShoot gunShoot;
     [SerializeField] private Rigidbody rb;
 
+    private Scene playerScene;
 
     private void Awake()
     {
@@ -94,7 +95,6 @@ public class Player : MonoBehaviour
             player.IsLocal = false;
             player.interpolation.enabled = false;
         }
-        
         player.name = $"Player {id} ({(string.IsNullOrEmpty(username) ? "Guest" : username)}";
         player.Id = id;
         player.username = string.IsNullOrEmpty(username) ? $"Guest {id}" : username;
@@ -103,13 +103,13 @@ public class Player : MonoBehaviour
         player.SendSpawned();
     }
 
-    //Sends LocalPlayer?
+    //Sends LocalPlayer
     private void SendSpawned()
     {
         NetworkManager.Singleton.Server.SendToAll(AddSpawnData(Message.Create(MessageSendMode.Reliable, ServerToClientId.playerSpawned)));
     }
 
-    //Sends NetPlayer?
+    //Sends NetPlayer
     private void SendSpawned(ushort toClientId)
     {
         NetworkManager.Singleton.Server.Send(AddSpawnData(Message.Create(MessageSendMode.Reliable, ServerToClientId.playerSpawned)), toClientId);

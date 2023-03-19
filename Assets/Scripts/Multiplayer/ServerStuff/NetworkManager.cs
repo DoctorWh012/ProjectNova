@@ -85,7 +85,7 @@ public class NetworkManager : MonoBehaviour
         }
     }
 
-    public const float ServerTickRate = 60f;
+    public const float ServerTickRate = 64f;
     [SerializeField] public ushort maxClientCount;
     [Space(10)]
     [SerializeField] private ushort tickDivergenceTolerance = 1;

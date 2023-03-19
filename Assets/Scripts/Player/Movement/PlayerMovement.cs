@@ -2,11 +2,10 @@ using System.Collections;
 using System.Collections.Generic;
 using Riptide;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class PlayerMovement : MonoBehaviour
 {
-    // THIS NEEDS URGENT REFACTORING
-
     //----READONLY VARIABLES----
     public bool interacting { get; private set; }
     public bool grounded { get; private set; }
@@ -42,15 +41,10 @@ public class PlayerMovement : MonoBehaviour
 
     private ClientInputState lastReceivedInputs = new ClientInputState();
     private float timer;
-    private float minTimeBetweenTicks;
 
     private void Awake()
     {
         rb.freezeRotation = true;
-    }
-    private void Start()
-    {
-        minTimeBetweenTicks = 1f / NetworkManager.ServerTickRate;
     }
 
     //----MOVEMENT STUFF----
@@ -66,24 +60,17 @@ public class PlayerMovement : MonoBehaviour
         CheckCameraTilt();
 
         timer += Time.deltaTime;
-        while (timer >= minTimeBetweenTicks)
+        while (timer >= GameManager.Singleton.minTimeBetweenTicks)
         {
-            timer -= minTimeBetweenTicks;
-            // Stops Movement PHYSICS from being applied on client's NetPlayers
-            if (GameManager.Singleton.networking && !player.IsLocal && !NetworkManager.Singleton.Server.IsRunning) return;
-
+            timer -= GameManager.Singleton.minTimeBetweenTicks;
             if (wallRunning) WallRunMovement();
-
             else if (OnSlope()) ApplyMovement(GetSlopeMoveDirection());
-
             else
             {
                 ApplyMovement(orientation.forward);
                 IncreaseFallGravity(movementSettings.gravity);
             }
-
             if (!movementFreeze && !wallRunning) rb.useGravity = !OnSlope();
-
             if (GameManager.Singleton.networking) SendMovement();
         }
     }
@@ -98,6 +85,7 @@ public class PlayerMovement : MonoBehaviour
         // Jumping
         if (jump) { jumpBufferCounter = movementSettings.jumpBufferTime; }
         else jumpBufferCounter -= Time.deltaTime;
+
         if (jumpBufferCounter > 0 && coyoteTimeCounter > 0 && readyToJump)
         {
             readyToJump = false;
@@ -223,7 +211,6 @@ public class PlayerMovement : MonoBehaviour
     }
 
     //----CHECKS----
-
     private void CheckForWall()
     {
         onWallLeft = Physics.Raycast(orientation.position, -orientation.right, out leftWallHit, movementSettings.wallDistance, wallLayer);
@@ -372,7 +359,7 @@ public class PlayerMovement : MonoBehaviour
         message.AddUShort(player.Id);
         message.AddBool(isCrouching);
         message.AddUShort(NetworkManager.Singleton.CurrentTick);
-        message.AddUShort(lastReceivedInputs.currentTick);//ServerCSPTick Correct
+        message.AddUShort(lastReceivedInputs.currentTick);
         message.AddVector3(rb.velocity);
         message.AddVector3(rb.position);
         message.AddVector3(orientation.forward);
