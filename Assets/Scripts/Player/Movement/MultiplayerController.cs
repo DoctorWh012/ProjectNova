@@ -6,6 +6,7 @@ public class SimulationState
     public Vector3 position;
     public Vector3 rotation;
     public Vector3 velocity;
+    public Vector3 angularVelocity;
     public ushort currentTick;
 }
 
@@ -52,6 +53,7 @@ public class MultiplayerController : MonoBehaviour
         while (timer >= GameManager.Singleton.minTimeBetweenTicks)
         {
             timer -= GameManager.Singleton.minTimeBetweenTicks;
+
             int cacheIndex = cSPTick % StateCacheSize;
 
             // Get the Inputs and store them in the cache
@@ -63,13 +65,12 @@ public class MultiplayerController : MonoBehaviour
             // Applies the movent
             playerMovement.SetInput(inputStateCache[cacheIndex].horizontal, inputStateCache[cacheIndex].vertical, inputStateCache[cacheIndex].jump, inputStateCache[cacheIndex].crouch, inputStateCache[cacheIndex].interact);
 
-            if (!GameManager.Singleton.networking) return;
-
             // Sends a message containing this player input to the server im not the host
             if (!NetworkManager.Singleton.Server.IsRunning) SendInput();
 
             cSPTick++;
         }
+        if (!GameManager.Singleton.networking || NetworkManager.Singleton.Server.IsRunning) return;
 
         // If there's a ServerSimState available checks for reconciliation
         if (serverSimulationState != null) Reconciliate();
@@ -86,8 +87,6 @@ public class MultiplayerController : MonoBehaviour
             crouch = false,
             interact = false,
             currentTick = cSPTick
-
-
         };
 
         return new ClientInputState
@@ -108,6 +107,7 @@ public class MultiplayerController : MonoBehaviour
             position = playerMovement.rb.position,
             rotation = orientation.forward,
             velocity = playerMovement.rb.velocity,
+            angularVelocity = playerMovement.rb.angularVelocity,
             currentTick = cSPTick
         };
     }
@@ -115,72 +115,57 @@ public class MultiplayerController : MonoBehaviour
     private void Reconciliate()
     {
         // Makes sure that the ServerSimState is not outdated
-        if (serverSimulationState.currentTick <= lastCorrectedFrame) return;
+        print($"Last received tick was {lastCorrectedFrame} and the received one was {serverSimulationState.currentTick}");
+        if (serverSimulationState.currentTick <= lastCorrectedFrame) { print($"Stop Recon"); return; }
 
         int cacheIndex = serverSimulationState.currentTick % StateCacheSize;
 
         ClientInputState cachedInputState = inputStateCache[cacheIndex];
         SimulationState cachedSimulationState = simulationStateCache[cacheIndex];
 
-        if (cachedInputState == null || cachedSimulationState == null)
-        {
-            Debug.LogError("Needed Reconciliation Because of cache error");
-            playerMovement.rb.position = serverSimulationState.position;
-            playerMovement.rb.velocity = serverSimulationState.velocity;
-            orientation.forward = serverSimulationState.rotation;
-
-            lastCorrectedFrame = serverSimulationState.currentTick;
-            return;
-        }
-
         // Find the difference between the Server Player Pos And the Client predicted Pos
         float posDif = Vector3.Distance(cachedSimulationState.position, serverSimulationState.position);
         float rotDif = 1f - Vector3.Dot(serverSimulationState.rotation, cachedSimulationState.rotation);
+        print($"PosDif is {posDif} [C={cachedSimulationState.position} | S {serverSimulationState.position}]");
 
-        // A correction is necessary.
-        // if (posDif > 0.001f || rotDif > 0.001f)
-        // {
-        // Set the player's position to match the server's state. 
-        playerMovement.rb.position = serverSimulationState.position;
-        playerMovement.rb.velocity = serverSimulationState.velocity;
-        orientation.forward = serverSimulationState.rotation;
-
-        // Declare the rewindFrame as we're about to resimulate our cached inputs. 
-        ushort rewindTick = serverSimulationState.currentTick;
-
-        // Loop through and apply cached inputs until we're 
-        // caught up to our current simulation frame. 
-        while (rewindTick < cSPTick)
+        // // A correction is necessary.
+        if (posDif > 0.01f || rotDif > 0.01f)
         {
-            // Determine the cache index 
-            int rewindCacheIndex = rewindTick % StateCacheSize;
+            // Set the player's position to match the server's state. 
+            playerMovement.rb.position = serverSimulationState.position;
+            playerMovement.speed = serverSimulationState.velocity;
+            playerMovement.angularSpeed = serverSimulationState.angularVelocity;
+            orientation.forward = serverSimulationState.rotation;
 
-            // Obtain the cached input and simulation states.
-            ClientInputState rewindCachedInputState = inputStateCache[rewindCacheIndex];
-            SimulationState rewindCachedSimulationState = simulationStateCache[rewindCacheIndex];
+            // Declare the rewindFrame as we're about to resimulate our cached inputs. 
+            ushort rewindTick = serverSimulationState.currentTick;
 
-            // If there's no state to simulate, for whatever reason, 
-            // increment the rewindFrame and continue.
-            if (rewindCachedInputState == null || rewindCachedSimulationState == null)
+            // Loop through and apply cached inputs until we're 
+            // caught up to our current simulation frame.
+            print($"Rewinding {cSPTick - rewindTick} Ticks from {rewindTick} to {cSPTick}");
+            while (rewindTick < cSPTick)
             {
+                // Determine the cache index 
+                int rewindCacheIndex = rewindTick % StateCacheSize;
+
+                // Obtain the cached input and simulation states.
+                ClientInputState rewindCachedInputState = inputStateCache[rewindCacheIndex];
+                SimulationState rewindCachedSimulationState = simulationStateCache[rewindCacheIndex];
+
+                // Replace the simulationStateCache index with the new value.
+                print($"The position saved at {rewindCacheIndex} is {simulationStateCache[rewindCacheIndex].position}");
+                SimulationState rewoundSimulationState = CurrentSimulationState();
+                rewoundSimulationState.currentTick = rewindTick;
+                simulationStateCache[rewindCacheIndex] = rewoundSimulationState;
+                print($"The position saved at {rewindCacheIndex} is now{simulationStateCache[rewindCacheIndex].position} after sim");
+
+                // Process the cached inputs.
+                playerMovement.SetInput(rewindCachedInputState.horizontal, rewindCachedInputState.vertical, rewindCachedInputState.jump, rewindCachedInputState.crouch, rewindCachedInputState.interact);
+
+                // Increase the amount of frames that we've rewound.
                 ++rewindTick;
-                continue;
             }
-
-            // Process the cached inputs. 
-            playerMovement.SetInput(rewindCachedInputState.horizontal, rewindCachedInputState.vertical, rewindCachedInputState.jump, rewindCachedInputState.crouch, rewindCachedInputState.interact);
-
-            // Replace the simulationStateCache index with the new value.
-            SimulationState rewoundSimulationState = CurrentSimulationState();
-            rewoundSimulationState.currentTick = rewindTick;
-            simulationStateCache[rewindCacheIndex] = rewoundSimulationState;
-
-            // Increase the amount of frames that we've rewound.
-            ++rewindTick;
         }
-        // }
-        // Once we're complete, update the lastCorrectedFrame to match.
-        // NOTE: Set this even if there's no correction to be made. 
         lastCorrectedFrame = serverSimulationState.currentTick;
     }
 
