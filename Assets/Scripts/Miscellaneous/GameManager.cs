@@ -1,10 +1,12 @@
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
-    public bool networking;//{ get; private set; }
+    public bool networking { get; set; }
+    public float minTimeBetweenTicks { get; private set; }
 
     private static GameManager _singleton;
     public static GameManager Singleton
@@ -39,11 +41,10 @@ public class GameManager : MonoBehaviour
     [SerializeField] private ParticleSystem playerHitPrefab;
     [SerializeField] private TrailRenderer shotTrail;
 
-
     private void Awake()
     {
         Singleton = this;
         DontDestroyOnLoad(gameObject);
+        minTimeBetweenTicks = 1f / NetworkManager.ServerTickRate;
     }
-
 }
