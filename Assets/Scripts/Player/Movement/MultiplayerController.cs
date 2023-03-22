@@ -18,6 +18,10 @@ public class ClientInputState
     public bool jump;
     public bool interact;
 
+    public bool readyToJump = true;
+    public float coyoteTimeCounter;
+    public float jumpBufferCounter;
+
     public ushort currentTick;
 }
 
@@ -86,6 +90,11 @@ public class MultiplayerController : MonoBehaviour
             jump = false,
             crouch = false,
             interact = false,
+
+            readyToJump = playerMovement.readyToJump,
+            coyoteTimeCounter = playerMovement.coyoteTimeCounter,
+            jumpBufferCounter = playerMovement.jumpBufferCounter,
+
             currentTick = cSPTick
         };
 
@@ -128,8 +137,8 @@ public class MultiplayerController : MonoBehaviour
         float rotDif = 1f - Vector3.Dot(serverSimulationState.rotation, cachedSimulationState.rotation);
         print($"PosDif is {posDif} [C={cachedSimulationState.position} | S {serverSimulationState.position}]");
 
-        // // A correction is necessary.
-        if (posDif > 0.01f || rotDif > 0.01f)
+        // A correction is necessary.
+        if (posDif > 0.0001f || rotDif > 0.0001f)
         {
             // Set the player's position to match the server's state. 
             playerMovement.rb.position = serverSimulationState.position;
@@ -143,6 +152,7 @@ public class MultiplayerController : MonoBehaviour
             // Loop through and apply cached inputs until we're 
             // caught up to our current simulation frame.
             print($"Rewinding {cSPTick - rewindTick} Ticks from {rewindTick} to {cSPTick}");
+
             while (rewindTick < cSPTick)
             {
                 // Determine the cache index 
@@ -154,10 +164,17 @@ public class MultiplayerController : MonoBehaviour
 
                 // Replace the simulationStateCache index with the new value.
                 print($"The position saved at {rewindCacheIndex} is {simulationStateCache[rewindCacheIndex].position}");
+
                 SimulationState rewoundSimulationState = CurrentSimulationState();
                 rewoundSimulationState.currentTick = rewindTick;
                 simulationStateCache[rewindCacheIndex] = rewoundSimulationState;
+
                 print($"The position saved at {rewindCacheIndex} is now{simulationStateCache[rewindCacheIndex].position} after sim");
+
+                playerMovement.readyToJump = rewindCachedInputState.readyToJump;
+                playerMovement.coyoteTimeCounter = rewindCachedInputState.coyoteTimeCounter;
+                playerMovement.jumpBufferCounter = rewindCachedInputState.jumpBufferCounter;
+                playerMovement.PerformChecks();
 
                 // Process the cached inputs.
                 playerMovement.SetInput(rewindCachedInputState.horizontal, rewindCachedInputState.vertical, rewindCachedInputState.jump, rewindCachedInputState.crouch, rewindCachedInputState.interact);

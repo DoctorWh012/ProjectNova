@@ -1,8 +1,5 @@
-using System.Collections;
-using System.Collections.Generic;
 using Riptide;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 
 public class PlayerMovement : MonoBehaviour
 {
@@ -25,16 +22,18 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private MultiplayerController multiplayerController;
 
     //----Movement related stuff----
-    public bool simulate;
     public bool movementFreeze = false;
-    private bool readyToJump = true;
+
+    // Jump Related
+    public bool readyToJump = true;
+    public float coyoteTimeCounter;
+    public float jumpBufferCounter;
+
     public bool wallRunning;
     private bool onWallLeft;
     private bool onWallRight;
     private float horizontalInput;
     private float verticalInput;
-    private float coyoteTimeCounter;
-    private float jumpBufferCounter;
     private Vector3 MoveDirection;
     private RaycastHit slopeHit;
     private RaycastHit leftWallHit;
@@ -61,23 +60,14 @@ public class PlayerMovement : MonoBehaviour
     private void Update()
     {
         PerformChecks();
-        // CheckIfGrounded();
-        // if (GameManager.Singleton.networking && !player.IsLocal && !NetworkManager.Singleton.Server.IsRunning) return; // Stops Movement PHYSICS from being applied on client's NetPlayers
-        // CheckSlideGrind(isCrouching, rb.velocity);
-        // SpeedCap();
-        // VerifyWallRun();
-        // ApplyDrag();
-        // CheckCameraTilt();
     }
 
-    private void PerformChecks()
+    public void PerformChecks()
     {
         CheckIfGrounded();
         if (GameManager.Singleton.networking && !player.IsLocal && !NetworkManager.Singleton.Server.IsRunning) return; // Stops Movement PHYSICS from being applied on client's NetPlayers
         CheckSlideGrind(isCrouching, speed);
-        SpeedCap();
         VerifyWallRun();
-        ApplyDrag();
         CheckCameraTilt();
     }
 
@@ -88,7 +78,8 @@ public class PlayerMovement : MonoBehaviour
         rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
         rb.velocity = speed;
         rb.angularVelocity = angularSpeed;
-        PerformChecks();
+        SpeedCap();
+        ApplyDrag();
 
         if (jumpBufferCounter > 0 && coyoteTimeCounter > 0 && readyToJump)
         {
@@ -135,6 +126,7 @@ public class PlayerMovement : MonoBehaviour
         interacting = interact;
 
         MovementTick();
+        if (NetworkManager.Singleton.Server.IsRunning) SendMovement(lastReceivedInputs.currentTick);
     }
 
     private void HandleClientInput(ClientInputState[] inputs)
@@ -157,7 +149,7 @@ public class PlayerMovement : MonoBehaviour
             for (int i = start; i < inputs.Length - 1; i++)
             {
                 SetInput(inputs[i].horizontal, inputs[i].vertical, inputs[i].jump, inputs[i].crouch, inputs[i].interact);
-                SendMovement(inputs[i].currentTick++);
+                SendMovement(inputs[i].currentTick);
                 print($"Applied and sent the inputs of tick {inputs[i].currentTick}");
             }
 
@@ -268,7 +260,7 @@ public class PlayerMovement : MonoBehaviour
             if (!wallRunning)
             {
                 wallRunning = true;
-                rb.velocity = new Vector3(rb.velocity.x, rb.velocity.y / 2, rb.velocity.z);
+                speed = new Vector3(rb.velocity.x, rb.velocity.y / 2, rb.velocity.z);
             }
         }
 
@@ -277,10 +269,13 @@ public class PlayerMovement : MonoBehaviour
 
     private void CheckIfGrounded()
     {
-        bool i = Physics.Raycast(groundCheck.position, Vector3.down, movementSettings.groundCheckHeight, ground);
-        if (!grounded && i) player.playerEffects.PlayJumpEffects();
-        else if (grounded && !i) player.playerEffects.PlayJumpEffects();
-        grounded = i;
+        bool onGround = Physics.Raycast(groundCheck.position, Vector3.down, movementSettings.groundCheckHeight, ground);
+
+        if (!grounded && onGround) player.playerEffects.PlayJumpEffects();
+        else if (grounded && !onGround) player.playerEffects.PlayJumpEffects();
+
+        grounded = onGround;
+
         if (grounded) coyoteTimeCounter = movementSettings.coyoteTime;
         else coyoteTimeCounter -= Time.deltaTime;
     }
