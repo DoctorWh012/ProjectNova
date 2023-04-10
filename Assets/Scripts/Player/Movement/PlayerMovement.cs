@@ -23,26 +23,31 @@ public class PlayerMovement : MonoBehaviour
 
     //----Movement related stuff----
     public bool movementFreeze = false;
+    private float horizontalInput;
+    private float verticalInput;
+    public bool wallRunning;
+    private Vector3 moveDirection;
+    private RaycastHit slopeHit;
 
     // Jump Related
     public bool readyToJump = true;
     public float coyoteTimeCounter;
     public float jumpBufferCounter;
 
-    public bool wallRunning;
+    // Wallruning
     private bool onWallLeft;
     private bool onWallRight;
-    private float horizontalInput;
-    private float verticalInput;
-    private Vector3 MoveDirection;
-    private RaycastHit slopeHit;
     private RaycastHit leftWallHit;
     private RaycastHit rightWallHit;
 
+    // Client side prediction
     public Vector3 speed;
     public Vector3 angularSpeed;
-
     private ClientInputState lastReceivedInputs = new ClientInputState();
+    public SimulationState[] playerSimulationState = new SimulationState[GameManager.lagCompensationCacheSize];
+    private float timer;
+
+    private Vector3 savedPlayerPos;
 
     private void Awake()
     {
@@ -52,8 +57,7 @@ public class PlayerMovement : MonoBehaviour
     private void Start()
     {
         Physics.autoSimulation = true;
-        rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
-        rb.isKinematic = true;
+        SetPlayerKinematic(true);
     }
 
     //----MOVEMENT STUFF----
@@ -62,24 +66,68 @@ public class PlayerMovement : MonoBehaviour
         PerformChecks();
     }
 
+    public SimulationState CurrentSimulationState()
+    {
+        return new SimulationState
+        {
+            position = rb.position,
+            rotation = orientation.forward,
+            currentTick = GameManager.Singleton.serverTick
+        };
+    }
+
+    public void SetPlayerPositionToTick(ushort tick)
+    {
+        savedPlayerPos = rb.position;
+        int cacheIndex = tick % GameManager.lagCompensationCacheSize;
+
+        if (playerSimulationState[cacheIndex].currentTick != tick) return;
+
+        rb.position = playerSimulationState[cacheIndex].position;
+    }
+
+    public void ResetPlayerPosition()
+    {
+        rb.position = savedPlayerPos;
+    }
+
     public void PerformChecks()
     {
         CheckIfGrounded();
         if (GameManager.Singleton.networking && !player.IsLocal && !NetworkManager.Singleton.Server.IsRunning) return; // Stops Movement PHYSICS from being applied on client's NetPlayers
         CheckSlideGrind(isCrouching, speed);
-        VerifyWallRun();
         CheckCameraTilt();
+    }
+
+    public void SetPlayerKinematic(bool state)
+    {
+        if (state)
+        {
+            rb.detectCollisions = false;
+            speed = rb.velocity;
+            angularSpeed = rb.angularVelocity;
+            rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
+            rb.isKinematic = true;
+        }
+        else
+        {
+            rb.detectCollisions = true;
+            rb.isKinematic = false;
+            rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
+            rb.velocity = speed;
+            rb.angularVelocity = angularSpeed;
+        }
     }
 
     private void MovementTick()
     {
+        if (movementFreeze) return;
+
         Physics.autoSimulation = false;
-        rb.isKinematic = false;
-        rb.collisionDetectionMode = CollisionDetectionMode.ContinuousDynamic;
-        rb.velocity = speed;
-        rb.angularVelocity = angularSpeed;
+        SetPlayerKinematic(false);
         SpeedCap();
         ApplyDrag();
+        VerifyWallRun();
 
         if (jumpBufferCounter > 0 && coyoteTimeCounter > 0 && readyToJump)
         {
@@ -96,14 +144,11 @@ public class PlayerMovement : MonoBehaviour
             ApplyMovement(orientation.forward);
             IncreaseFallGravity(movementSettings.gravity);
         }
-        if (!movementFreeze && !wallRunning) rb.useGravity = !OnSlope();
+        if (!wallRunning) rb.useGravity = !OnSlope();
 
         Physics.Simulate(GameManager.Singleton.minTimeBetweenTicks);
+        SetPlayerKinematic(true);
 
-        speed = rb.velocity;
-        angularSpeed = rb.angularVelocity;
-        rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
-        rb.isKinematic = true;
         Physics.autoSimulation = true;
     }
 
@@ -125,32 +170,29 @@ public class PlayerMovement : MonoBehaviour
         // Interacting
         interacting = interact;
 
+
         MovementTick();
         if (NetworkManager.Singleton.Server.IsRunning) SendMovement(lastReceivedInputs.currentTick);
     }
 
     private void HandleClientInput(ClientInputState[] inputs)
     {
-        if (inputs.Length == 0) { print("Returned because inputsLen was 0"); return; }
+        if (inputs.Length == 0) return;
 
         // Last input in the array is the newest one
         // Here we check to see if the inputs sent by the client are newer than the ones we already have received
-        print($"The lenght of the message is {inputs.Length}");
-        print($"Last received client input was {lastReceivedInputs.currentTick} the newest in this message is {inputs[inputs.Length - 1].currentTick}");
         if (inputs[inputs.Length - 1].currentTick >= lastReceivedInputs.currentTick)
         {
             // Here we check for were to start processing the inputs
             // if the iputs we already have are newer than the first ones sent we start at their difference 
             // if not we start at the first one
             int start = lastReceivedInputs.currentTick > inputs[0].currentTick ? (lastReceivedInputs.currentTick - inputs[0].currentTick) : 0;
-            print($"Starting to apply inputs from {inputs[start].currentTick} to {inputs[inputs.Length - 1].currentTick}");
 
             // Now that we have when to start we can simply apply all relevant inputs to the player
             for (int i = start; i < inputs.Length - 1; i++)
             {
                 SetInput(inputs[i].horizontal, inputs[i].vertical, inputs[i].jump, inputs[i].crouch, inputs[i].interact);
                 SendMovement(inputs[i].currentTick);
-                print($"Applied and sent the inputs of tick {inputs[i].currentTick}");
             }
 
             // Now we save the client newest input
@@ -186,11 +228,10 @@ public class PlayerMovement : MonoBehaviour
 
     private void ApplyMovement(Vector3 trueForward)
     {
-        if (movementFreeze) return;
-        MoveDirection = trueForward * verticalInput + orientation.right * horizontalInput;
+        moveDirection = trueForward * verticalInput + orientation.right * horizontalInput;
 
-        if (grounded) rb.AddForce(MoveDirection.normalized * movementSettings.moveSpeed * 10, ForceMode.Force);
-        else rb.AddForce(MoveDirection.normalized * movementSettings.airMultiplier * 10, ForceMode.Force);
+        if (grounded) rb.AddForce(moveDirection.normalized * movementSettings.moveSpeed * 10, ForceMode.Force);
+        else rb.AddForce(moveDirection.normalized * movementSettings.airMultiplier * 10, ForceMode.Force);
     }
 
     private void WallRunMovement()
@@ -233,12 +274,12 @@ public class PlayerMovement : MonoBehaviour
     {
         movementFreeze = state;
         rb.useGravity = !state;
-        rb.velocity = Vector3.zero;
+        angularSpeed = Vector3.zero;
+        speed = Vector3.zero;
     }
 
     private void Jump()
     {
-        if (movementFreeze) return;
         rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
 
         rb.AddForce(transform.up * movementSettings.jumpForce, ForceMode.Impulse);
@@ -260,7 +301,7 @@ public class PlayerMovement : MonoBehaviour
             if (!wallRunning)
             {
                 wallRunning = true;
-                speed = new Vector3(rb.velocity.x, rb.velocity.y / 2, rb.velocity.z);
+                rb.velocity = new Vector3(rb.velocity.x, rb.velocity.y / 1.5f, rb.velocity.z);
             }
         }
 
@@ -445,15 +486,5 @@ public class PlayerMovement : MonoBehaviour
             if (player.IsLocal) return;
             player.Movement.SetNetPlayerOrientation(message.GetVector3(), message.GetQuaternion());
         }
-    }
-
-    private void OnDrawGizmos()
-    {
-        Gizmos.color = Color.blue;
-        Gizmos.DrawRay(orientation.position, orientation.forward * 50);
-
-        Gizmos.color = Color.green;
-        Gizmos.DrawRay(orientation.position, orientation.right * 1f);
-        Gizmos.DrawRay(orientation.position, -orientation.right * 1f);
     }
 }

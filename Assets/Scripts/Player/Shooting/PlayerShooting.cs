@@ -46,7 +46,7 @@ public class PlayerShooting : MonoBehaviour
         barrelTip = gunsSettings[index].barrelTip;
         animator = gunsSettings[index].animator;
         weaponEffectParticle = gunsSettings[index].muzzleFlash;
-        GameCanvas.Instance.ChangeGunSlotIcon(((int)gunsSettings[index].gunSettings.slot), gunsSettings[index].gunSettings.gunIcon);
+        if (player.IsLocal) GameCanvas.Instance.ChangeGunSlotIcon(((int)gunsSettings[index].gunSettings.slot), gunsSettings[index].gunSettings.gunIcon);
         EnableActiveGunMesh(index);
     }
 
@@ -56,7 +56,7 @@ public class PlayerShooting : MonoBehaviour
         activeWeaponType = meleeSettings[index].meleeSettings.weaponType;
         animator = meleeSettings[index].animator;
         weaponEffectParticle = meleeSettings[index].meleeParticles;
-        GameCanvas.Instance.ChangeGunSlotIcon(((int)meleeSettings[index].meleeSettings.slot), meleeSettings[index].meleeSettings.gunIcon);
+        if (player.IsLocal) GameCanvas.Instance.ChangeGunSlotIcon(((int)meleeSettings[index].meleeSettings.slot), meleeSettings[index].meleeSettings.gunIcon);
         EnableActiveGunMesh(index);
     }
 
@@ -183,13 +183,9 @@ public class PlayerShooting : MonoBehaviour
     #region Messages
     public void SendGunSettings(int index)
     {
-        if (GameManager.Singleton.networking)
-        {
-            Message message = Message.Create(MessageSendMode.Reliable, ClientToServerId.gunChange);
-            message.AddInt(index);
-            NetworkManager.Singleton.Client.Send(message);
-        }
-        else player.GunShoot.SwitchGun(index, true);
+        Message message = Message.Create(MessageSendMode.Reliable, ClientToServerId.gunChange);
+        message.AddInt(index);
+        NetworkManager.Singleton.Client.Send(message);
     }
 
     [MessageHandler((ushort)ServerToClientId.playerShot)]
@@ -197,6 +193,7 @@ public class PlayerShooting : MonoBehaviour
     {
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
+            if (NetworkManager.Singleton.Server.IsRunning || player.IsLocal) return;
             player.playerShooting.BulletTrailEffect(message.GetBool(), message.GetVector3(), message.GetVector2());
             player.playerShooting.ShootingAnimator(message.GetBool(), player.IsLocal);
         }
@@ -205,8 +202,10 @@ public class PlayerShooting : MonoBehaviour
     [MessageHandler((ushort)ServerToClientId.meleeAtack)]
     private static void PlayerAtackedMelee(Message message)
     {
+
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
+            if (NetworkManager.Singleton.Server.IsRunning || player.IsLocal) return;
             player.playerShooting.MeleeAtackAnimator();
             if (message.GetBool()) player.playerShooting.HitParticle(message.GetVector3());
         }

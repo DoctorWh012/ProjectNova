@@ -51,8 +51,14 @@ public class MultiplayerController : MonoBehaviour
     private int lastCorrectedFrame;
     private float timer;
 
+    private bool interacted = false;
+
+    private ClientInputState inputs = new ClientInputState();
+
     private void Update()
     {
+        inputs = GetInput();
+
         timer += Time.deltaTime;
         while (timer >= GameManager.Singleton.minTimeBetweenTicks)
         {
@@ -61,7 +67,8 @@ public class MultiplayerController : MonoBehaviour
             int cacheIndex = cSPTick % StateCacheSize;
 
             // Get the Inputs and store them in the cache
-            inputStateCache[cacheIndex] = GetInput();
+            inputs.currentTick = cSPTick;
+            inputStateCache[cacheIndex] = inputs;
 
             // Stores the current SimState on a cache
             simulationStateCache[cacheIndex] = CurrentSimulationState();
@@ -71,6 +78,7 @@ public class MultiplayerController : MonoBehaviour
 
             // Sends a message containing this player input to the server im not the host
             if (!NetworkManager.Singleton.Server.IsRunning) SendInput();
+            interacted = false;
 
             cSPTick++;
         }
@@ -98,13 +106,21 @@ public class MultiplayerController : MonoBehaviour
             currentTick = cSPTick
         };
 
+        if (Input.GetKeyDown(interact)) interacted = true;
+
         return new ClientInputState
         {
             horizontal = (sbyte)Input.GetAxisRaw("Horizontal"),
             vertical = (sbyte)Input.GetAxisRaw("Vertical"),
             jump = Input.GetKey(jump),
             crouch = Input.GetKey(crouch),
-            interact = Input.GetKey(interact),
+
+            interact = interacted,
+
+            readyToJump = playerMovement.readyToJump,
+            coyoteTimeCounter = playerMovement.coyoteTimeCounter,
+            jumpBufferCounter = playerMovement.jumpBufferCounter,
+
             currentTick = cSPTick
         };
     }
@@ -124,9 +140,6 @@ public class MultiplayerController : MonoBehaviour
     private void Reconciliate()
     {
         // Makes sure that the ServerSimState is not outdated
-        print($"Last received tick was {lastCorrectedFrame} and the received one was {serverSimulationState.currentTick}");
-        if (serverSimulationState.currentTick <= lastCorrectedFrame) { print($"Stop Recon"); return; }
-
         int cacheIndex = serverSimulationState.currentTick % StateCacheSize;
 
         ClientInputState cachedInputState = inputStateCache[cacheIndex];
@@ -135,8 +148,6 @@ public class MultiplayerController : MonoBehaviour
         // Find the difference between the Server Player Pos And the Client predicted Pos
         float posDif = Vector3.Distance(cachedSimulationState.position, serverSimulationState.position);
         float rotDif = 1f - Vector3.Dot(serverSimulationState.rotation, cachedSimulationState.rotation);
-        print($"PosDif is {posDif} [C={cachedSimulationState.position} | S {serverSimulationState.position}]");
-
         // A correction is necessary.
         if (posDif > 0.0001f || rotDif > 0.0001f)
         {
@@ -151,8 +162,6 @@ public class MultiplayerController : MonoBehaviour
 
             // Loop through and apply cached inputs until we're 
             // caught up to our current simulation frame.
-            print($"Rewinding {cSPTick - rewindTick} Ticks from {rewindTick} to {cSPTick}");
-
             while (rewindTick < cSPTick)
             {
                 // Determine the cache index 
@@ -163,18 +172,14 @@ public class MultiplayerController : MonoBehaviour
                 SimulationState rewindCachedSimulationState = simulationStateCache[rewindCacheIndex];
 
                 // Replace the simulationStateCache index with the new value.
-                print($"The position saved at {rewindCacheIndex} is {simulationStateCache[rewindCacheIndex].position}");
-
                 SimulationState rewoundSimulationState = CurrentSimulationState();
                 rewoundSimulationState.currentTick = rewindTick;
                 simulationStateCache[rewindCacheIndex] = rewoundSimulationState;
 
-                print($"The position saved at {rewindCacheIndex} is now{simulationStateCache[rewindCacheIndex].position} after sim");
-
                 playerMovement.readyToJump = rewindCachedInputState.readyToJump;
                 playerMovement.coyoteTimeCounter = rewindCachedInputState.coyoteTimeCounter;
                 playerMovement.jumpBufferCounter = rewindCachedInputState.jumpBufferCounter;
-                playerMovement.PerformChecks();
+                // playerMovement.PerformChecks();
 
                 // Process the cached inputs.
                 playerMovement.SetInput(rewindCachedInputState.horizontal, rewindCachedInputState.vertical, rewindCachedInputState.jump, rewindCachedInputState.crouch, rewindCachedInputState.interact);
@@ -193,8 +198,6 @@ public class MultiplayerController : MonoBehaviour
         message.AddByte((byte)(cSPTick - serverSimulationState.currentTick));
 
         // Sends all the messages starting from the last received server tick until our current tick
-        print($"Sending {(cSPTick - serverSimulationState.currentTick)}");
-
         for (int i = serverSimulationState.currentTick; i < cSPTick; i++)
         {
             message.AddSByte(inputStateCache[i % StateCacheSize].horizontal);

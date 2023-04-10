@@ -58,6 +58,7 @@ public class GunSpawn : MonoBehaviour
     {
         if (gunDisplay != null) Destroy(gunDisplay);
 
+        gunIndex = index;
         gunDisplay = Instantiate(pickableGuns[index].gunModel);
         gunDisplay.transform.SetParent(gunHolder);
         gunDisplay.transform.localPosition = Vector3.zero;
