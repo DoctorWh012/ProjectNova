@@ -5,6 +5,8 @@ using UnityEngine;
 
 public class ServerPlayerHealth : MonoBehaviour
 {
+    public bool isDead { get; private set; }
+
     [Header("Components")]
     [SerializeField] Player player;
     [SerializeField] PlayerScore playerScore;
@@ -13,8 +15,7 @@ public class ServerPlayerHealth : MonoBehaviour
     [SerializeField] Collider col;
 
     [Header("Settings")]
-    [SerializeField] private float maxHealth;
-    [SerializeField] private float respawnTime;
+    [SerializeField] PlayerHealthSettings playerHealthSettings;
 
     private float _currentHealth;
     private float currentHealth
@@ -22,9 +23,9 @@ public class ServerPlayerHealth : MonoBehaviour
         get { return _currentHealth; }
         set
         {
-            if (value > maxHealth)
+            if (value > playerHealthSettings.maxHealth)
             {
-                _currentHealth = maxHealth;
+                _currentHealth = playerHealthSettings.maxHealth;
                 SendUpdatedHealth(_currentHealth.ToString());
                 return;
             }
@@ -37,7 +38,7 @@ public class ServerPlayerHealth : MonoBehaviour
     void Awake()
     {
         if (!GameManager.Singleton.networking || !NetworkManager.Singleton.Server.IsRunning) { this.enabled = false; return; }
-        currentHealth = maxHealth;
+        currentHealth = playerHealthSettings.maxHealth;
     }
 
     public bool ReceiveDamage(int damage)
@@ -53,27 +54,31 @@ public class ServerPlayerHealth : MonoBehaviour
 
     private void Die()
     {
-
+        isDead = true;
         playerScore.deaths++;
         playerMovement.FreezePlayerMovement(true);
-        playerMovement.enabled = false;
 
         gunShoot.FreezePlayerShooting(true);
         col.enabled = false;
-        Invoke("Respawn", respawnTime);
-        SendStatusMessage(true);
+
+        Invoke("Respawn", playerHealthSettings.respawnTime);
+        SendStatusMessage(isDead);
     }
 
     private void Respawn()
     {
-        transform.position = SpawnHandler.Instance.GetSpawnLocation();
-        playerMovement.enabled = true;
-        playerMovement.FreezePlayerMovement(false);
-        gunShoot.FreezePlayerShooting(false);
-        gunShoot.ReplenishAllAmmo();
+        isDead = false;
         col.enabled = true;
-        currentHealth = maxHealth;
-        SendStatusMessage(false);
+        player.Movement.rb.position = SpawnHandler.Instance.GetSpawnLocation();
+
+        playerMovement.FreezePlayerMovement(false);
+
+        gunShoot.FreezePlayerShooting(false);
+
+        gunShoot.ReplenishAllAmmo();
+
+        currentHealth = playerHealthSettings.maxHealth;
+        SendStatusMessage(isDead);
     }
 
     #region Messages

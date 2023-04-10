@@ -10,10 +10,10 @@ public class Player : MonoBehaviour
     public ushort Id { get; private set; }
     public bool IsLocal { get; private set; }
     public string username { get; private set; }
-    public PhysicsScene playerPhysicsScene { get; private set; }
     public PlayerMovement Movement => movement;
     public GunShoot GunShoot => gunShoot;
 
+    [SerializeField] public ServerPlayerHealth serverPlayerHealth;
     [SerializeField] private PlayerHealth playerHealth;
     [SerializeField] private Transform orientation;
     [SerializeField] public Transform mainCamera;

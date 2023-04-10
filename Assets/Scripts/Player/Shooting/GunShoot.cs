@@ -18,8 +18,8 @@ public class GunShoot : MonoBehaviour
 
     private RaycastHit rayHit;
     private RaycastHit[] rayHits;
-    private Guns[] currentPlayerGuns;
-    private int[] currentPlayerGunsIndex;
+    public Guns[] currentPlayerGuns;
+    public int[] currentPlayerGunsIndex;
     private int _ammunition;
     private int ammunition
     {
@@ -32,16 +32,17 @@ public class GunShoot : MonoBehaviour
     }
 
     private bool shootFreeze = false;
-    public bool shootInput;
+
     private bool canShoot = true;
     private bool isReloading = false;
     private float nextTimeToFire = 0f;
     public Guns activeGun;
 
+    private ushort lastShotTick;
+
     // Start is called before the first frame update
     private void Awake()
     {
-        // if (!NetworkManager.Singleton.Server.IsRunning) { this.enabled = false; return; }
         currentPlayerGuns = new Guns[gunSlots];
         currentPlayerGunsIndex = new int[gunSlots];
 
@@ -49,27 +50,33 @@ public class GunShoot : MonoBehaviour
         PickUpGun(0, 0);
     }
 
-    // Update is called once per frame
-    private void Update()
+    public void FireTick()
     {
+        if (!player.IsLocal && NetworkManager.Singleton.Server.IsRunning) GameManager.Singleton.SetAllPlayersPositionsTo(lastShotTick, player.Id);
+
+        GameManager.Singleton.ActivateDeactivateAllPlayersCollisions(true);
+
         if (activeGun.weaponType == WeaponType.rifle || activeGun.weaponType == WeaponType.shotgun)
         {
-            GetGunInput();
+            VerifyGunShoot();
             CheckIfReloadIsNeeded();
         }
-        else if (activeGun.weaponType == WeaponType.melee)
-        {
-            GetMeleeInput();
-        }
+
+        else if (activeGun.weaponType == WeaponType.melee) VerifyMeleeAttack();
+
+        GameManager.Singleton.ActivateDeactivateAllPlayersCollisions(false);
+
+        if (!player.IsLocal && NetworkManager.Singleton.Server.IsRunning) GameManager.Singleton.ResetPlayersPositions(player.Id);
     }
 
-    private void GetGunInput()
+    private void VerifyGunShoot()
     {
         if (shootFreeze) return;
-        if (shootInput && canShoot && ammunition > 0 && Time.time >= nextTimeToFire)
+        if (canShoot && ammunition > 0 && Time.time >= nextTimeToFire)
         {
             nextTimeToFire = Time.time + 1f / activeGun.fireRate;
             ammunition--;
+
             switch (activeGun.weaponType)
             {
                 case WeaponType.rifle:
@@ -82,13 +89,20 @@ public class GunShoot : MonoBehaviour
         }
     }
 
-    private void GetMeleeInput()
+    private void VerifyMeleeAttack()
     {
-        if (shootInput && canShoot && Time.time >= nextTimeToFire)
+        if (canShoot && Time.time >= nextTimeToFire)
         {
             nextTimeToFire = Time.time + 1f / activeGun.fireRate;
-            AtackMelee();
+            AttackMelee();
         }
+    }
+
+    public void HandleClientInput(bool shooting, ushort tick)
+    {
+        if (!shooting) return;
+        lastShotTick = tick;
+        FireTick();
     }
 
     private void CheckIfReloadIsNeeded()
@@ -104,26 +118,39 @@ public class GunShoot : MonoBehaviour
         rayHits = Physics.RaycastAll(playerCam.position, playerCam.forward, activeGun.range);
         System.Array.Sort(rayHits, (x, y) => x.distance.CompareTo(y.distance));
 
-        if (rayHits.Length <= 0) { SendShot(false, Vector2.zero, true); return; }
+        if (rayHits.Length <= 0)
+        {
+            ShootingEffects(false, Vector2.zero, true);
+            if (GameManager.Singleton.networking) SendShot(false, Vector2.zero, true);
+            return;
+        }
 
         for (int i = 0; i < rayHits.Length; i++)
         {
+            // Checks if the shot didn't hit yourself
             if (rayHits[i].collider == col) continue;
+
+            // If the first thing it hit is not a player break
             rayHit = rayHits[i];
             if (!rayHits[i].collider.CompareTag(playerTag)) break;
 
+            // If it's a player damages it 
             GetHitPlayer(rayHits[i].collider.gameObject, activeGun.damage, true);
             break;
         }
-        SendShot(true, Vector2.zero, true);
+
+        ShootingEffects(true, Vector2.zero, true);
+        if (GameManager.Singleton.networking) SendShot(true, Vector2.zero, true);
         ApplyRecoil();
     }
 
     private void ShotgunShoot()
     {
         int individualPelletDamage = activeGun.damage / activeGun.pellets;
+
         float spreadX = 0;
         float spreadY = 0;
+
         for (int i = 0; i < activeGun.pellets; i++)
         {
             bool shouldPlay = (i == activeGun.pellets - 1);
@@ -131,10 +158,16 @@ public class GunShoot : MonoBehaviour
             spreadY = Random.Range(-activeGun.spread, activeGun.spread);
             Vector3 finalSpread = new Vector3(spreadX, spreadY, 0);
 
-            rayHits = Physics.RaycastAll(playerCam.position, finalSpread + playerCam.forward, activeGun.range);
+            rayHits = Physics.RaycastAll(playerCam.position, playerCam.forward + finalSpread, activeGun.range);
             System.Array.Sort(rayHits, (x, y) => x.distance.CompareTo(y.distance));
 
-            if (rayHits.Length <= 0) { SendShot(false, new Vector2(spreadX, spreadY), shouldPlay); continue; }
+            if (rayHits.Length <= 0)
+            {
+                ShootingEffects(false, new Vector2(spreadX, spreadY), shouldPlay);
+                if (GameManager.Singleton.networking) SendShot(false, new Vector2(spreadX, spreadY), shouldPlay);
+                continue;
+            }
+
             for (int j = 0; j < rayHits.Length; j++)
             {
                 if (rayHits[j].collider == col) continue;
@@ -143,33 +176,53 @@ public class GunShoot : MonoBehaviour
                 GetHitPlayer(rayHits[j].collider.gameObject, individualPelletDamage, (i == activeGun.pellets));
                 break;
             }
-            SendShot(true, new Vector2(spreadX, spreadY), shouldPlay);
+
+            ShootingEffects(true, new Vector2(spreadX, spreadY), shouldPlay);
+            if (GameManager.Singleton.networking) SendShot(true, new Vector2(spreadX, spreadY), shouldPlay);
         }
+
         ApplyRecoil();
     }
 
-    private void ApplyRecoil()
-    {
-        if (Physics.Raycast(playerCam.position, playerCam.forward, activeGun.maxRecoilDistance))
-            rb.AddForce(-playerCam.forward * activeGun.recoilForce, ForceMode.Impulse);
-    }
-
-    private void AtackMelee()
+    private void AttackMelee()
     {
         rayHits = Physics.RaycastAll(playerCam.position, playerCam.forward, activeGun.range);
         System.Array.Sort(rayHits, (x, y) => x.distance.CompareTo(y.distance));
 
-        if (rayHits.Length <= 0) { SendMeleeAttack(false); return; }
+        if (rayHits.Length <= 0)
+        {
+            MeleeEffects(false);
+            if (GameManager.Singleton.networking) SendMeleeAttack(false);
+            return;
+        }
+
         for (int i = 0; i < rayHits.Length; i++)
         {
             if (rayHits[i].collider == col) continue;
+
             rayHit = rayHits[i];
             if (!rayHits[i].collider.CompareTag(playerTag)) break;
+
             GetHitPlayer(rayHits[i].collider.gameObject, activeGun.damage, true);
             break;
         }
-        SendMeleeAttack(true);
+
+        MeleeEffects(false);
+        if (GameManager.Singleton.networking) SendMeleeAttack(true);
     }
+
+    private void ApplyRecoil()
+    {
+        Physics.autoSimulation = false;
+        player.Movement.SetPlayerKinematic(false);
+
+        if (Physics.Raycast(playerCam.position, playerCam.forward, activeGun.maxRecoilDistance)) { rb.AddForce(-playerCam.forward * activeGun.recoilForce, ForceMode.Impulse); }
+
+        Physics.Simulate(GameManager.Singleton.minTimeBetweenTicks);
+        player.Movement.SetPlayerKinematic(true);
+        Physics.autoSimulation = true;
+    }
+
 
     private void ReplenishAmmo()
     {
@@ -183,13 +236,17 @@ public class GunShoot : MonoBehaviour
         {
             gun.gunSettings.currentAmmo = gun.gunSettings.maxAmmo;
         }
+
         ammunition = activeGun.maxAmmo;
     }
 
     private void GetHitPlayer(GameObject playerHit, int damage, bool shouldPlaySFx)
     {
+        if (!NetworkManager.Singleton.Server.IsRunning) return;
+
         ServerPlayerHealth playerHealth = playerHit.GetComponentInParent<ServerPlayerHealth>();
         ushort playerHitId = playerHit.GetComponentInParent<Player>().Id;
+
         if (playerHealth.ReceiveDamage(damage)) playerScore.kills++;
 
         SendHitPlayer(playerHitId, shouldPlaySFx);
@@ -205,6 +262,8 @@ public class GunShoot : MonoBehaviour
         // Changes guns
         activeGun = currentPlayerGuns[slotIndex];
         ammunition = activeGun.currentAmmo;
+
+        if (!NetworkManager.Singleton.Server.IsRunning) return;
         //Checks If Its Melee
         if (slotIndex == 2) SendGunSwitch(currentPlayerGunsIndex[slotIndex], true);
         else SendGunSwitch(currentPlayerGunsIndex[slotIndex], false);
@@ -215,6 +274,7 @@ public class GunShoot : MonoBehaviour
         Guns pickedGun = playerShooting.gunsSettings[pickedGunIndex].gunSettings;
         currentPlayerGuns[slot] = pickedGun;
         currentPlayerGunsIndex[slot] = pickedGunIndex;
+
         SwitchGun(((int)pickedGun.slot), false);
         ReplenishAllAmmo();
     }
@@ -229,48 +289,41 @@ public class GunShoot : MonoBehaviour
     public void FreezePlayerShooting(bool state)
     {
         shootFreeze = state;
-        if (!state) shootInput = false;
+    }
+
+    private void ShootingEffects(bool didHit, Vector2 spread, bool shouldPlaySFx)
+    {
+        playerShooting.BulletTrailEffect(didHit, rayHit.point, spread);
+        playerShooting.ShootingAnimator(shouldPlaySFx, player.IsLocal);
+    }
+
+    private void MeleeEffects(bool didHit)
+    {
+        playerShooting.MeleeAtackAnimator();
+        if (didHit) playerShooting.HitParticle(rayHit.point);
     }
 
     // Multiplayer Handler
-
     private void SendShot(bool didHit, Vector2 spread, bool shouldPlaySFx)
     {
-        if (GameManager.Singleton.networking)
-        {
-            if (!NetworkManager.Singleton.Server.IsRunning) return;
-            Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.playerShot);
-            message.AddUShort(player.Id);
-            message.AddBool(didHit);
-            message.AddVector3(rayHit.point);
-            message.AddVector2(spread);
-            message.AddBool(shouldPlaySFx);
-            NetworkManager.Singleton.Server.SendToAll(message);
-        }
-        else
-        {
-            player.playerShooting.BulletTrailEffect(didHit, rayHit.point, spread);
-            player.playerShooting.ShootingAnimator(shouldPlaySFx, player.IsLocal);
-        }
+        if (!NetworkManager.Singleton.Server.IsRunning) return;
+        Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.playerShot);
+        message.AddUShort(player.Id);
+        message.AddBool(didHit);
+        message.AddVector3(rayHit.point);
+        message.AddVector2(spread);
+        message.AddBool(shouldPlaySFx);
+        NetworkManager.Singleton.Server.SendToAll(message);
     }
 
     private void SendMeleeAttack(bool didHit)
     {
-        if (GameManager.Singleton.networking)
-        {
-            if (!NetworkManager.Singleton.Server.IsRunning) return;
-            Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.meleeAtack);
-            message.AddUShort(player.Id);
-            message.AddBool(didHit);
-            message.AddVector3(rayHit.point);
-            NetworkManager.Singleton.Server.SendToAll(message);
-        }
-        else
-        {
-            player.playerShooting.MeleeAtackAnimator();
-            if (didHit) player.playerShooting.HitParticle(rayHit.point);
-        }
-
+        if (!NetworkManager.Singleton.Server.IsRunning) return;
+        Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.meleeAtack);
+        message.AddUShort(player.Id);
+        message.AddBool(didHit);
+        message.AddVector3(rayHit.point);
+        NetworkManager.Singleton.Server.SendToAll(message);
     }
 
     private void SendHitPlayer(ushort playerHitId, bool shouldPlaySFx)
@@ -342,7 +395,7 @@ public class GunShoot : MonoBehaviour
     {
         if (Player.list.TryGetValue(fromClientId, out Player player))
         {
-            player.GunShoot.shootInput = message.GetBool();
+            player.GunShoot.HandleClientInput(message.GetBool(), message.GetUShort());
         }
     }
 

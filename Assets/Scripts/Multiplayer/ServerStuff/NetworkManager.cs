@@ -9,6 +9,7 @@ using System.Collections.Generic;
 public enum ServerToClientId : ushort
 {
     sync = 1,
+    serverTick,
     playerMovement,
     playerSpawned,
     playerShot,
@@ -89,7 +90,7 @@ public class NetworkManager : MonoBehaviour
     [SerializeField] public ushort maxClientCount;
     [Space(10)]
     [SerializeField] private ushort tickDivergenceTolerance = 1;
-
+    private float timer;
 
     private void Awake()
     {
@@ -116,17 +117,22 @@ public class NetworkManager : MonoBehaviour
         ServerTick = 2;
     }
 
-    private void FixedUpdate()
+    private void Update()
     {
-        if (Server.IsRunning)
+        timer += Time.deltaTime;
+        while (timer >= GameManager.Singleton.minTimeBetweenTicks)
         {
-            Server.Update();
-            if (CurrentTick % 200 == 0) SendSync();
-            CurrentTick++;
-        }
+            timer -= GameManager.Singleton.minTimeBetweenTicks;
+            if (Server.IsRunning)
+            {
+                Server.Update();
+                if (CurrentTick % 200 == 0) SendSync();
+                CurrentTick++;
+            }
 
-        Client.Update();
-        ServerTick++;
+            Client.Update();
+            ServerTick++;
+        }
     }
 
     private void OnApplicationQuit()

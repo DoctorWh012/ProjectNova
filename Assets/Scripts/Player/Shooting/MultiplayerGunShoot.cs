@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using Riptide;
 using UnityEngine;
 
@@ -7,6 +5,8 @@ public class MultiplayerGunShoot : MonoBehaviour
 {
     [Header("Components")]
     [SerializeField] Player player;
+    [SerializeField] GunShoot gunShoot;
+    [SerializeField] PlayerShooting playerShooting;
 
     [Header("Keybinds")]
     [SerializeField] private KeyCode shootBTN;
@@ -16,51 +16,66 @@ public class MultiplayerGunShoot : MonoBehaviour
     [SerializeField] private KeyCode secondaryGun;
     [SerializeField] private KeyCode meleeWeapon;
 
+    private bool shooting;
+    private bool aiming;
+    private float timer;
+
     // Update is called once per frame
     void Update()
     {
-        if (!UIManager.Instance.focused) return;
-        if (Input.GetKeyDown(shootBTN))
+        GetInput();
+
+        playerShooting.AimDownSight(aiming);
+
+        timer += Time.deltaTime;
+        while (timer >= GameManager.Singleton.minTimeBetweenTicks)
         {
-            if (GameManager.Singleton.networking) SendShootMessage(true);
-            else player.GunShoot.shootInput = true;
+            timer -= GameManager.Singleton.minTimeBetweenTicks;
+
+            if (shooting) gunShoot.FireTick();
+
+            if (!NetworkManager.Singleton.Server.IsRunning) SendShootMessage(shooting);
+        }
+    }
+
+    private void GunSwitchInput(KeyCode keybind, int index)
+    {
+        if (Input.GetKeyDown(keybind))
+        {
+            gunShoot.SwitchGun(index, true);
+            if (GameManager.Singleton.networking) playerShooting.SendGunSettings(index);
+        }
+    }
+
+    private void GetInput()
+    {
+        if (!UIManager.Instance.focused)
+        {
+            shooting = false;
+            aiming = false;
+            return;
         }
 
-        if (Input.GetKeyUp(shootBTN))
-        {
-            if (GameManager.Singleton.networking) SendShootMessage(false);
-            else player.GunShoot.shootInput = false;
-        }
+        shooting = Input.GetKey(shootBTN);
+        aiming = Input.GetKey(aimBTN);
 
-        if (Input.GetKeyDown(aimBTN)) player.playerShooting.AimDownSight(true);
-
-        if (Input.GetKeyUp(aimBTN)) player.playerShooting.AimDownSight(false);
-
-
-
-        if (player.playerShooting.isReloading) return;
-
-        GetInput(primaryGun, 0);
-        GetInput(secondaryGun, 1);
-        GetInput(meleeWeapon, 2);
+        GunSwitchInput(primaryGun, 0);
+        GunSwitchInput(secondaryGun, 1);
+        GunSwitchInput(meleeWeapon, 2);
 
         if (Input.GetKeyDown(reloadKey))
         {
+            player.GunShoot.StartGunReload(player.GunShoot.activeGun.reloadSpins, player.GunShoot.activeGun.reloadTime);
             if (GameManager.Singleton.networking) SendReload();
-            else player.GunShoot.StartGunReload(player.GunShoot.activeGun.reloadSpins, player.GunShoot.activeGun.reloadTime);
         }
-
-    }
-
-    private void GetInput(KeyCode keybind, int index)
-    {
-        if (Input.GetKeyDown(keybind)) player.playerShooting.SendGunSettings(index);
     }
 
     private void SendShootMessage(bool isShooting)
     {
+
         Message message = Message.Create(MessageSendMode.Reliable, ClientToServerId.gunInput);
         message.AddBool(isShooting);
+        message.AddUShort(GameManager.Singleton.serverTick);
         NetworkManager.Singleton.Client.Send(message);
     }
 
