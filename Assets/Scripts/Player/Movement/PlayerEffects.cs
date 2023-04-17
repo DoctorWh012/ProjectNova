@@ -38,7 +38,7 @@ public class PlayerEffects : MonoBehaviour
 
     private void UpdateSpeedLinesEmission()
     {
-        float speed = player.Movement.rb.velocity.magnitude;
+        float speed = player.Movement.speed.magnitude;
 
         if (speed < speedLineStartAtSpeed && emission.rateOverTimeMultiplier > 0)
         {

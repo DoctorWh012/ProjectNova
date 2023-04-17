@@ -816,6 +816,26 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ad85587f93ad943468b9ae5beeaf5520, type: 3}
+--- !u!1 &7261647989506377224 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: ad85587f93ad943468b9ae5beeaf5520, type: 3}
+  m_PrefabInstance: {fileID: 7496214704108878681}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &8038185311869951154 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: ad85587f93ad943468b9ae5beeaf5520, type: 3}
+  m_PrefabInstance: {fileID: 7496214704108878681}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &9207172035818203101 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -7511558181221131132, guid: ad85587f93ad943468b9ae5beeaf5520, type: 3}
+  m_PrefabInstance: {fileID: 7496214704108878681}
+  m_PrefabAsset: {fileID: 0}
+--- !u!23 &2203048378562698388 stripped
+MeshRenderer:
+  m_CorrespondingSourceObject: {fileID: -678588488315902003, guid: ad85587f93ad943468b9ae5beeaf5520, type: 3}
+  m_PrefabInstance: {fileID: 7496214704108878681}
+  m_PrefabAsset: {fileID: 0}
 --- !u!23 &270076713335396680 stripped
 MeshRenderer:
   m_CorrespondingSourceObject: {fileID: -1461304994638716399, guid: ad85587f93ad943468b9ae5beeaf5520, type: 3}
@@ -824,26 +844,6 @@ MeshRenderer:
 --- !u!4 &5813132441314943732 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 4083501151425157549, guid: ad85587f93ad943468b9ae5beeaf5520, type: 3}
-  m_PrefabInstance: {fileID: 7496214704108878681}
-  m_PrefabAsset: {fileID: 0}
---- !u!23 &2203048378562698388 stripped
-MeshRenderer:
-  m_CorrespondingSourceObject: {fileID: -678588488315902003, guid: ad85587f93ad943468b9ae5beeaf5520, type: 3}
-  m_PrefabInstance: {fileID: 7496214704108878681}
-  m_PrefabAsset: {fileID: 0}
---- !u!23 &9207172035818203101 stripped
-MeshRenderer:
-  m_CorrespondingSourceObject: {fileID: -7511558181221131132, guid: ad85587f93ad943468b9ae5beeaf5520, type: 3}
-  m_PrefabInstance: {fileID: 7496214704108878681}
-  m_PrefabAsset: {fileID: 0}
---- !u!4 &8038185311869951154 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: ad85587f93ad943468b9ae5beeaf5520, type: 3}
-  m_PrefabInstance: {fileID: 7496214704108878681}
-  m_PrefabAsset: {fileID: 0}
---- !u!1 &7261647989506377224 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: ad85587f93ad943468b9ae5beeaf5520, type: 3}
   m_PrefabInstance: {fileID: 7496214704108878681}
   m_PrefabAsset: {fileID: 0}
 --- !u!95 &8291001714601515300
@@ -886,6 +886,34 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 8038185311869951154}
     m_Modifications:
+    - target: {fileID: 5518996775830503537, guid: cdf6e4e5d338f9241b98bde0125968a6, type: 3}
+      propertyPath: m_Time
+      value: 0.1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5518996775830503537, guid: cdf6e4e5d338f9241b98bde0125968a6, type: 3}
+      propertyPath: m_Parameters.widthMultiplier
+      value: 0.07
+      objectReference: {fileID: 0}
+    - target: {fileID: 5518996775830503537, guid: cdf6e4e5d338f9241b98bde0125968a6, type: 3}
+      propertyPath: m_Parameters.widthCurve.m_Curve.Array.size
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 5518996775830503537, guid: cdf6e4e5d338f9241b98bde0125968a6, type: 3}
+      propertyPath: m_Parameters.widthCurve.m_Curve.Array.data[0].time
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5518996775830503537, guid: cdf6e4e5d338f9241b98bde0125968a6, type: 3}
+      propertyPath: m_Parameters.widthCurve.m_Curve.Array.data[0].value
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 5518996775830503537, guid: cdf6e4e5d338f9241b98bde0125968a6, type: 3}
+      propertyPath: m_Parameters.widthCurve.m_Curve.Array.data[0].inWeight
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5518996775830503537, guid: cdf6e4e5d338f9241b98bde0125968a6, type: 3}
+      propertyPath: m_Parameters.widthCurve.m_Curve.Array.data[0].outWeight
+      value: 0
+      objectReference: {fileID: 0}
     - target: {fileID: 8078390915635731293, guid: cdf6e4e5d338f9241b98bde0125968a6, type: 3}
       propertyPath: m_RootOrder
       value: 2

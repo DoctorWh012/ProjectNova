@@ -18,7 +18,8 @@ public class PlayerMovementSettings : ScriptableObject
     [SerializeField] public float gravity = 10;
     [SerializeField] public float wallRunGravity = 5;
     [SerializeField] public float coyoteTime = 0.2f;
-    [SerializeField] public float jumpBufferTime = 0.2f;
+    [SerializeField] public float jumpBufferTime = 0.1f;
+    [SerializeField] public float interactBufferTime = 0.1f;
 
     //----OTHER SETTINGS----
     [Space]

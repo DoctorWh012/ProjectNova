@@ -6,7 +6,6 @@ public class SimulationState
     public Vector3 position;
     public Vector3 rotation;
     public Vector3 velocity;
-    public Vector3 angularVelocity;
     public ushort currentTick;
 }
 
@@ -17,10 +16,6 @@ public class ClientInputState
     public bool crouch;
     public bool jump;
     public bool interact;
-
-    public bool readyToJump = true;
-    public float coyoteTimeCounter;
-    public float jumpBufferCounter;
 
     public ushort currentTick;
 }
@@ -74,7 +69,8 @@ public class MultiplayerController : MonoBehaviour
             simulationStateCache[cacheIndex] = CurrentSimulationState();
 
             // Applies the movent
-            playerMovement.SetInput(inputStateCache[cacheIndex].horizontal, inputStateCache[cacheIndex].vertical, inputStateCache[cacheIndex].jump, inputStateCache[cacheIndex].crouch, inputStateCache[cacheIndex].interact);
+            playerMovement.SetInput(inputStateCache[cacheIndex].horizontal, inputStateCache[cacheIndex].vertical,
+                inputStateCache[cacheIndex].jump, inputStateCache[cacheIndex].crouch, inputStateCache[cacheIndex].interact, false);
 
             // Sends a message containing this player input to the server im not the host
             if (!NetworkManager.Singleton.Server.IsRunning) SendInput();
@@ -98,11 +94,6 @@ public class MultiplayerController : MonoBehaviour
             jump = false,
             crouch = false,
             interact = false,
-
-            readyToJump = playerMovement.readyToJump,
-            coyoteTimeCounter = playerMovement.coyoteTimeCounter,
-            jumpBufferCounter = playerMovement.jumpBufferCounter,
-
             currentTick = cSPTick
         };
 
@@ -114,13 +105,7 @@ public class MultiplayerController : MonoBehaviour
             vertical = (sbyte)Input.GetAxisRaw("Vertical"),
             jump = Input.GetKey(jump),
             crouch = Input.GetKey(crouch),
-
             interact = interacted,
-
-            readyToJump = playerMovement.readyToJump,
-            coyoteTimeCounter = playerMovement.coyoteTimeCounter,
-            jumpBufferCounter = playerMovement.jumpBufferCounter,
-
             currentTick = cSPTick
         };
     }
@@ -132,29 +117,35 @@ public class MultiplayerController : MonoBehaviour
             position = playerMovement.rb.position,
             rotation = orientation.forward,
             velocity = playerMovement.rb.velocity,
-            angularVelocity = playerMovement.rb.angularVelocity,
             currentTick = cSPTick
         };
     }
 
     private void Reconciliate()
     {
+        if (serverSimulationState.currentTick <= lastCorrectedFrame) return;
+
         // Makes sure that the ServerSimState is not outdated
         int cacheIndex = serverSimulationState.currentTick % StateCacheSize;
 
-        ClientInputState cachedInputState = inputStateCache[cacheIndex];
+        // ClientInputState cachedInputState = inputStateCache[cacheIndex];
         SimulationState cachedSimulationState = simulationStateCache[cacheIndex];
 
+        // print($"ServerPos {serverSimulationState.currentTick} | CachedPos {cachedSimulationState.currentTick}");
+        // print($"<color=yellow>Serverpos: {serverSimulationState.position} | CachedPos: {cachedSimulationState.position}</color>");
         // Find the difference between the Server Player Pos And the Client predicted Pos
-        float posDif = Vector3.Distance(cachedSimulationState.position, serverSimulationState.position);
+        float posDif = Vector3.Distance(serverSimulationState.position, cachedSimulationState.position);
         float rotDif = 1f - Vector3.Dot(serverSimulationState.rotation, cachedSimulationState.rotation);
+
+        // print($"<color=red>Tick: {serverSimulationState.currentTick} | PosE: {posDif} | RotE: {rotDif}</color>");
+
         // A correction is necessary.
         if (posDif > 0.0001f || rotDif > 0.0001f)
         {
+            // print("<color=blue>Recon</color>");
             // Set the player's position to match the server's state. 
             playerMovement.rb.position = serverSimulationState.position;
             playerMovement.speed = serverSimulationState.velocity;
-            playerMovement.angularSpeed = serverSimulationState.angularVelocity;
             orientation.forward = serverSimulationState.rotation;
 
             // Declare the rewindFrame as we're about to resimulate our cached inputs. 
@@ -169,20 +160,14 @@ public class MultiplayerController : MonoBehaviour
 
                 // Obtain the cached input and simulation states.
                 ClientInputState rewindCachedInputState = inputStateCache[rewindCacheIndex];
-                SimulationState rewindCachedSimulationState = simulationStateCache[rewindCacheIndex];
 
                 // Replace the simulationStateCache index with the new value.
                 SimulationState rewoundSimulationState = CurrentSimulationState();
                 rewoundSimulationState.currentTick = rewindTick;
                 simulationStateCache[rewindCacheIndex] = rewoundSimulationState;
 
-                playerMovement.readyToJump = rewindCachedInputState.readyToJump;
-                playerMovement.coyoteTimeCounter = rewindCachedInputState.coyoteTimeCounter;
-                playerMovement.jumpBufferCounter = rewindCachedInputState.jumpBufferCounter;
-                // playerMovement.PerformChecks();
-
                 // Process the cached inputs.
-                playerMovement.SetInput(rewindCachedInputState.horizontal, rewindCachedInputState.vertical, rewindCachedInputState.jump, rewindCachedInputState.crouch, rewindCachedInputState.interact);
+                playerMovement.SetInput(rewindCachedInputState.horizontal, rewindCachedInputState.vertical, rewindCachedInputState.jump, rewindCachedInputState.crouch, rewindCachedInputState.interact, true);
 
                 // Increase the amount of frames that we've rewound.
                 ++rewindTick;

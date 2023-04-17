@@ -37,10 +37,8 @@ public class Interactable : MonoBehaviour
     {
         if (!other.CompareTag("Interactor")) return;
         if (waitCoroutine != null) return;
-        print($"{other.name} is of tag{other.CompareTag("Interactor")}");
 
         Player player = other.GetComponentInParent<Player>();
-        print("ON ENTER");
         VerifyUIText(player);
 
         waitCoroutine = StartCoroutine(WaitForInteract(player));
@@ -51,7 +49,6 @@ public class Interactable : MonoBehaviour
         if (!other.CompareTag("Interactor") || waitCoroutine != null) return;
 
         Player player = other.GetComponentInParent<Player>();
-        print("OnStay");
         VerifyUIText(player);
 
         waitCoroutine = StartCoroutine(WaitForInteract(player));
@@ -61,27 +58,21 @@ public class Interactable : MonoBehaviour
     {
         if (!other.CompareTag("Interactor")) return;
         if (waitCoroutine == null) return;
-        print($"{other.name} is of tag{other.CompareTag("Interactor")}");
 
-        print("OnExit");
-        // print(other.GetComponentInParent<Player>().Movement.rb.isKinematic);
         // if (other.GetComponentInParent<Player>().Movement.rb.isKinematic) return;
 
         GameCanvas.Instance.SetUiPopUpText("");
         if (waitCoroutine != null) StopCoroutine(waitCoroutine);
         waitCoroutine = null;
-        // print(waitCoroutine ==  null);
     }
 
     private IEnumerator WaitForInteract(Player player)
     {
-        // print("Started coroutine");
         while (!player.Movement.interacting)
         {
             yield return null;
         }
 
-        // print("Interacted");
         switch (desiredAction)
         {
             case Action.PickUpGun:
@@ -100,6 +91,5 @@ public class Interactable : MonoBehaviour
                 break;
         }
         waitCoroutine = null;
-        // print("Ended");
     }
 }

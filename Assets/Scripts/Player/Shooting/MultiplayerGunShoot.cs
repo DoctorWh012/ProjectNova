@@ -33,7 +33,6 @@ public class MultiplayerGunShoot : MonoBehaviour
             timer -= GameManager.Singleton.minTimeBetweenTicks;
 
             if (shooting) gunShoot.FireTick();
-
             if (!NetworkManager.Singleton.Server.IsRunning) SendShootMessage(shooting);
         }
     }
@@ -65,14 +64,14 @@ public class MultiplayerGunShoot : MonoBehaviour
 
         if (Input.GetKeyDown(reloadKey))
         {
-            player.GunShoot.StartGunReload(player.GunShoot.activeGun.reloadSpins, player.GunShoot.activeGun.reloadTime);
-            if (GameManager.Singleton.networking) SendReload();
+            player.GunShoot.StartGunReload();
+            if (!NetworkManager.Singleton.Server.IsRunning) SendReload();
         }
     }
 
     private void SendShootMessage(bool isShooting)
     {
-
+        if (!GameManager.Singleton.networking) return;
         Message message = Message.Create(MessageSendMode.Reliable, ClientToServerId.gunInput);
         message.AddBool(isShooting);
         message.AddUShort(GameManager.Singleton.serverTick);
@@ -81,16 +80,8 @@ public class MultiplayerGunShoot : MonoBehaviour
 
     private void SendReload()
     {
+        if (!GameManager.Singleton.networking) return;
         Message message = Message.Create(MessageSendMode.Reliable, ClientToServerId.gunReload);
         NetworkManager.Singleton.Client.Send(message);
-    }
-
-    [MessageHandler((ushort)ServerToClientId.gunReload)]
-    private static void Reload(Message message)
-    {
-        if (Player.list.TryGetValue(message.GetUShort(), out Player player))
-        {
-            player.playerShooting.DoTheSpin(message.GetInt(), message.GetFloat());
-        }
     }
 }

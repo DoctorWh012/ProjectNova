@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   moveSpeed: 13
   crouchedSpeedMultiplier: 1.2
-  groundDrag: 5
+  groundDrag: 10
   airDrag: 0
   jumpForce: 15
   wallJumpUpForce: 10
@@ -23,8 +23,9 @@ MonoBehaviour:
   maxSlopeAngle: 45
   gravity: 11
   wallRunGravity: 5
-  coyoteTime: 0.2
+  coyoteTime: 0.1
   jumpBufferTime: 0.1
+  interactBufferTime: 0.1
   groundCheckHeight: 0.4
   jumpCooldown: 0.3
   airMultiplier: 4

@@ -5,10 +5,10 @@ using EZCameraShake;
 
 public class PlayerShooting : MonoBehaviour
 {
-    public bool isReloading { get; private set; } = false;
     public int activeGun { get; private set; }
     public bool isWeaponTilted { get; private set; } = false;
     public WeaponType activeWeaponType { get; private set; }
+    public Animator animator { get; private set; }
 
 
     [Header("Components")]
@@ -19,7 +19,6 @@ public class PlayerShooting : MonoBehaviour
     [SerializeField] private HeadBobController headBobController;
     [SerializeField] private Camera scopeCam;
 
-    [Space]
     [Header("Audio")]
     [SerializeField] private AudioSource audioSource;
     [SerializeField] private AudioClip hitMarkerSfx;
@@ -27,7 +26,6 @@ public class PlayerShooting : MonoBehaviour
     [SerializeField] private AudioClip reloadSFX;
 
     private Transform barrelTip;
-    private Animator animator;
     private ParticleSystem weaponEffectParticle;
     public int range;
 
@@ -193,7 +191,9 @@ public class PlayerShooting : MonoBehaviour
     {
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
-            if (NetworkManager.Singleton.Server.IsRunning || player.IsLocal) return;
+
+            if (NetworkManager.Singleton.Server.IsRunning) return;
+            if (player.IsLocal) { player.GunShoot.ammunition = message.GetUShort(); return; }
             player.playerShooting.BulletTrailEffect(message.GetBool(), message.GetVector3(), message.GetVector2());
             player.playerShooting.ShootingAnimator(message.GetBool(), player.IsLocal);
         }
@@ -226,9 +226,8 @@ public class PlayerShooting : MonoBehaviour
     {
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
-            if (message.GetBool()) player.playerShooting.SwitchMelee(message.GetInt());
-            else player.playerShooting.SwitchGun(message.GetInt());
-            player.playerShooting.range = message.GetInt();
+            if (message.GetBool()) player.playerShooting.SwitchMelee((int)message.GetByte());
+            else player.playerShooting.SwitchGun((int)message.GetByte());
         }
     }
     #endregion
@@ -247,19 +246,20 @@ public class PlayerShooting : MonoBehaviour
 
     private IEnumerator RotateGun(int times, float duration)
     {
+        yield return new WaitForSeconds(0.1f);
+        while (animator.GetCurrentAnimatorStateInfo(0).IsName("Recoil")) yield return null;
+
         SoundManager.Instance.PlaySound(audioSource, spinSFX);
-        isReloading = true;
         gunsSettings[activeGun].animator.enabled = false;
 
         Vector3 toAngle = new Vector3(-89.98f + -(times * 360), 0, 0);
-        for (float t = 0f; t < 1f; t += Time.deltaTime / duration)
+        for (float t = 0f; t < 1f; t += Time.deltaTime / (duration - 0.2f))
         {
             gunsSettings[activeGun].gunModelPos.localRotation = Quaternion.Euler(toAngle * t);
             yield return null;
         }
         gunsSettings[activeGun].gunModelPos.localRotation = Quaternion.Euler(new Vector3(-89.98f, 0, 0));
         gunsSettings[activeGun].animator.enabled = true;
-        isReloading = false;
 
         SoundManager.Instance.PlaySound(audioSource, reloadSFX);
         yield return new WaitForSeconds(0.4f);

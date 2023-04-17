@@ -25,7 +25,7 @@ public class Guns : ScriptableObject
     public bool canAim;
     [Range(1, 120)] public float scopeFov;
     public int damage;
-    public int range;
+    [Range(1, 255)] public int range;
     public float fireRate;
     public float reloadTime;
     public int reloadSpins;

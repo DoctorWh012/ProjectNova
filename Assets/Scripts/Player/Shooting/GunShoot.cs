@@ -21,13 +21,14 @@ public class GunShoot : MonoBehaviour
     public Guns[] currentPlayerGuns;
     public int[] currentPlayerGunsIndex;
     private int _ammunition;
-    private int ammunition
+    public int ammunition
     {
         get { return _ammunition; }
         set
         {
             _ammunition = value;
-            SendUpdatedAmmo();
+            if (player.IsLocal) GameCanvas.Instance.UpdateAmmunition(ammunition, activeGun.maxAmmo);
+            CheckIfReloadIsNeeded();
         }
     }
 
@@ -40,7 +41,6 @@ public class GunShoot : MonoBehaviour
 
     private ushort lastShotTick;
 
-    // Start is called before the first frame update
     private void Awake()
     {
         currentPlayerGuns = new Guns[gunSlots];
@@ -53,19 +53,12 @@ public class GunShoot : MonoBehaviour
     public void FireTick()
     {
         if (!player.IsLocal && NetworkManager.Singleton.Server.IsRunning) GameManager.Singleton.SetAllPlayersPositionsTo(lastShotTick, player.Id);
-
         GameManager.Singleton.ActivateDeactivateAllPlayersCollisions(true);
 
-        if (activeGun.weaponType == WeaponType.rifle || activeGun.weaponType == WeaponType.shotgun)
-        {
-            VerifyGunShoot();
-            CheckIfReloadIsNeeded();
-        }
-
+        if (activeGun.weaponType == WeaponType.rifle || activeGun.weaponType == WeaponType.shotgun) VerifyGunShoot();
         else if (activeGun.weaponType == WeaponType.melee) VerifyMeleeAttack();
 
         GameManager.Singleton.ActivateDeactivateAllPlayersCollisions(false);
-
         if (!player.IsLocal && NetworkManager.Singleton.Server.IsRunning) GameManager.Singleton.ResetPlayersPositions(player.Id);
     }
 
@@ -82,6 +75,7 @@ public class GunShoot : MonoBehaviour
                 case WeaponType.rifle:
                     Shoot();
                     break;
+
                 case WeaponType.shotgun:
                     ShotgunShoot();
                     break;
@@ -107,10 +101,7 @@ public class GunShoot : MonoBehaviour
 
     private void CheckIfReloadIsNeeded()
     {
-        if (ammunition <= 0 && !isReloading && activeGun.weaponType != WeaponType.melee)
-        {
-            StartGunReload(activeGun.reloadSpins, activeGun.reloadTime);
-        }
+        if (ammunition <= 0 && !isReloading && activeGun.weaponType != WeaponType.melee) StartGunReload();
     }
 
     private void Shoot()
@@ -232,10 +223,7 @@ public class GunShoot : MonoBehaviour
 
     public void ReplenishAllAmmo()
     {
-        foreach (GunComponents gun in playerShooting.gunsSettings)
-        {
-            gun.gunSettings.currentAmmo = gun.gunSettings.maxAmmo;
-        }
+        foreach (GunComponents gun in playerShooting.gunsSettings) gun.gunSettings.currentAmmo = gun.gunSettings.maxAmmo;
 
         ammunition = activeGun.maxAmmo;
     }
@@ -264,6 +252,7 @@ public class GunShoot : MonoBehaviour
         ammunition = activeGun.currentAmmo;
 
         if (!NetworkManager.Singleton.Server.IsRunning) return;
+
         //Checks If Its Melee
         if (slotIndex == 2) SendGunSwitch(currentPlayerGunsIndex[slotIndex], true);
         else SendGunSwitch(currentPlayerGunsIndex[slotIndex], false);
@@ -274,6 +263,7 @@ public class GunShoot : MonoBehaviour
         Guns pickedGun = playerShooting.gunsSettings[pickedGunIndex].gunSettings;
         currentPlayerGuns[slot] = pickedGun;
         currentPlayerGunsIndex[slot] = pickedGunIndex;
+        SendPickedUpGun(slot, pickedGunIndex);
 
         SwitchGun(((int)pickedGun.slot), false);
         ReplenishAllAmmo();
@@ -303,12 +293,22 @@ public class GunShoot : MonoBehaviour
         if (didHit) playerShooting.HitParticle(rayHit.point);
     }
 
+    public void StartGunReload()
+    {
+        if (ammunition == activeGun.maxAmmo) return;
+
+        StartCoroutine(StartReload(activeGun.reloadTime));
+
+        player.playerShooting.DoTheSpin(activeGun.reloadSpins, activeGun.reloadTime);
+    }
+
     // Multiplayer Handler
     private void SendShot(bool didHit, Vector2 spread, bool shouldPlaySFx)
     {
         if (!NetworkManager.Singleton.Server.IsRunning) return;
         Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.playerShot);
         message.AddUShort(player.Id);
+        message.AddUShort((ushort)ammunition);
         message.AddBool(didHit);
         message.AddVector3(rayHit.point);
         message.AddVector2(spread);
@@ -337,15 +337,14 @@ public class GunShoot : MonoBehaviour
 
     private void SendGunSwitch(int gunIndex, bool isMelee)
     {
-        if (GameManager.Singleton == null) return;
         if (GameManager.Singleton.networking)
         {
             if (!NetworkManager.Singleton.Server.IsRunning) return;
             Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.gunChanged);
             message.AddUShort(player.Id);
             message.AddBool(isMelee);
-            message.AddInt(gunIndex);
-            message.AddInt(activeGun.range);
+            message.AddByte((byte)gunIndex);
+            message.AddByte((byte)activeGun.range);
             NetworkManager.Singleton.Server.SendToAll(message);
         }
         else
@@ -356,39 +355,26 @@ public class GunShoot : MonoBehaviour
         }
     }
 
-    public void StartGunReload(int spins, float reloadTime)
+    private void SendPickedUpGun(int slot, int pickedGunIndex)
     {
-        if (player.GunShoot.ammunition == player.GunShoot.activeGun.maxAmmo) return;
-        StartCoroutine(player.GunShoot.StartReload(reloadTime));
-
-        if (GameManager.Singleton.networking)
-        {
-            if (!NetworkManager.Singleton.Server.IsRunning) return;
-            Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.gunReload);
-            message.AddUShort(player.Id);
-            message.AddInt(spins);
-            message.AddFloat(reloadTime + 0.1f);
-            NetworkManager.Singleton.Server.Send(message, player.Id);
-        }
-        else player.playerShooting.DoTheSpin(spins, reloadTime);
+        if (!NetworkManager.Singleton.Server.IsRunning || player.IsLocal) return;
+        Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.pickedGun);
+        message.AddUShort(player.Id);
+        message.AddByte((byte)slot);
+        message.AddByte((byte)pickedGunIndex);
+        NetworkManager.Singleton.Server.Send(message, player.Id);
     }
-
-    private void SendUpdatedAmmo()
-    {
-        if (GameManager.Singleton == null) return;
-        if (GameManager.Singleton.networking)
-        {
-            if (!NetworkManager.Singleton.Server.IsRunning) return;
-            Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.ammoChanged);
-            message.AddInt(ammunition);
-            message.AddInt(activeGun.maxAmmo);
-            NetworkManager.Singleton.Server.Send(message, player.Id);
-        }
-        else GameCanvas.Instance.UpdateAmmunition(ammunition, activeGun.maxAmmo);
-    }
-
 
     #region Messages
+
+    [MessageHandler((ushort)ServerToClientId.pickedGun)]
+    private static void PickGun(Message message)
+    {
+        if (Player.list.TryGetValue(message.GetUShort(), out Player player))
+        {
+            player.GunShoot.PickUpGun((int)message.GetByte(), (int)message.GetByte());
+        }
+    }
 
     [MessageHandler((ushort)ClientToServerId.gunInput)]
     private static void GunInput(ushort fromClientId, Message message)
@@ -413,7 +399,7 @@ public class GunShoot : MonoBehaviour
     {
         if (Player.list.TryGetValue(fromClientId, out Player player))
         {
-            player.GunShoot.StartGunReload(player.GunShoot.activeGun.reloadSpins, player.GunShoot.activeGun.reloadTime);
+            player.GunShoot.StartGunReload();
         }
     }
     #endregion
@@ -425,11 +411,5 @@ public class GunShoot : MonoBehaviour
         yield return new WaitForSeconds(reloadTime);
         isReloading = false;
         ReplenishAmmo();
-    }
-
-    private void OnDrawGizmos()
-    {
-        Gizmos.color = Color.red;
-        Gizmos.DrawRay(playerCam.position, playerCam.forward * 50);
     }
 }

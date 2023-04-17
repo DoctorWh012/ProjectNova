@@ -97,11 +97,7 @@ public class GameCanvas : MonoBehaviour
         }
     }
 
-    [MessageHandler((ushort)ServerToClientId.ammoChanged)]
-    private static void ChangeAmmo(Message message)
-    {
-        GameCanvas.Instance.UpdateAmmunition(message.GetInt(), message.GetInt());
-    }
+
 
     [MessageHandler((ushort)ServerToClientId.healthChanged)]
     private static void ChangeHealth(Message message)
