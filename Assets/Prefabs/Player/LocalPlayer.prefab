@@ -5709,11 +5709,8 @@ MonoBehaviour:
   multiplayerController: {fileID: 2638450057292859265}
   movementFreeze: 0
   wallRunning: 0
-  readyToJump: 1
-  coyoteTimeCounter: 0
-  jumpBufferCounter: 0
+  jumping: 0
   speed: {x: 0, y: 0, z: 0}
-  angularSpeed: {x: 0, y: 0, z: 0}
 --- !u!114 &1283521944957988
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5735,7 +5732,7 @@ MonoBehaviour:
   mainAudioSRC: {fileID: 6556193952997409454}
   walkingSFX: []
   speedLinesEffect: {fileID: 3880599849190285395}
-  speedLineStartAtSpeed: 15
+  speedLineStartAtSpeed: 13
   speedLineMultiplier: 5
   speedLineSpoolTime: 3
 --- !u!114 &6710085608534752756
@@ -5795,6 +5792,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   player: {fileID: 8618157828869544815}
+  gunShoot: {fileID: 2072621626698893412}
   playerAudioSource: {fileID: 6556193952997409454}
   gunsSettings:
   - {fileID: 8432123479632157058}
@@ -5815,7 +5813,6 @@ MonoBehaviour:
   hitMarkerSfx: {fileID: 8300000, guid: 0311c8423cb17e04e98265805bc4a4b7, type: 3}
   spinSFX: {fileID: 8300000, guid: 2bcd552318991af4f91eac08804a20a4, type: 3}
   reloadSFX: {fileID: 8300000, guid: d3e77d5d17a857c409a0bdda6fd9cf06, type: 3}
-  range: 0
 --- !u!114 &3974419337605213726
 MonoBehaviour:
   m_ObjectHideFlags: 0

@@ -13,6 +13,7 @@ public class PlayerShooting : MonoBehaviour
 
     [Header("Components")]
     [SerializeField] private Player player;
+    [SerializeField] private GunShoot gunShoot;
     [SerializeField] private AudioSource playerAudioSource;
     [SerializeField] public GunComponents[] gunsSettings;
     [SerializeField] public MeleeComponents[] meleeSettings;
@@ -27,7 +28,6 @@ public class PlayerShooting : MonoBehaviour
 
     private Transform barrelTip;
     private ParticleSystem weaponEffectParticle;
-    public int range;
 
     IEnumerator tiltWeaponCoroutine;
 
@@ -154,7 +154,7 @@ public class PlayerShooting : MonoBehaviour
         {
             TrailRenderer tracer = Instantiate(GameManager.Singleton.ShotTrail, barrelTip.position, Quaternion.LookRotation(barrelTip.forward));
             tracer.AddPosition(barrelTip.position);
-            tracer.transform.position += (barrelTip.forward + new Vector3(spread.x, spread.y, 0)) * range;
+            tracer.transform.position += (barrelTip.forward + new Vector3(spread.x, spread.y, 0)) * gunShoot.activeGun.range;
         }
     }
 
@@ -226,16 +226,12 @@ public class PlayerShooting : MonoBehaviour
     {
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
-            if (message.GetBool()) player.playerShooting.SwitchMelee((int)message.GetByte());
-            else player.playerShooting.SwitchGun((int)message.GetByte());
+            int index = message.GetByte();
+            if (message.GetBool()) player.playerShooting.SwitchMelee(index);
+            else player.playerShooting.SwitchGun(index);
         }
     }
     #endregion
-
-    public void DoTheSpin(int times, float duration)
-    {
-        StartCoroutine(RotateGun(times, duration));
-    }
 
     public void TiltGun(float angle, float duration)
     {
@@ -244,26 +240,40 @@ public class PlayerShooting : MonoBehaviour
         StartCoroutine(tiltWeaponCoroutine);
     }
 
-    private IEnumerator RotateGun(int times, float duration)
+    public IEnumerator RotateGun(int times, float duration)
     {
-        yield return new WaitForSeconds(0.1f);
+
+        gunShoot.isReloading = true;
+        gunShoot.canShoot = false;
+        // FUCK QUATERNIONS
+        GunComponents actvGun = gunsSettings[activeGun];
+        yield return new WaitForEndOfFrame();
         while (animator.GetCurrentAnimatorStateInfo(0).IsName("Recoil")) yield return null;
 
         SoundManager.Instance.PlaySound(audioSource, spinSFX);
-        gunsSettings[activeGun].animator.enabled = false;
+        actvGun.animator.enabled = false;
 
-        Vector3 toAngle = new Vector3(-89.98f + -(times * 360), 0, 0);
-        for (float t = 0f; t < 1f; t += Time.deltaTime / (duration - 0.2f))
+        Vector3 startingAngle = actvGun.gunModelPos.localEulerAngles;
+        float toAngle = startingAngle.x + -360 * times;
+        float t = 0;
+
+        while (t < duration)
         {
-            gunsSettings[activeGun].gunModelPos.localRotation = Quaternion.Euler(toAngle * t);
+            t += Time.deltaTime;
+            float xRot = Mathf.Lerp(startingAngle.x, toAngle, t / duration);
+            actvGun.gunModelPos.localEulerAngles = new Vector3(xRot, startingAngle.y, startingAngle.z);
             yield return null;
         }
-        gunsSettings[activeGun].gunModelPos.localRotation = Quaternion.Euler(new Vector3(-89.98f, 0, 0));
-        gunsSettings[activeGun].animator.enabled = true;
+
+        actvGun.gunModelPos.localEulerAngles = startingAngle;
+        actvGun.animator.enabled = true;
 
         SoundManager.Instance.PlaySound(audioSource, reloadSFX);
         yield return new WaitForSeconds(0.4f);
         audioSource.Stop();
+
+        gunShoot.isReloading = false;
+        gunShoot.ReplenishAmmo();
     }
 
     private IEnumerator TiltWeapon(float tiltAngle, float duration)

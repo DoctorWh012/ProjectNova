@@ -941,6 +941,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   player: {fileID: 7605542914481611937}
+  gunShoot: {fileID: 1269596351038479994}
   playerAudioSource: {fileID: 3000012825842851187}
   gunsSettings:
   - {fileID: 5883916487316950195}
@@ -961,7 +962,6 @@ MonoBehaviour:
   hitMarkerSfx: {fileID: 8300000, guid: 0311c8423cb17e04e98265805bc4a4b7, type: 3}
   spinSFX: {fileID: 0}
   reloadSFX: {fileID: 0}
-  range: 0
 --- !u!114 &4057735297404587721
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -990,11 +990,8 @@ MonoBehaviour:
   multiplayerController: {fileID: 0}
   movementFreeze: 0
   wallRunning: 0
-  readyToJump: 1
-  coyoteTimeCounter: 0
-  jumpBufferCounter: 0
+  jumping: 0
   speed: {x: 0, y: 0, z: 0}
-  angularSpeed: {x: 0, y: 0, z: 0}
 --- !u!114 &1269596351038479994
 MonoBehaviour:
   m_ObjectHideFlags: 0

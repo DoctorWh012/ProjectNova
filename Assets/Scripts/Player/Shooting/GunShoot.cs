@@ -34,8 +34,8 @@ public class GunShoot : MonoBehaviour
 
     private bool shootFreeze = false;
 
-    private bool canShoot = true;
-    private bool isReloading = false;
+    public bool canShoot = true;
+    public bool isReloading = false;
     private float nextTimeToFire = 0f;
     public Guns activeGun;
 
@@ -215,7 +215,7 @@ public class GunShoot : MonoBehaviour
     }
 
 
-    private void ReplenishAmmo()
+    public void ReplenishAmmo()
     {
         ammunition = activeGun.maxAmmo;
         canShoot = true;
@@ -295,11 +295,9 @@ public class GunShoot : MonoBehaviour
 
     public void StartGunReload()
     {
-        if (ammunition == activeGun.maxAmmo) return;
+        if (ammunition == activeGun.maxAmmo || isReloading) return;
 
-        StartCoroutine(StartReload(activeGun.reloadTime));
-
-        player.playerShooting.DoTheSpin(activeGun.reloadSpins, activeGun.reloadTime);
+        StartCoroutine(playerShooting.RotateGun(activeGun.reloadSpins, activeGun.reloadTime));
     }
 
     // Multiplayer Handler
@@ -342,16 +340,14 @@ public class GunShoot : MonoBehaviour
             if (!NetworkManager.Singleton.Server.IsRunning) return;
             Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.gunChanged);
             message.AddUShort(player.Id);
-            message.AddBool(isMelee);
             message.AddByte((byte)gunIndex);
-            message.AddByte((byte)activeGun.range);
+            message.AddBool(isMelee);
             NetworkManager.Singleton.Server.SendToAll(message);
         }
         else
         {
             if (isMelee) player.playerShooting.SwitchMelee(gunIndex);
             else player.playerShooting.SwitchGun(gunIndex);
-            player.playerShooting.range = activeGun.range;
         }
     }
 
@@ -364,8 +360,6 @@ public class GunShoot : MonoBehaviour
         message.AddByte((byte)pickedGunIndex);
         NetworkManager.Singleton.Server.Send(message, player.Id);
     }
-
-    #region Messages
 
     [MessageHandler((ushort)ServerToClientId.pickedGun)]
     private static void PickGun(Message message)
@@ -402,14 +396,39 @@ public class GunShoot : MonoBehaviour
             player.GunShoot.StartGunReload();
         }
     }
-    #endregion
 
-    IEnumerator StartReload(float reloadTime)
-    {
-        isReloading = true;
-        canShoot = false;
-        yield return new WaitForSeconds(reloadTime);
-        isReloading = false;
-        ReplenishAmmo();
-    }
+    // private IEnumerator PerformReload(int times, float duration)
+    // {
+    //     isReloading = true;
+    //     canShoot = false;
+    //     // FUCK QUATERNIONS
+    //     GunComponents actvGun = gunsSettings[activeGun];
+    //     yield return new WaitForEndOfFrame();
+    //     while (animator.GetCurrentAnimatorStateInfo(0).IsName("Recoil")) yield return null;
+
+    //     SoundManager.Instance.PlaySound(audioSource, spinSFX);
+    //     actvGun.animator.enabled = false;
+
+    //     Vector3 startingAngle = actvGun.gunModelPos.localEulerAngles;
+    //     float toAngle = startingAngle.x + -360 * times;
+    //     float t = 0;
+
+    //     while (t < duration)
+    //     {
+    //         t += Time.deltaTime;
+    //         float xRot = Mathf.Lerp(startingAngle.x, toAngle, t / duration);
+    //         actvGun.gunModelPos.localEulerAngles = new Vector3(xRot, startingAngle.y, startingAngle.z);
+    //         yield return null;
+    //     }
+
+    //     actvGun.gunModelPos.localEulerAngles = startingAngle;
+    //     actvGun.animator.enabled = true;
+
+    //     SoundManager.Instance.PlaySound(audioSource, reloadSFX);
+    //     yield return new WaitForSeconds(0.4f);
+    //     audioSource.Stop();
+
+    //     isReloading = false;
+    //     ReplenishAmmo();
+    // }
 }

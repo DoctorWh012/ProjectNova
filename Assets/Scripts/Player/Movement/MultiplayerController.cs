@@ -140,7 +140,7 @@ public class MultiplayerController : MonoBehaviour
         // print($"<color=red>Tick: {serverSimulationState.currentTick} | PosE: {posDif} | RotE: {rotDif}</color>");
 
         // A correction is necessary.
-        if (posDif > 0.0001f || rotDif > 0.0001f)
+        if (posDif > 0.00001f || rotDif > 0.00001f)
         {
             // print("<color=blue>Recon</color>");
             // Set the player's position to match the server's state. 
