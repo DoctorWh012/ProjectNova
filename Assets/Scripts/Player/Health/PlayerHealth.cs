@@ -6,7 +6,7 @@ public class PlayerHealth : MonoBehaviour
 {
     [Header("Components")]
     [SerializeField] private Player player;
-    [SerializeField] private PlayerShooting playerShooting;
+    [SerializeField] private GunShoot gunShoot;
     [SerializeField] private MultiplayerGunShoot gunController;
     [SerializeField] private HeadBobController headBob;
     [SerializeField] private GameObject[] playerModels;
@@ -32,7 +32,7 @@ public class PlayerHealth : MonoBehaviour
     private void DisableEnableModels(bool status)
     {
         foreach (GameObject model in playerModels) { model.SetActive(status); }
-        if (!status) { playerShooting.DisableAllGunMeshes(); playerShooting.DisableAllMeleeMesh(); return; }
-        playerShooting.EnableActiveGunMesh(playerShooting.activeGun);
+        if (!status) { gunShoot.DisableAllGunMeshes(); gunShoot.DisableAllMeleeMesh(); return; }
+        gunShoot.EnableActiveGunMesh(gunShoot.activeGunIndex);
     }
 }

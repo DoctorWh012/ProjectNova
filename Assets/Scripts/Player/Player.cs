@@ -22,7 +22,7 @@ public class Player : MonoBehaviour
     [SerializeField] public Interpolation interpolation;
     [SerializeField] public MultiplayerGunShoot multiplayerGunShoot;
     [SerializeField] public PlayerEffects playerEffects;
-    [SerializeField] public PlayerShooting playerShooting;
+    // [SerializeField] public PlayerShooting playerShooting;
     [SerializeField] public HeadBobController headBobController;
     [SerializeField] private PlayerMovement movement;
     [SerializeField] private GunShoot gunShoot;

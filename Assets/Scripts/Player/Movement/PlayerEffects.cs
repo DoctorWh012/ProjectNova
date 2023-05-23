@@ -58,7 +58,7 @@ public class PlayerEffects : MonoBehaviour
 
     public void PlayerAnimator(float vertical, float horizontal, bool isSliding)
     {
-        if (player.IsLocal) return;
+        // if (player.IsLocal) return;
         if (isSliding) { playerAnimator.Play("Slide"); return; }
         switch (vertical)
         {

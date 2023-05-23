@@ -6,7 +6,7 @@ public class MultiplayerGunShoot : MonoBehaviour
     [Header("Components")]
     [SerializeField] Player player;
     [SerializeField] GunShoot gunShoot;
-    [SerializeField] PlayerShooting playerShooting;
+    // [SerializeField] PlayerShooting playerShooting;
 
     [Header("Keybinds")]
     [SerializeField] private KeyCode shootBTN;
@@ -20,12 +20,17 @@ public class MultiplayerGunShoot : MonoBehaviour
     private bool aiming;
     private float timer;
 
+    private void Start()
+    {
+        SendGunSettings(0);
+    }
+
     // Update is called once per frame
     void Update()
     {
         GetInput();
 
-        playerShooting.AimDownSight(aiming);
+        gunShoot.AimDownSight(aiming);
 
         timer += Time.deltaTime;
         while (timer >= GameManager.Singleton.minTimeBetweenTicks)
@@ -42,7 +47,7 @@ public class MultiplayerGunShoot : MonoBehaviour
         if (Input.GetKeyDown(keybind))
         {
             gunShoot.SwitchGun(index, true);
-            if (GameManager.Singleton.networking) playerShooting.SendGunSettings(index);
+            if (GameManager.Singleton.networking) SendGunSettings(index);
         }
     }
 
@@ -82,6 +87,13 @@ public class MultiplayerGunShoot : MonoBehaviour
     {
         if (!GameManager.Singleton.networking) return;
         Message message = Message.Create(MessageSendMode.Reliable, ClientToServerId.gunReload);
+        NetworkManager.Singleton.Client.Send(message);
+    }
+
+    public void SendGunSettings(int index)
+    {
+        Message message = Message.Create(MessageSendMode.Reliable, ClientToServerId.gunChange);
+        message.AddInt(index);
         NetworkManager.Singleton.Client.Send(message);
     }
 }

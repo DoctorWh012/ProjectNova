@@ -12,7 +12,7 @@ public class PlayerMovement : MonoBehaviour
     [Header("Components")]
     [SerializeField] private Player player;
     [SerializeField] public Rigidbody rb;
-    [SerializeField] private CapsuleCollider col;
+    [SerializeField] private CapsuleCollider groundingCol;
     [SerializeField] private Transform orientation;
     [SerializeField] public Transform cam;
     [SerializeField] private LayerMask ground;
@@ -162,7 +162,7 @@ public class PlayerMovement : MonoBehaviour
         // Jumping
         jumping = jump;
 
-        if(resimulating) CheckIfGrounded(resimulating);
+        if (resimulating) CheckIfGrounded(resimulating);
 
         // Interacting
         if (interact) interactBufferCounter = movementSettings.interactBufferTime;
@@ -322,12 +322,12 @@ public class PlayerMovement : MonoBehaviour
         if (sliding && velocity.magnitude > 5f)
         {
             if (grounded) player.playerEffects.PlaySlideEffects(true);
-            if (player.IsLocal && !player.playerShooting.isWeaponTilted) player.playerShooting.TiltGun(30, 0.2f);
+            if (player.IsLocal && !player.GunShoot.isWeaponTilted) player.GunShoot.TiltGun(30, 0.2f);
         }
         else
         {
             player.playerEffects.PlaySlideEffects(false);
-            if (player.IsLocal && player.playerShooting.isWeaponTilted) player.playerShooting.TiltGun(0, 0.2f);
+            if (player.IsLocal && player.GunShoot.isWeaponTilted) player.GunShoot.TiltGun(0, 0.2f);
         }
         if (!grounded) player.playerEffects.PlaySlideEffects(false);
     }
@@ -389,15 +389,15 @@ public class PlayerMovement : MonoBehaviour
         isCrouching = state;
         if (state)
         {
-            col.height = col.height / 2;
+            groundingCol.height = groundingCol.height / 2;
             groundCheck.localPosition = new Vector3(0, groundCheck.localPosition.y / 2, 0);
         }
         else
         {
-            col.height = col.height * 2;
+            groundingCol.height = groundingCol.height * 2;
             groundCheck.localPosition = new Vector3(0, groundCheck.localPosition.y * 2, 0);
             if (!player.IsLocal) return;
-            if (player.playerShooting.isWeaponTilted) player.playerShooting.TiltGun(0, 0.2f);
+            if (player.GunShoot.isWeaponTilted) player.GunShoot.TiltGun(0, 0.2f);
         }
     }
 
