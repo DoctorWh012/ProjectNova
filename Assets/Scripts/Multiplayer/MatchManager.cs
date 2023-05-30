@@ -67,33 +67,33 @@ public class MatchManager : MonoBehaviour
 
     private void FreezeAllPlayerMovement(bool state)
     {
-        foreach (KeyValuePair<ushort, Player> player in Player.list)
+        foreach (Player player in Player.list.Values)
         {
-            player.Value.Movement.FreezePlayerMovement(state);
+            player.playerMovement.FreezePlayerMovement(state);
         }
     }
 
     private void FreezeAllPlayerShooting(bool state)
     {
-        foreach (KeyValuePair<ushort, Player> player in Player.list)
+        foreach (Player player in Player.list.Values)
         {
-            player.Value.GunShoot.FreezePlayerShooting(state);
+            player.gunShoot.FreezePlayerShooting(state);
         }
     }
 
     private void RespawnEveryone()
     {
-        foreach (KeyValuePair<ushort, Player> player in Player.list)
+        foreach (Player player in Player.list.Values)
         {
-            player.Value.transform.position = SpawnHandler.Instance.GetSpawnLocation();
+            player.playerMovement.rb.position = SpawnHandler.Instance.GetSpawnLocation();
         }
     }
 
     private void DisableEnableALLPlayers(bool state)
     {
-        foreach (KeyValuePair<ushort, Player> player in Player.list)
+        foreach (Player player in Player.list.Values)
         {
-            player.Value.gameObject.SetActive(state);
+            player.gameObject.SetActive(state);
         }
     }
 

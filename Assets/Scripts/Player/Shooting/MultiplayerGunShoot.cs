@@ -4,9 +4,7 @@ using UnityEngine;
 public class MultiplayerGunShoot : MonoBehaviour
 {
     [Header("Components")]
-    [SerializeField] Player player;
     [SerializeField] GunShoot gunShoot;
-    // [SerializeField] PlayerShooting playerShooting;
 
     [Header("Keybinds")]
     [SerializeField] private KeyCode shootBTN;
@@ -69,7 +67,7 @@ public class MultiplayerGunShoot : MonoBehaviour
 
         if (Input.GetKeyDown(reloadKey))
         {
-            player.GunShoot.StartGunReload();
+            gunShoot.StartGunReload();
             if (!NetworkManager.Singleton.Server.IsRunning) SendReload();
         }
     }

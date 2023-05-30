@@ -30,10 +30,6 @@ public class MultiplayerController : MonoBehaviour
     [SerializeField] private Transform cam;
 
     [Header("Keybinds")]
-    [SerializeField] private KeyCode forward;
-    [SerializeField] private KeyCode backward;
-    [SerializeField] private KeyCode left;
-    [SerializeField] private KeyCode right;
     [SerializeField] private KeyCode jump;
     [SerializeField] private KeyCode crouch;
     [SerializeField] public KeyCode interact;
@@ -134,13 +130,14 @@ public class MultiplayerController : MonoBehaviour
         // print($"ServerPos {serverSimulationState.currentTick} | CachedPos {cachedSimulationState.currentTick}");
         // print($"<color=yellow>Serverpos: {serverSimulationState.position} | CachedPos: {cachedSimulationState.position}</color>");
         // Find the difference between the Server Player Pos And the Client predicted Pos
-        float posDif = Vector3.Distance(serverSimulationState.position, cachedSimulationState.position);
-        float rotDif = 1f - Vector3.Dot(serverSimulationState.rotation, cachedSimulationState.rotation);
+        // float posDif = Vector3.Distance(serverSimulationState.position, cachedSimulationState.position);
+        // float rotDif = 1f - Vector3.Dot(serverSimulationState.rotation, cachedSimulationState.rotation);
 
-        // print($"<color=red>Tick: {serverSimulationState.currentTick} | PosE: {posDif} | RotE: {rotDif}</color>");
+        Vector3 posDif = serverSimulationState.position - cachedSimulationState.position;
+        print($"<color=red>Tick: {serverSimulationState.currentTick} | PosE: {posDif} </color>");
 
         // A correction is necessary.
-        if (posDif > 0.00001f || rotDif > 0.00001f)
+        if (posDif.sqrMagnitude > 0.0001f)
         {
             // print("<color=blue>Recon</color>");
             // Set the player's position to match the server's state. 

@@ -97,11 +97,9 @@ public class GameCanvas : MonoBehaviour
         }
     }
 
-
-
     [MessageHandler((ushort)ServerToClientId.healthChanged)]
     private static void ChangeHealth(Message message)
     {
-        GameCanvas.Instance.UpdateHealthAmmount(message.GetString());
+        GameCanvas.Instance.UpdateHealthAmmount(message.GetSByte().ToString());
     }
 }

@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.UI;
 
 public enum Gunslot : int
 {
@@ -17,31 +16,55 @@ public enum WeaponType : int
 [CreateAssetMenu(fileName = "Guns", menuName = "RUSP/Guns", order = 0)]
 public class Guns : ScriptableObject
 {
-    [HideInInspector] public int currentAmmo;
+    [Header("Weapon")]
     public Gunslot slot;
     public WeaponType weaponType;
     public GameObject gunModel;
     public Sprite gunIcon;
+    public string gunName;
+
+    [Header("Aiming")]
     public bool canAim;
     [Range(1, 120)] public float scopeFov;
+
+    [Header("Damage")]
     public int damage;
     [Range(1, 255)] public int range;
     public float fireRate;
+
+    [Header("Reload")]
     public float reloadTime;
     public int reloadSpins;
     public int maxAmmo;
+    [HideInInspector] public int currentAmmo;
+
+    [Header("Recoil")]
     public int recoilForce;
     public int maxRecoilDistance;
 
-    [Space(10)]
-    [Header("If is shotgun")]
+    [Header("Shotgun")]
     public bool isShotgun;
     public int pellets;
     public float spread;
+    public Vector2[] shotgunSpreadPatterns;
+    public bool recalculateSpread;
 
 
     private void Awake()
     {
         currentAmmo = maxAmmo;
+        if (isShotgun) CreateGaussianDistribution();
+    }
+
+    private void CreateGaussianDistribution()
+    {
+        if (!recalculateSpread) return;
+        shotgunSpreadPatterns = new Vector2[pellets];
+        GaussianDistribution gaussianDistribution = new GaussianDistribution();
+
+        for (int i = 0; i < pellets; i++)
+        {
+            shotgunSpreadPatterns[i] = new Vector2(gaussianDistribution.Next(0f, spread, -spread, spread), gaussianDistribution.Next(0f, spread, -spread, spread));
+        }
     }
 }

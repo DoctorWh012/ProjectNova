@@ -10,25 +10,13 @@ public class Player : MonoBehaviour
     public ushort Id { get; private set; }
     public bool IsLocal { get; private set; }
     public string username { get; private set; }
-    public PlayerMovement Movement => movement;
-    public GunShoot GunShoot => gunShoot;
 
-    [SerializeField] public ServerPlayerHealth serverPlayerHealth;
-    [SerializeField] private PlayerHealth playerHealth;
-    [SerializeField] private Transform orientation;
-    [SerializeField] public Transform mainCamera;
-    [SerializeField] public Transform gunCamera;
-    [SerializeField] public Transform cameraHolder;
+    [SerializeField] public PlayerHealth playerHealth;
     [SerializeField] public Interpolation interpolation;
-    [SerializeField] public MultiplayerGunShoot multiplayerGunShoot;
     [SerializeField] public PlayerEffects playerEffects;
-    // [SerializeField] public PlayerShooting playerShooting;
-    [SerializeField] public HeadBobController headBobController;
-    [SerializeField] private PlayerMovement movement;
-    [SerializeField] private GunShoot gunShoot;
-    [SerializeField] private Rigidbody rb;
-
-    private Scene playerScene;
+    [SerializeField] public PlayerMovement playerMovement;
+    [SerializeField] public GunShoot gunShoot;
+    [SerializeField] public Rigidbody rb;
 
     private void Awake()
     {
@@ -124,24 +112,11 @@ public class Player : MonoBehaviour
     }
 
     // Client Message Handler
-    #region  Messages
     [MessageHandler((ushort)ServerToClientId.playerSpawned)]
     private static void SpawnPlayer(Message message)
     {
         Spawn(message.GetUShort(), message.GetString(), message.GetVector3());
     }
-
-    [MessageHandler((ushort)ServerToClientId.playerDied)]
-    private static void PlayerDied(Message message)
-    {
-        if (list.TryGetValue(message.GetUShort(), out Player player))
-        {
-            if (message.GetBool()) player.playerHealth.Die();
-            else player.playerHealth.Respawn();
-        }
-    }
-
-    #endregion
 
     // Server Message Handler
     #region  Messages

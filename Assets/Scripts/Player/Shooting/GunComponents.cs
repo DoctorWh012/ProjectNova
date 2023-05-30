@@ -14,6 +14,8 @@ public class GunComponents : MonoBehaviour
     public Animator animator;
     public ParticleSystem muzzleFlash;
     public AudioClip[] gunShootSounds;
+
+    [Header("ScreenShake")]
     public float shakeIntensity;
     public float shakeRoughness;
     public float fadeinTime;

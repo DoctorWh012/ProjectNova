@@ -3,7 +3,10 @@ using UnityEngine;
 public class HeadBobController : MonoBehaviour
 {
     [Header("Components")]
-    [SerializeField] private Player player;
+    [SerializeField] private PlayerMovement playerMovement;
+    [SerializeField] private Transform cameraHolder;
+    [SerializeField] private Transform mainCamera;
+    [SerializeField] private Transform gunCamera;
 
     [Header("Settings")]
     [SerializeField, Range(0, 0.1f)] private float stepAmplitude = 0.015f;
@@ -20,8 +23,8 @@ public class HeadBobController : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
-        startPos = player.mainCamera.localPosition;
-        gunStartPos = player.gunCamera.localPosition;
+        startPos = mainCamera.localPosition;
+        gunStartPos = gunCamera.localPosition;
     }
 
     // Update is called once per frame
@@ -30,27 +33,27 @@ public class HeadBobController : MonoBehaviour
         CheckMotion();
         ResetPosition();
         ResetGunPosition();
-        player.mainCamera.LookAt(FocusTarget());
+        mainCamera.LookAt(FocusTarget());
     }
 
     private void PlayMotion(Vector3 motion)
     {
-        player.mainCamera.localPosition += motion;
+        mainCamera.localPosition += motion;
     }
 
     private void PlayGunMotion(Vector3 motion)
     {
-        player.gunCamera.localPosition += motion;
+        gunCamera.localPosition += motion;
     }
 
     private void CheckMotion()
     {
         if (!UIManager.Instance.focused) return;
         if (!(Input.GetAxisRaw("Vertical") != 0 || Input.GetAxisRaw("Horizontal") != 0)) return;
-        if (!player.Movement.grounded || player.Movement.isCrouching) return;
-        if (player)
-            if (envCamBob)
-                PlayMotion(FootStepMotion(stepAmplitude));
+        if (!playerMovement.grounded || playerMovement.isCrouching) return;
+
+        if (envCamBob)
+            PlayMotion(FootStepMotion(stepAmplitude));
         if (gunCambob)
             PlayGunMotion(FootStepMotion(gunAmplitude));
     }
@@ -65,27 +68,27 @@ public class HeadBobController : MonoBehaviour
 
     private void ResetPosition()
     {
-        if (player.mainCamera.localPosition == startPos) return;
-        player.mainCamera.localPosition = Vector3.Lerp(player.mainCamera.localPosition, startPos, 1 * Time.deltaTime);
+        if (mainCamera.localPosition == startPos) return;
+        mainCamera.localPosition = Vector3.Lerp(mainCamera.localPosition, startPos, 1 * Time.deltaTime);
     }
 
     private void ResetGunPosition()
     {
-        if (player.gunCamera.localPosition == gunStartPos) return;
-        player.gunCamera.localPosition = Vector3.Lerp(player.gunCamera.localPosition, gunStartPos, 1 * Time.deltaTime);
+        if (gunCamera.localPosition == gunStartPos) return;
+        gunCamera.localPosition = Vector3.Lerp(gunCamera.localPosition, gunStartPos, 1 * Time.deltaTime);
     }
 
     public void InstantlyResetGunPos()
     {
-        if (player.gunCamera.localPosition == gunStartPos) return;
-        player.gunCamera.localPosition = gunStartPos;
+        if (gunCamera.localPosition == gunStartPos) return;
+        gunCamera.localPosition = gunStartPos;
     }
 
 
     private Vector3 FocusTarget()
     {
-        Vector3 pos = new Vector3(transform.position.x, transform.position.y + player.cameraHolder.localPosition.y, transform.position.z);
-        pos += player.cameraHolder.forward * 15;
+        Vector3 pos = new Vector3(transform.position.x, transform.position.y + cameraHolder.localPosition.y, transform.position.z);
+        pos += cameraHolder.forward * 15;
         return pos;
     }
 }

@@ -663,7 +663,6 @@ GameObject:
   - component: {fileID: 4057735297404587721}
   - component: {fileID: 1269596351038479994}
   - component: {fileID: 8632789589864481747}
-  - component: {fileID: 8550537723407750021}
   - component: {fileID: 5378240294518382312}
   - component: {fileID: 3000012825842851187}
   - component: {fileID: 3438257051445201537}
@@ -701,17 +700,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: f9f393133505e2e49953bf8b1783f965, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  serverPlayerHealth: {fileID: 8550537723407750021}
   playerHealth: {fileID: 4663254110780382738}
-  orientation: {fileID: 5508337895294359433}
-  mainCamera: {fileID: 0}
-  gunCamera: {fileID: 0}
-  cameraHolder: {fileID: 0}
   interpolation: {fileID: 1197828964692781740}
-  multiplayerGunShoot: {fileID: 0}
   playerEffects: {fileID: 5378240294518382312}
-  headBobController: {fileID: 0}
-  movement: {fileID: 4057735297404587721}
+  playerMovement: {fileID: 4057735297404587721}
   gunShoot: {fileID: 1269596351038479994}
   rb: {fileID: 3438257051445201537}
 --- !u!114 &4663254110780382738
@@ -727,13 +719,30 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   player: {fileID: 7605542914481611937}
+  multiplayerGunShoot: {fileID: 0}
   gunShoot: {fileID: 1269596351038479994}
-  gunController: {fileID: 0}
+  playerMovement: {fileID: 4057735297404587721}
+  playerScore: {fileID: 8632789589864481747}
   headBob: {fileID: 0}
   playerModels:
   - {fileID: 4014690499814210037}
   - {fileID: 1044456443692094982}
   - {fileID: 866468592378746920}
+  colliders:
+  - {fileID: 4517505094620263092}
+  - {fileID: 3305483213111644863}
+  - {fileID: 40992638121037857}
+  - {fileID: 2969582810334337319}
+  - {fileID: 927219513431586385}
+  - {fileID: 8691134813040979517}
+  - {fileID: 4168735821583463731}
+  - {fileID: 8556903655507379584}
+  - {fileID: 9015617648211410462}
+  - {fileID: 2494087860869430360}
+  - {fileID: 6256504849441558425}
+  - {fileID: 7317658726173477}
+  - {fileID: 5447756528351381382}
+  scriptablePlayer: {fileID: 11400000, guid: a8d9f6c64247f04478896be452c269cc, type: 2}
 --- !u!114 &1197828964692781740
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -762,8 +771,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   player: {fileID: 7605542914481611937}
+  multiplayerController: {fileID: 0}
+  gunShoot: {fileID: 1269596351038479994}
+  playerEffects: {fileID: 5378240294518382312}
   rb: {fileID: 3438257051445201537}
-  col: {fileID: 7317658726173477}
+  groundingCol: {fileID: 7317658726173477}
   orientation: {fileID: 5508337895294359433}
   cam: {fileID: 5508337894908285433}
   ground:
@@ -774,7 +786,6 @@ MonoBehaviour:
     serializedVersion: 2
     m_Bits: 8
   movementSettings: {fileID: 11400000, guid: c32ef0ca8aacfc346932ad788e41b38d, type: 2}
-  multiplayerController: {fileID: 0}
   movementFreeze: 0
   wallRunning: 0
   jumping: 0
@@ -792,6 +803,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   player: {fileID: 7605542914481611937}
+  scriptablePlayer: {fileID: 11400000, guid: a8d9f6c64247f04478896be452c269cc, type: 2}
   playerMovement: {fileID: 4057735297404587721}
   bodyColliders:
   - {fileID: 4517505094620263092}
@@ -805,9 +817,6 @@ MonoBehaviour:
   - {fileID: 9015617648211410462}
   - {fileID: 2494087860869430360}
   - {fileID: 6256504849441558425}
-  bodyPartsHitLayer:
-    serializedVersion: 2
-    m_Bits: 512
   rb: {fileID: 3438257051445201537}
   playerScore: {fileID: 8632789589864481747}
   playerCam: {fileID: 5508337894908285433}
@@ -832,7 +841,6 @@ MonoBehaviour:
   spinSFX: {fileID: 8300000, guid: 2bcd552318991af4f91eac08804a20a4, type: 3}
   reloadSFX: {fileID: 8300000, guid: d3e77d5d17a857c409a0bdda6fd9cf06, type: 3}
   gunSlots: 3
-  playerTag: Player
   currentPlayerGuns: []
   currentPlayerGunsIndex: 
   canShoot: 1
@@ -851,24 +859,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   player: {fileID: 7605542914481611937}
---- !u!114 &8550537723407750021
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8238085930288991305}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c547d976dfb5d9f45ba370fc52d76f23, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  player: {fileID: 7605542914481611937}
-  playerScore: {fileID: 8632789589864481747}
-  playerMovement: {fileID: 4057735297404587721}
-  gunShoot: {fileID: 1269596351038479994}
-  col: {fileID: 7317658726173477}
-  playerHealthSettings: {fileID: 11400000, guid: da6db6c91f1a325478ce94b28c09134d, type: 2}
 --- !u!114 &5378240294518382312
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -882,12 +872,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   player: {fileID: 7605542914481611937}
+  playerMovement: {fileID: 4057735297404587721}
   playerAnimator: {fileID: 7646258693843073333}
   jumpSmokeParticle: {fileID: 6455869634148945668}
   jumpSFX: {fileID: 0}
   slideGrindParticle: {fileID: 6066837413145089290}
   slideGrindAudioSRC: {fileID: 273321149296810196}
-  mainAudioSRC: {fileID: 0}
+  mainAudioSRC: {fileID: 3000012825842851187}
   walkingSFX: []
   speedLinesEffect: {fileID: 0}
   speedLineStartAtSpeed: 0

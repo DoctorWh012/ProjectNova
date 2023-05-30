@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fbb41ebf3dabb4849a6bc4b1be01b6cf, type: 3}
   m_Name: LP12
   m_EditorClassIdentifier: 
-  currentAmmo: 2
   slot: 1
   weaponType: 1
   gunModel: {fileID: 919132149155446097, guid: 7b4fec31ca43ae64abe4977ed7dac725, type: 3}
   gunIcon: {fileID: 21300000, guid: 29bf47caf710a62469d15683ad5e9aaf, type: 3}
+  gunName: 
   canAim: 0
   scopeFov: 0
   damage: 150
@@ -25,8 +25,20 @@ MonoBehaviour:
   reloadTime: 1.5
   reloadSpins: 3
   maxAmmo: 2
+  currentAmmo: 2
   recoilForce: 15
   maxRecoilDistance: 5
   isShotgun: 1
   pellets: 9
-  spread: 0.1
+  spread: 0.13
+  shotgunSpreadPatterns:
+  - {x: 0.075688384, y: 0.041777913}
+  - {x: 0.03574994, y: 0.0033933637}
+  - {x: -0.03780527, y: 0.06808414}
+  - {x: 0.005795553, y: 0.04041655}
+  - {x: -0.06606764, y: -0.05635337}
+  - {x: 0.017744428, y: -0.0059853303}
+  - {x: 0.09226428, y: -0.067774855}
+  - {x: 0.036545403, y: 0.067502014}
+  - {x: -0.042951886, y: 0.018219613}
+  recalculateSpread: 1

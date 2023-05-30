@@ -11,6 +11,9 @@ public class PlayerMovement : MonoBehaviour
     //----COMPONENTS----
     [Header("Components")]
     [SerializeField] private Player player;
+    [SerializeField] private MultiplayerController multiplayerController;
+    [SerializeField] private GunShoot gunShoot;
+    [SerializeField] private PlayerEffects playerEffects;
     [SerializeField] public Rigidbody rb;
     [SerializeField] private CapsuleCollider groundingCol;
     [SerializeField] private Transform orientation;
@@ -19,7 +22,6 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private Transform groundCheck;
     [SerializeField] private LayerMask wallLayer;
     [SerializeField] private PlayerMovementSettings movementSettings;
-    [SerializeField] private MultiplayerController multiplayerController;
 
     private float interactBufferCounter;
 
@@ -259,7 +261,7 @@ public class PlayerMovement : MonoBehaviour
         rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
         rb.AddForce(forceToApply, ForceMode.Impulse);
 
-        player.playerEffects.PlayJumpEffects();
+        playerEffects.PlayJumpEffects();
     }
 
     private void ApplyDrag()
@@ -310,8 +312,8 @@ public class PlayerMovement : MonoBehaviour
 
         if (!resimulating)
         {
-            if (!grounded && onGround) player.playerEffects.PlayJumpEffects();
-            else if (grounded && !onGround) player.playerEffects.PlayJumpEffects();
+            if (!grounded && onGround) playerEffects.PlayJumpEffects();
+            else if (grounded && !onGround) playerEffects.PlayJumpEffects();
         }
 
         grounded = onGround;
@@ -321,15 +323,15 @@ public class PlayerMovement : MonoBehaviour
     {
         if (sliding && velocity.magnitude > 5f)
         {
-            if (grounded) player.playerEffects.PlaySlideEffects(true);
-            if (player.IsLocal && !player.GunShoot.isWeaponTilted) player.GunShoot.TiltGun(30, 0.2f);
+            if (grounded) playerEffects.PlaySlideEffects(true);
+            if (player.IsLocal && !gunShoot.isWeaponTilted) gunShoot.TiltGun(30, 0.2f);
         }
         else
         {
-            player.playerEffects.PlaySlideEffects(false);
-            if (player.IsLocal && player.GunShoot.isWeaponTilted) player.GunShoot.TiltGun(0, 0.2f);
+            playerEffects.PlaySlideEffects(false);
+            if (player.IsLocal && gunShoot.isWeaponTilted) gunShoot.TiltGun(0, 0.2f);
         }
-        if (!grounded) player.playerEffects.PlaySlideEffects(false);
+        if (!grounded) playerEffects.PlaySlideEffects(false);
     }
 
     private void CheckCameraTilt()
@@ -397,7 +399,7 @@ public class PlayerMovement : MonoBehaviour
             groundingCol.height = groundingCol.height * 2;
             groundCheck.localPosition = new Vector3(0, groundCheck.localPosition.y * 2, 0);
             if (!player.IsLocal) return;
-            if (player.GunShoot.isWeaponTilted) player.GunShoot.TiltGun(0, 0.2f);
+            if (gunShoot.isWeaponTilted) gunShoot.TiltGun(0, 0.2f);
         }
     }
 
@@ -434,8 +436,8 @@ public class PlayerMovement : MonoBehaviour
         message.AddVector3(rb.position);
         message.AddVector3(orientation.forward);
         message.AddQuaternion(cam.rotation);
-        message.AddByte((byte)horizontalInput);
-        message.AddByte((byte)verticalInput);
+        message.AddSByte((sbyte)horizontalInput);
+        message.AddSByte((sbyte)verticalInput);
         NetworkManager.Singleton.Server.SendToAll(message);
     }
 
@@ -445,8 +447,8 @@ public class PlayerMovement : MonoBehaviour
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
             bool crouching = message.GetBool();
-            player.Movement.Move(player, message.GetUShort(), message.GetUShort(), message.GetVector3(), message.GetVector3(), message.GetVector3(), message.GetQuaternion(), crouching);
-            player.playerEffects.PlayerAnimator((int)message.GetByte(), (int)message.GetByte(), crouching);
+            player.playerMovement.Move(player, message.GetUShort(), message.GetUShort(), message.GetVector3(), message.GetVector3(), message.GetVector3(), message.GetQuaternion(), crouching);
+            player.playerEffects.PlayerAnimator((int)message.GetSByte(), (int)message.GetSByte(), crouching);
         }
     }
 
@@ -471,10 +473,10 @@ public class PlayerMovement : MonoBehaviour
                 };
             }
 
-            player.Movement.HandleClientInput(inputs);
+            player.playerMovement.HandleClientInput(inputs);
 
             if (player.IsLocal) return;
-            player.Movement.SetNetPlayerOrientation(message.GetVector3(), message.GetQuaternion());
+            player.playerMovement.SetNetPlayerOrientation(message.GetVector3(), message.GetQuaternion());
         }
     }
 }

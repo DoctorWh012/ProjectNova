@@ -1,18 +1,21 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
+using System;
 
-public class ScriptablePlayer : MonoBehaviour
+[Serializable]
+public struct BodyPartHitTagMultiplier
 {
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
-
-    // Update is called once per frame
-    void Update()
-    {
-        
-    }
+    public string bodyPartTag;
+    public float bodyPartMultiplier;
 }
+
+[CreateAssetMenu(fileName = "ScriptablePlayer", menuName = "RUSP/ScriptablePlayer", order = 0)]
+public class ScriptablePlayer : ScriptableObject
+{
+    [Header("Health")]
+    public float maxHealth;
+    public BodyPartHitTagMultiplier[] bodyPartHitTagMultipliers;
+
+    [Header("Game")]
+    public float respawnTime;
+}
+

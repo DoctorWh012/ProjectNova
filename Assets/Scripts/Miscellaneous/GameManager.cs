@@ -64,7 +64,7 @@ public class GameManager : MonoBehaviour
             serverTick++;
             int cacheIndex = GameManager.Singleton.serverTick % lagCompensationCacheSize;
             foreach (Player player in Player.list.Values)
-                player.Movement.playerSimulationState[cacheIndex] = player.Movement.CurrentSimulationState();
+                player.playerMovement.playerSimulationState[cacheIndex] = player.playerMovement.CurrentSimulationState();
         }
     }
 
@@ -72,8 +72,8 @@ public class GameManager : MonoBehaviour
     {
         foreach (Player player in Player.list.Values)
         {
-            if (player.Id == excludedPlayerId || player.serverPlayerHealth.isDead) continue;
-            player.Movement.SetPlayerPositionToTick(tick);
+            if (player.Id == excludedPlayerId || player.playerHealth.isDead) continue;
+            player.playerMovement.SetPlayerPositionToTick(tick);
         }
     }
 
@@ -82,7 +82,7 @@ public class GameManager : MonoBehaviour
         foreach (Player player in Player.list.Values)
         {
             if (player.Id == excludedPlayerId) continue;
-            player.Movement.ResetPlayerPosition();
+            player.playerMovement.ResetPlayerPosition();
         }
     }
 
@@ -90,7 +90,7 @@ public class GameManager : MonoBehaviour
     {
         foreach (Player player in Player.list.Values)
         {
-            player.Movement.rb.detectCollisions = state;
+            player.playerMovement.rb.detectCollisions = state;
         }
     }
 

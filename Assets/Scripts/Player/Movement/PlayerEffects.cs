@@ -6,6 +6,7 @@ public class PlayerEffects : MonoBehaviour
 {
     [Header("Components")]
     [SerializeField] private Player player;
+    [SerializeField] private PlayerMovement playerMovement;
     [SerializeField] private Animator playerAnimator;
     [SerializeField] public ParticleSystem jumpSmokeParticle;
     [SerializeField] private AudioClip jumpSFX;
@@ -38,7 +39,7 @@ public class PlayerEffects : MonoBehaviour
 
     private void UpdateSpeedLinesEmission()
     {
-        float speed = player.Movement.speed.magnitude;
+        float speed = playerMovement.speed.magnitude;
 
         if (speed < speedLineStartAtSpeed && emission.rateOverTimeMultiplier > 0)
         {
