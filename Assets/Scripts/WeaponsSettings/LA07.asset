@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fbb41ebf3dabb4849a6bc4b1be01b6cf, type: 3}
   m_Name: LA07
   m_EditorClassIdentifier: 
-  currentAmmo: 40
   slot: 1
   weaponType: 0
   gunModel: {fileID: 919132149155446097, guid: adad550bada46fe499824d567dc75398, type: 3}
   gunIcon: {fileID: 21300000, guid: 4e0aebe997b932245beaa8fbfdd1deaa, type: 3}
+  gunName: LA-07
   canAim: 0
   scopeFov: 0
   damage: 15
@@ -25,8 +25,10 @@ MonoBehaviour:
   reloadTime: 1
   reloadSpins: 2
   maxAmmo: 40
+  currentAmmo: 40
   recoilForce: 0
   maxRecoilDistance: 0
   isShotgun: 0
   pellets: 0
   spread: 0
+  shotgunSpreadPatterns: []

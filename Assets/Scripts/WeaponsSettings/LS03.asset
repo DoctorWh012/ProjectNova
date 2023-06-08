@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fbb41ebf3dabb4849a6bc4b1be01b6cf, type: 3}
   m_Name: LS03
   m_EditorClassIdentifier: 
-  currentAmmo: 1
   slot: 0
   weaponType: 0
   gunModel: {fileID: 919132149155446097, guid: 3961b4ca4078ae243a19cae004fe790e, type: 3}
-  gunIcon: {fileID: 21300000, guid: ad4dcac393f63f3468f6d9ff1652732e, type: 3}
+  gunIcon: {fileID: 21300000, guid: a48cc4f60b47d6c41ba3e779923aa4a6, type: 3}
+  gunName: LS-03
   canAim: 0
   scopeFov: 0
   damage: 150
@@ -25,8 +25,10 @@ MonoBehaviour:
   reloadTime: 1
   reloadSpins: 1
   maxAmmo: 10
+  currentAmmo: 10
   recoilForce: 0
   maxRecoilDistance: 0
   isShotgun: 0
   pellets: 0
   spread: 0
+  shotgunSpreadPatterns: []

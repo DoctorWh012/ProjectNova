@@ -22,6 +22,16 @@ public class GunSpawnManager : MonoBehaviour
         NetworkManager.Singleton.Client.ClientConnected += SendGunsSpawners;
     }
 
+    private void SetGunSpawnerIndex()
+    {
+        for (int i = 0; i < gunSpawns.Count; i++) gunSpawns[i].gunSpawnerIndex = i;
+    }
+
+    private void StartGunSpawnTimers()
+    {
+        for (int i = 0; i < gunSpawns.Count; i++) gunSpawns[i].StartGunSpawnTimer(gunSpawns[i].gunSpawnDelay);
+    }
+
     public void SendGunSpawnMessage(int gunSpawnerIndex, int gunIndex)
     {
         Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.gunSpawned);
@@ -37,17 +47,14 @@ public class GunSpawnManager : MonoBehaviour
         NetworkManager.Singleton.Server.SendToAll(message);
     }
 
-    private void SetGunSpawnerIndex()
+    public void SendGunsSpawners(object sender, EventArgs e)
     {
-        for (int i = 0; i < gunSpawns.Count; i++) gunSpawns[i].gunSpawnerIndex = i;
+        for (int i = 0; i < gunSpawns.Count; i++)
+        {
+            SendGunSpawnMessage(i, gunSpawns[i].gunIndex);
+        }
     }
 
-    private void StartGunSpawnTimers()
-    {
-        for (int i = 0; i < gunSpawns.Count; i++) gunSpawns[i].StartGunSpawnTimer(gunSpawns[i].gunSpawnDelay);
-    }
-
-    //--------Client--------
     [MessageHandler((ushort)ServerToClientId.gunSpawned)]
     private static void SpawnGun(Message message)
     {
@@ -60,14 +67,5 @@ public class GunSpawnManager : MonoBehaviour
     {
         if (NetworkManager.Singleton.Server.IsRunning) return;
         GunSpawnManager.Instance.gunSpawns[message.GetInt()].DespawnGun();
-    }
-
-    //-------Server-------
-    public void SendGunsSpawners(object sender, EventArgs e)
-    {
-        for (int i = 0; i < gunSpawns.Count; i++)
-        {
-            SendGunSpawnMessage(i, gunSpawns[i].gunIndex);
-        }
     }
 }

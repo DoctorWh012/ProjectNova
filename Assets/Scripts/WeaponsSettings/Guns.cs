@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEditor;
 
 public enum Gunslot : int
 {
@@ -47,24 +48,44 @@ public class Guns : ScriptableObject
     public int pellets;
     public float spread;
     public Vector2[] shotgunSpreadPatterns;
-    public bool recalculateSpread;
 
 
     private void Awake()
     {
         currentAmmo = maxAmmo;
-        if (isShotgun) CreateGaussianDistribution();
+        Debug.Log($"Awake for {this.name}");
     }
 
-    private void CreateGaussianDistribution()
+    public void CreateGaussianDistribution()
     {
-        if (!recalculateSpread) return;
+        Debug.Log($"Recalculated spread for {this.name}");
         shotgunSpreadPatterns = new Vector2[pellets];
         GaussianDistribution gaussianDistribution = new GaussianDistribution();
 
         for (int i = 0; i < pellets; i++)
         {
-            shotgunSpreadPatterns[i] = new Vector2(gaussianDistribution.Next(0f, spread, -spread, spread), gaussianDistribution.Next(0f, spread, -spread, spread));
+            shotgunSpreadPatterns[i] = new Vector2(gaussianDistribution.Next(0f, 1, -1, 1), gaussianDistribution.Next(0f, 1, -1, 1));
         }
     }
 }
+
+#if (UNITY_EDITOR)
+[CustomEditor(typeof(Guns))]
+public class MyScriptableObjectEditor : Editor
+{
+    public override void OnInspectorGUI()
+    {
+        DrawDefaultInspector();
+
+        Guns scriptableObject = (Guns)target;
+        if (scriptableObject.isShotgun)
+        {
+            if (GUILayout.Button("RecalculateSpread"))
+            {
+                scriptableObject.CreateGaussianDistribution();
+            }
+        }
+    }
+}
+
+#endif

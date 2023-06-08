@@ -6,7 +6,8 @@ public class GunSpawn : MonoBehaviour
     public int gunIndex { get; private set; }
 
     [Header("Components")]
-    [SerializeField] Guns[] pickableGuns;
+    [SerializeField] GameObject[] pickableGuns;
+    [SerializeField] Guns[] pickableGunsSettings;
     [SerializeField] Transform gunHolder;
     [SerializeField] TextMeshProUGUI idText;
 
@@ -14,7 +15,7 @@ public class GunSpawn : MonoBehaviour
     [SerializeField] public int gunSpawnDelay;
     [SerializeField] private int gunSpawnDelayAfterPickUp;
 
-    private GameObject gunDisplay;
+    private bool gunAvailable;
     public int gunSpawnerIndex;
 
     void Start()
@@ -29,9 +30,10 @@ public class GunSpawn : MonoBehaviour
 
     public void DespawnGun()
     {
-        Destroy(gunDisplay);
+        pickableGuns[gunIndex].SetActive(false);
 
         if (!NetworkManager.Singleton.Server.IsRunning) return;
+        gunAvailable = false;
         CancelInvoke("SpawnNewGun");
         StartGunSpawnTimer(gunSpawnDelayAfterPickUp);
 
@@ -41,41 +43,30 @@ public class GunSpawn : MonoBehaviour
     //Server Gun Spawn
     private void SpawnNewGun()
     {
+        pickableGuns[gunIndex].SetActive(false);
+
         gunIndex = UnityEngine.Random.Range(0, pickableGuns.Length);
-
-        if (gunDisplay != null) Destroy(gunDisplay);
-
-        gunDisplay = Instantiate(pickableGuns[gunIndex].gunModel);
-        gunDisplay.transform.SetParent(gunHolder);
-        gunDisplay.transform.localPosition = Vector3.zero;
-        OutlineTheGun();
-
+        pickableGuns[gunIndex].SetActive(true);
+        gunAvailable = true;
         GunSpawnManager.Instance.SendGunSpawnMessage(gunSpawnerIndex, gunIndex);
     }
 
     //Client Gun Spawn
     public void SpawnNewGun(int index)
     {
-        if (gunDisplay != null) Destroy(gunDisplay);
+        pickableGuns[gunIndex].SetActive(false);
 
         gunIndex = index;
-        gunDisplay = Instantiate(pickableGuns[index].gunModel);
-        gunDisplay.transform.SetParent(gunHolder);
-        gunDisplay.transform.localPosition = Vector3.zero;
-        OutlineTheGun();
+        pickableGuns[gunIndex].SetActive(true);
     }
 
     public void PickUpTheGun(Player player)
     {
-        if (gunDisplay == null) return;
-        if (NetworkManager.Singleton.Server.IsRunning) player.gunShoot.PickUpGun(((int)pickableGuns[gunIndex].slot), gunIndex);
-        DespawnGun();
-    }
-
-    private void OutlineTheGun()
-    {
-        Outline outline = gunDisplay.AddComponent<Outline>();
-        outline.OutlineWidth = 15;
-        outline.OutlineMode = Outline.Mode.OutlineVisible;
+        if (!gunAvailable) return;
+        if (NetworkManager.Singleton.Server.IsRunning)
+        {
+            player.gunShoot.PickUpGun(((int)pickableGunsSettings[gunIndex].slot), gunIndex);
+            DespawnGun();
+        }
     }
 }

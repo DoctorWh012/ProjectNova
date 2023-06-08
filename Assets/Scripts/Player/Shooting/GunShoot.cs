@@ -109,7 +109,6 @@ public class GunShoot : MonoBehaviour
         currentPlayerGuns = new Guns[gunSlots];
         currentPlayerGunsIndex = new int[gunSlots];
 
-
         SendGunSettings(0);
         PickUpMelee(0);
         PickUpGun(0, 0);
@@ -210,9 +209,9 @@ public class GunShoot : MonoBehaviour
         for (int i = 0; i < activeGun.pellets; i++)
         {
             bool shouldPlay = (i == activeGun.pellets - 1);
-            Vector3 spread = new Vector3(activeGun.shotgunSpreadPatterns[i].x, activeGun.shotgunSpreadPatterns[i].y, 0);
+            Vector3 spread = new Vector3(activeGun.shotgunSpreadPatterns[i].x, activeGun.shotgunSpreadPatterns[i].y, activeGun.spread).normalized;
 
-            rayHits = Physics.RaycastAll(playerCam.position, playerCam.forward + spread, activeGun.range);
+            rayHits = Physics.RaycastAll(playerCam.position, playerCam.rotation * spread, activeGun.range);
             System.Array.Sort(rayHits, (x, y) => x.distance.CompareTo(y.distance));
 
             if (rayHits.Length <= 0)
@@ -337,6 +336,7 @@ public class GunShoot : MonoBehaviour
         SendHitPlayer(player.Id, shouldPlaySFx);
     }
 
+    // GUN SWITCHING
     public void SwitchGun(int slotIndex, bool shouldSwitch)
     {
         if (currentPlayerGuns[slotIndex] == null) return;
@@ -353,6 +353,27 @@ public class GunShoot : MonoBehaviour
         //Checks If Its Melee
         if (slotIndex == 2) SendGunSwitch(currentPlayerGunsIndex[slotIndex], true);
         else SendGunSwitch(currentPlayerGunsIndex[slotIndex], false);
+    }
+
+    public void SwitchGun(int index)
+    {
+        activeGunIndex = index;
+        activeWeaponType = activeGun.weaponType;
+        barrelTip = gunsComponents[index].barrelTip;
+        animator = gunsComponents[index].animator;
+        weaponEffectParticle = gunsComponents[index].muzzleFlash;
+        if (player.IsLocal) GameCanvas.Instance.ChangeGunSlotIcon(((int)activeGun.slot), activeGun.gunIcon, activeGun.gunName);
+        EnableActiveGunMesh(index);
+    }
+
+    public void SwitchMelee(int index)
+    {
+        activeGunIndex = index;
+        activeWeaponType = meleesComponents[index].meleeSettings.weaponType;
+        animator = meleesComponents[index].animator;
+        weaponEffectParticle = meleesComponents[index].meleeParticles;
+        if (player.IsLocal) GameCanvas.Instance.ChangeGunSlotIcon(((int)meleesComponents[index].meleeSettings.slot), meleesComponents[index].meleeSettings.gunIcon, activeGun.name);
+        EnableActiveGunMesh(index);
     }
 
     public void PickUpGun(int slot, int pickedGunIndex)
@@ -399,34 +420,13 @@ public class GunShoot : MonoBehaviour
 
     public void AimDownSight(bool aim)
     {
-        if (!gunsComponents[activeGunIndex].gunSettings.canAim) return;
+        if (!activeGun.canAim) return;
 
         gunsComponents[activeGunIndex].gunSway.ResetGunPosition();
         gunsComponents[activeGunIndex].gunSway.enabled = !aim;
         headBobController.InstantlyResetGunPos();
         headBobController.gunCambob = !aim;
         animator.SetBool("Aiming", aim);
-    }
-
-    public void SwitchGun(int index)
-    {
-        activeGunIndex = index;
-        activeWeaponType = gunsComponents[index].gunSettings.weaponType;
-        barrelTip = gunsComponents[index].barrelTip;
-        animator = gunsComponents[index].animator;
-        weaponEffectParticle = gunsComponents[index].muzzleFlash;
-        if (player.IsLocal) GameCanvas.Instance.ChangeGunSlotIcon(((int)gunsComponents[index].gunSettings.slot), gunsComponents[index].gunSettings.gunIcon);
-        EnableActiveGunMesh(index);
-    }
-
-    public void SwitchMelee(int index)
-    {
-        activeGunIndex = index;
-        activeWeaponType = meleesComponents[index].meleeSettings.weaponType;
-        animator = meleesComponents[index].animator;
-        weaponEffectParticle = meleesComponents[index].meleeParticles;
-        if (player.IsLocal) GameCanvas.Instance.ChangeGunSlotIcon(((int)meleesComponents[index].meleeSettings.slot), meleesComponents[index].meleeSettings.gunIcon);
-        EnableActiveGunMesh(index);
     }
 
     public void EnableActiveGunMesh(int index)
@@ -441,9 +441,11 @@ public class GunShoot : MonoBehaviour
             gunsComponents[index].gunTrail.enabled = true;
 
             if (!gunsComponents[index].gunSettings.canAim || !player.IsLocal) return;
+            print($"Trying to activate scope for weapon {gunsComponents[index].name}");
+
             gunsComponents[index].scopeMesh.enabled = true;
             scopeCam.enabled = true;
-            scopeCam.fieldOfView = gunsComponents[index].gunSettings.scopeFov;
+            scopeCam.fieldOfView = activeGun.scopeFov;
             return;
         }
 
@@ -466,6 +468,8 @@ public class GunShoot : MonoBehaviour
             gunsComponents[i].gunTrail.enabled = false;
 
             if (!gunsComponents[i].gunSettings.canAim || !player.IsLocal) continue;
+            print($"Trying to disable scope for weapon {gunsComponents[i].name}");
+            
             gunsComponents[i].scopeMesh.enabled = false;
             scopeCam.enabled = false;
         }
@@ -516,7 +520,7 @@ public class GunShoot : MonoBehaviour
         {
             TrailRenderer tracer = Instantiate(GameManager.Singleton.ShotTrail, barrelTip.position, Quaternion.LookRotation(barrelTip.forward));
             tracer.AddPosition(barrelTip.position);
-            tracer.transform.position += (barrelTip.forward + new Vector3(spread.x, spread.y, 0)) * activeGun.range;
+            tracer.transform.position += (barrelTip.rotation * new Vector3(spread.x, spread.y, activeGun.spread)) * activeGun.range;
         }
     }
 
@@ -540,13 +544,13 @@ public class GunShoot : MonoBehaviour
     }
 
     // Multiplayer Handler
-
     public void SendGunSettings(int index)
     {
         Message message = Message.Create(MessageSendMode.Reliable, ClientToServerId.gunChange);
         message.AddInt(index);
         NetworkManager.Singleton.Client.Send(message);
     }
+
     private void SendShot(bool didHit, Vector2 spread, bool shouldPlaySFx)
     {
         if (!NetworkManager.Singleton.Server.IsRunning) return;
@@ -649,7 +653,6 @@ public class GunShoot : MonoBehaviour
     {
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
-
             if (NetworkManager.Singleton.Server.IsRunning) return;
             if (player.IsLocal) { player.gunShoot.ammunition = message.GetUShort(); return; }
             player.gunShoot.BulletTrailEffect(message.GetBool(), message.GetVector3(), message.GetVector2());
@@ -660,7 +663,6 @@ public class GunShoot : MonoBehaviour
     [MessageHandler((ushort)ServerToClientId.meleeAtack)]
     private static void PlayerAtackedMelee(Message message)
     {
-
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
             if (NetworkManager.Singleton.Server.IsRunning || player.IsLocal) return;
@@ -699,7 +701,6 @@ public class GunShoot : MonoBehaviour
 
     public IEnumerator RotateGun(int times, float duration)
     {
-
         isReloading = true;
         canShoot = false;
         // FUCK QUATERNIONS

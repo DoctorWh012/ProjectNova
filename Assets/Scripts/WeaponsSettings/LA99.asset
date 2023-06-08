@@ -12,11 +12,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fbb41ebf3dabb4849a6bc4b1be01b6cf, type: 3}
   m_Name: LA99
   m_EditorClassIdentifier: 
-  currentAmmo: 100
   slot: 1
   weaponType: 0
   gunModel: {fileID: 919132149155446097, guid: 57403c40f81dd67428c7c5a008718542, type: 3}
   gunIcon: {fileID: 21300000, guid: 68f27da00c0f2884a8be11a7d8b1b860, type: 3}
+  gunName: LA-99
   canAim: 0
   scopeFov: 0
   damage: 10
@@ -25,8 +25,10 @@ MonoBehaviour:
   reloadTime: 4
   reloadSpins: 2
   maxAmmo: 100
+  currentAmmo: 100
   recoilForce: 3
   maxRecoilDistance: 100
   isShotgun: 0
   pellets: 0
   spread: 0
+  shotgunSpreadPatterns: []
