@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class StandardBot : MonoBehaviour
@@ -23,7 +21,7 @@ public class StandardBot : MonoBehaviour
     [SerializeField] private float chaseRange;
     [SerializeField] private float movementSpeed;
 
-    private Transform target;
+    [SerializeField] private Transform target;
     private RigidBot rigidBot;
     private float nextTimeToFire = 0f;
 
@@ -66,7 +64,7 @@ public class StandardBot : MonoBehaviour
 
     private void CheckSight()
     {
-        float targetDist = 0;
+        float targetDist = 15;
         Collider[] hitCollider = Physics.OverlapSphere(head.position, sightRange, targetLayer);
         foreach (Collider colHit in hitCollider)
         {
