@@ -35,7 +35,7 @@ public class Interactable : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
-        if (!other.CompareTag("Interactor")) return;
+        if (!other.CompareTag("Player")) return;
         if (waitCoroutine != null) return;
 
         Player player = other.GetComponentInParent<Player>();
@@ -46,7 +46,7 @@ public class Interactable : MonoBehaviour
 
     private void OnTriggerStay(Collider other)
     {
-        if (!other.CompareTag("Interactor") || waitCoroutine != null) return;
+        if (!other.CompareTag("Player") || waitCoroutine != null) return;
 
         Player player = other.GetComponentInParent<Player>();
         VerifyUIText(player);
@@ -56,7 +56,7 @@ public class Interactable : MonoBehaviour
 
     private void OnTriggerExit(Collider other)
     {
-        if (!other.CompareTag("Interactor")) return;
+        if (!other.CompareTag("Player")) return;
         if (waitCoroutine == null) return;
 
         // if (other.GetComponentInParent<Player>().Movement.rb.isKinematic) return;

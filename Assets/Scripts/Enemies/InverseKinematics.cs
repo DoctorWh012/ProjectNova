@@ -37,7 +37,7 @@ public class InverseKinematics : MonoBehaviour
 
         GetHipTargetFromLegs();
 
-        //Get the lenght of the legs if no custom lenght has been declared
+        //Get the length of the legs if no custom length has been declared
         if (heightAboveGround == 0) heightAboveGround = legs[0].CompleteLength;
         if (legMoveThreshold == 0) legMoveThreshold = heightAboveGround;
 
@@ -61,10 +61,10 @@ public class InverseKinematics : MonoBehaviour
     {
         for (int i = 0; i < legs.Length; i++)
         {
-            int chainLenght = legs[i].ChainLength;
+            int chainLength = legs[i].ChainLength;
             Transform chainRoot = legs[i].transform;
 
-            while (chainLenght > 0) { chainRoot = chainRoot.parent; chainLenght--; }
+            while (chainLength > 0) { chainRoot = chainRoot.parent; chainLength--; }
             hipTargets[i] = chainRoot;
         }
     }

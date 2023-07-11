@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using Riptide;
 
@@ -63,8 +61,7 @@ public class GameManager : MonoBehaviour
             SendTick();
             serverTick++;
             int cacheIndex = GameManager.Singleton.serverTick % lagCompensationCacheSize;
-            foreach (Player player in Player.list.Values)
-                player.playerMovement.playerSimulationState[cacheIndex] = player.playerMovement.CurrentSimulationState();
+            foreach (Player player in Player.list.Values) player.playerMovement.playerSimulationState[cacheIndex] = player.playerMovement.CurrentSimulationState();
         }
     }
 
@@ -83,14 +80,6 @@ public class GameManager : MonoBehaviour
         {
             if (player.Id == excludedPlayerId) continue;
             player.playerMovement.ResetPlayerPosition();
-        }
-    }
-
-    public void ActivateDeactivateAllPlayersCollisions(bool state)
-    {
-        foreach (Player player in Player.list.Values)
-        {
-            player.playerMovement.rb.detectCollisions = state;
         }
     }
 

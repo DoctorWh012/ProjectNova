@@ -8,8 +8,7 @@ using System.Collections.Generic;
 
 public enum ServerToClientId : ushort
 {
-    sync = 1,
-    serverTick,
+    serverTick = 1,
     playerMovement,
     playerSpawned,
     playerShot,
@@ -24,14 +23,15 @@ public enum ServerToClientId : ushort
     meleeAtack,
     matchStart,
     matchOver,
+    weaponSync,
 }
 
 public enum ClientToServerId : ushort
 {
     name = 1,
-    input,
+    playerMovement,
     gunInput,
-    gunChange,
+    slotChange,
     gunReload,
 }
 
@@ -61,34 +61,10 @@ public class NetworkManager : MonoBehaviour
     public Client Client { get; private set; }
 
     public Server Server { get; private set; }
-    public ushort CurrentTick { get; private set; } = 0;
-
-    private ushort _serverTick;
-    public ushort ServerTick
-    {
-        get => _serverTick;
-        private set
-        {
-            _serverTick = value;
-            InterpolationTick = (ushort)(value - TickBetweenPositionUpdates);
-        }
-    }
-    public ushort InterpolationTick { get; private set; }
-    private ushort _tickBetweenPositionUpdates = 2;
-    public ushort TickBetweenPositionUpdates
-    {
-        get => _tickBetweenPositionUpdates;
-        private set
-        {
-            _tickBetweenPositionUpdates = value;
-            InterpolationTick = (ushort)(ServerTick - value);
-        }
-    }
 
     public const float ServerTickRate = 64f;
     [SerializeField] public ushort maxClientCount;
-    [Space(10)]
-    [SerializeField] private ushort tickDivergenceTolerance = 1;
+
     private float timer;
 
     private void Awake()
@@ -112,8 +88,6 @@ public class NetworkManager : MonoBehaviour
         Client.ConnectionFailed += FailedToConnect;
         Client.ClientDisconnected += PlayerLeft;
         Client.Disconnected += DidDisconnect;
-
-        ServerTick = 2;
     }
 
     private void Update()
@@ -122,15 +96,8 @@ public class NetworkManager : MonoBehaviour
         while (timer >= GameManager.Singleton.minTimeBetweenTicks)
         {
             timer -= GameManager.Singleton.minTimeBetweenTicks;
-            if (Server.IsRunning)
-            {
-                Server.Update();
-                if (CurrentTick % 200 == 0) SendSync();
-                CurrentTick++;
-            }
-
+            if (Server.IsRunning) Server.Update();
             Client.Update();
-            ServerTick++;
         }
     }
 
@@ -194,32 +161,8 @@ public class NetworkManager : MonoBehaviour
         Cursor.visible = true;
     }
 
-    private void SetTick(ushort serverTick)
-    {
-        if (Mathf.Abs(ServerTick - serverTick) > tickDivergenceTolerance)
-        {
-            print($"Client Tick: {ServerTick} -> {serverTick}");
-            ServerTick = serverTick;
-        }
-    }
-
-    private void SendSync()
-    {
-        Message message = Message.Create(MessageSendMode.Unreliable, (ushort)ServerToClientId.sync);
-        message.Add(CurrentTick);
-
-        Server.SendToAll(message);
-    }
-
     private void SceneChangeDebug(Scene loaded, LoadSceneMode i)
     {
         Debug.LogWarning($"Switched scene To {loaded.name}");
     }
-
-    [MessageHandler((ushort)ServerToClientId.sync)]
-    public static void Sync(Message message)
-    {
-        Singleton.SetTick(message.GetUShort());
-    }
-
 }

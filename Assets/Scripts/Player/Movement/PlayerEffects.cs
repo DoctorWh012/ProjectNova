@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class PlayerEffects : MonoBehaviour
@@ -39,7 +37,7 @@ public class PlayerEffects : MonoBehaviour
 
     private void UpdateSpeedLinesEmission()
     {
-        float speed = playerMovement.speed.magnitude;
+        float speed = playerMovement.rb.velocity.magnitude;
 
         if (speed < speedLineStartAtSpeed && emission.rateOverTimeMultiplier > 0)
         {
@@ -57,7 +55,7 @@ public class PlayerEffects : MonoBehaviour
     }
 
 
-    public void PlayerAnimator(float vertical, float horizontal, bool isSliding)
+    public void PlayerAnimator(float horizontal, float vertical, bool isSliding)
     {
         // if (player.IsLocal) return;
         if (isSliding) { playerAnimator.Play("Slide"); return; }

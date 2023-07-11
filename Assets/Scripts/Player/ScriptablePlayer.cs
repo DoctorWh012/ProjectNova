@@ -15,6 +15,10 @@ public class ScriptablePlayer : ScriptableObject
     public float maxHealth;
     public BodyPartHitTagMultiplier[] bodyPartHitTagMultipliers;
 
+    [Header("Weapons")]
+    public Guns[] startingGuns =  new Guns[3];
+    public int[] startingWeaponsIndex = new int[3];
+
     [Header("Game")]
     public float respawnTime;
 }

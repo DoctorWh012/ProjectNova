@@ -1,5 +1,8 @@
 using UnityEngine;
+using UnityEngine.UI;
+#if UNITY_EDITOR
 using UnityEditor;
+#endif
 
 public enum Gunslot : int
 {
@@ -18,42 +21,41 @@ public enum WeaponType : int
 public class Guns : ScriptableObject
 {
     [Header("Weapon")]
-    public Gunslot slot;
-    public WeaponType weaponType;
-    public GameObject gunModel;
-    public Sprite gunIcon;
-    public string gunName;
-
-    [Header("Aiming")]
-    public bool canAim;
-    [Range(1, 120)] public float scopeFov;
+    [SerializeField] public Gunslot slot;
+    [SerializeField] public WeaponType weaponType;
+    [SerializeField] public GameObject gunModel;
+    [SerializeField] public Sprite gunIcon;
+    [SerializeField] public string gunName;
 
     [Header("Damage")]
-    public int damage;
+    [SerializeField] public int damage;
     [Range(1, 255)] public int range;
-    public float fireRate;
+    [SerializeField] public float fireRate;
 
     [Header("Reload")]
-    public float reloadTime;
-    public int reloadSpins;
-    public int maxAmmo;
+    [SerializeField] public float reloadTime;
+    [SerializeField] public int reloadSpins;
+    [SerializeField] public int maxAmmo;
     [HideInInspector] public int currentAmmo;
 
     [Header("Recoil")]
-    public int recoilForce;
-    public int maxRecoilDistance;
+    [SerializeField] public int recoilForce;
+    [SerializeField] public int maxRecoilDistance;
+
+    [Header("Aiming")]
+    [SerializeField] public bool canAim;
+    [HideInInspector]
+    [Range(1, 120)] public float scopeFov;
 
     [Header("Shotgun")]
-    public bool isShotgun;
-    public int pellets;
-    public float spread;
-    public Vector2[] shotgunSpreadPatterns;
-
+    [SerializeField] public bool isShotgun;
+    [HideInInspector] public int pellets;
+    [HideInInspector] public float spread;
+    [HideInInspector] public Vector2[] shotgunSpreadPatterns;
 
     private void Awake()
     {
         currentAmmo = maxAmmo;
-        Debug.Log($"Awake for {this.name}");
     }
 
     public void CreateGaussianDistribution()
@@ -73,17 +75,26 @@ public class Guns : ScriptableObject
 [CustomEditor(typeof(Guns))]
 public class MyScriptableObjectEditor : Editor
 {
+    private SerializedProperty shotgunSpreadPatternsProperty;
+    private void OnEnable()
+    {
+        shotgunSpreadPatternsProperty = serializedObject.FindProperty("shotgunSpreadPatterns");
+    }
+
     public override void OnInspectorGUI()
     {
         DrawDefaultInspector();
 
         Guns scriptableObject = (Guns)target;
+
+        if (scriptableObject.canAim) scriptableObject.scopeFov = EditorGUILayout.Slider("Scope FOV", scriptableObject.scopeFov, 1, 120);
+
         if (scriptableObject.isShotgun)
         {
-            if (GUILayout.Button("RecalculateSpread"))
-            {
-                scriptableObject.CreateGaussianDistribution();
-            }
+            scriptableObject.pellets = EditorGUILayout.IntField("Pellets", scriptableObject.pellets);
+            scriptableObject.spread = EditorGUILayout.FloatField("Spread", scriptableObject.spread);
+            EditorGUILayout.PropertyField(shotgunSpreadPatternsProperty, true);
+            if (GUILayout.Button("RecalculateSpread")) scriptableObject.CreateGaussianDistribution();
         }
     }
 }

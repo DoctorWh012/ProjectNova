@@ -1,4 +1,3 @@
-using UnityEngine.SceneManagement;
 using System.Collections.Generic;
 using Riptide;
 using UnityEngine;
@@ -11,8 +10,10 @@ public class Player : MonoBehaviour
     public bool IsLocal { get; private set; }
     public string username { get; private set; }
 
+    public delegate void PlayerJoinedServer(ushort id);
+    public static event PlayerJoinedServer playerJoinedServer;
+
     [SerializeField] public PlayerHealth playerHealth;
-    [SerializeField] public Interpolation interpolation;
     [SerializeField] public PlayerEffects playerEffects;
     [SerializeField] public PlayerMovement playerMovement;
     [SerializeField] public GunShoot gunShoot;
@@ -63,10 +64,7 @@ public class Player : MonoBehaviour
     //--------SERVER Only Runs On The Host!--------
     public static void Spawn(ushort id, string username)
     {
-        foreach (Player otherPlayer in list.Values)
-        {
-            otherPlayer.SendSpawned(id);
-        }
+        foreach (Player otherPlayer in list.Values) otherPlayer.SendSpawned(id);
 
         //Spawns LocalPlayer if im the Host
         Player player;
@@ -81,14 +79,19 @@ public class Player : MonoBehaviour
         {
             player = Instantiate(GameManager.Singleton.PlayerPrefab, SpawnHandler.Instance.GetSpawnLocation(), Quaternion.identity).GetComponent<Player>();
             player.IsLocal = false;
-            player.interpolation.enabled = false;
+
+            player.rb.collisionDetectionMode = CollisionDetectionMode.Discrete;
+            player.rb.interpolation = RigidbodyInterpolation.None;
+            player.rb.isKinematic = true;
         }
+
         player.name = $"Player {id} ({(string.IsNullOrEmpty(username) ? "Guest" : username)}";
         player.Id = id;
         player.username = string.IsNullOrEmpty(username) ? $"Guest {id}" : username;
         list.Add(id, player);
         ScoreBoard.Instance.AddScoreBoarditem(list[id]);
         player.SendSpawned();
+        playerJoinedServer(player.Id);
     }
 
     //Sends LocalPlayer

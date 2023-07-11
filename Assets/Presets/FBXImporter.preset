@@ -14,8 +14,40 @@ Preset:
   m_Properties:
   - target: {fileID: 0}
     propertyPath: m_ExternalObjects.Array.size
-    value: 0
+    value: 2
     objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: m_ExternalObjects.Array.data[0].first.type
+    value: UnityEngine:Material
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: m_ExternalObjects.Array.data[0].first.assembly
+    value: UnityEngine.CoreModule
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: m_ExternalObjects.Array.data[0].first.name
+    value: Material
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: m_ExternalObjects.Array.data[0].second
+    value: 
+    objectReference: {fileID: 2100000, guid: 69c7a9144dc4e774a9330c486cbf5043, type: 2}
+  - target: {fileID: 0}
+    propertyPath: m_ExternalObjects.Array.data[1].first.type
+    value: UnityEngine:Material
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: m_ExternalObjects.Array.data[1].first.assembly
+    value: UnityEngine.CoreModule
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: m_ExternalObjects.Array.data[1].first.name
+    value: Material.001
+    objectReference: {fileID: 0}
+  - target: {fileID: 0}
+    propertyPath: m_ExternalObjects.Array.data[1].second
+    value: 
+    objectReference: {fileID: 2100000, guid: 398e6ab84c909c3438f521bae4eb7c93, type: 2}
   - target: {fileID: 0}
     propertyPath: m_MaterialImportMode
     value: 2
@@ -242,11 +274,11 @@ Preset:
     objectReference: {fileID: 0}
   - target: {fileID: 0}
     propertyPath: normalSmoothAngle
-    value: 60
+    value: 0
     objectReference: {fileID: 0}
   - target: {fileID: 0}
     propertyPath: normalImportMode
-    value: 0
+    value: 1
     objectReference: {fileID: 0}
   - target: {fileID: 0}
     propertyPath: tangentImportMode

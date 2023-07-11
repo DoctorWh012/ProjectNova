@@ -237,10 +237,10 @@ public class RigidBot : MonoBehaviour
         // Iterates through every leg
         for (int i = 0; i < botIk.legs.Length; i++)
         {
-            // Gets the lenght of the LegChain
-            int currentLegChainLenght = botIk.legs[i].ChainLength;
+            // Gets the length of the LegChain
+            int currentLegChainLength = botIk.legs[i].ChainLength;
             Transform parent = botIk.legs[i].transform;
-            while (currentLegChainLenght > 0)
+            while (currentLegChainLength > 0)
             {
                 // As it should start from the feet this will iterate through every bone after the feet
                 parent = parent.parent;
@@ -249,7 +249,7 @@ public class RigidBot : MonoBehaviour
 
                 // Removes the hinge joint if should not ragdoll
                 else UnityEngine.Object.Destroy(parent.gameObject.GetComponent<Joint>());
-                currentLegChainLenght--;
+                currentLegChainLength--;
             }
 
             // This will configure The legs rigidbody

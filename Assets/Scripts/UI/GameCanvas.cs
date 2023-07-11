@@ -47,7 +47,7 @@ public class GameCanvas : MonoBehaviour
         ammoDisplayText.SetText(magazine + "/" + ammo);
     }
 
-    private void UpdateHealthAmmount(string health)
+    public void UpdateHealthAmmount(string health)
     {
         healthText.SetText($"{health}%");
     }
@@ -107,11 +107,5 @@ public class GameCanvas : MonoBehaviour
                 slot3WeaponName.color = new Color(1f, 1f, 1f, 1f);
                 break;
         }
-    }
-
-    [MessageHandler((ushort)ServerToClientId.healthChanged)]
-    private static void ChangeHealth(Message message)
-    {
-        GameCanvas.Instance.UpdateHealthAmmount(message.GetSByte().ToString());
     }
 }

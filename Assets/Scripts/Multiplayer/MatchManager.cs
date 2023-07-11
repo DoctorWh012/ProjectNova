@@ -73,14 +73,6 @@ public class MatchManager : MonoBehaviour
         }
     }
 
-    private void FreezeAllPlayerShooting(bool state)
-    {
-        foreach (Player player in Player.list.Values)
-        {
-            player.gunShoot.FreezePlayerShooting(state);
-        }
-    }
-
     private void RespawnEveryone()
     {
         foreach (Player player in Player.list.Values)
@@ -125,7 +117,7 @@ public class MatchManager : MonoBehaviour
 
     private IEnumerator SwitchMatchScene(string sceneName, TimerAction action)
     {
-        if (NetworkManager.Singleton.Server.IsRunning) { FreezeAllPlayerMovement(true); FreezeAllPlayerShooting(true); }
+        if (NetworkManager.Singleton.Server.IsRunning) { FreezeAllPlayerMovement(true); }
 
         SceneManager.LoadScene(sceneName);
         while (SceneManager.GetActiveScene().name != sceneName) yield return null;
@@ -148,14 +140,13 @@ public class MatchManager : MonoBehaviour
                 DisableEnableALLPlayers(true);
                 RespawnEveryone();
                 FreezeAllPlayerMovement(false);
-                FreezeAllPlayerShooting(false);
                 break;
         }
     }
 
-    public IEnumerator MatchCountDownTimer(float countDownLenght, TextMeshProUGUI timerDisplay, TimerAction action)
+    public IEnumerator MatchCountDownTimer(float countDownLength, TextMeshProUGUI timerDisplay, TimerAction action)
     {
-        float finishTime = Time.time + countDownLenght;
+        float finishTime = Time.time + countDownLength;
         string timerText;
 
         while (Time.time < finishTime)
@@ -183,13 +174,11 @@ public class MatchManager : MonoBehaviour
 
                 if (!NetworkManager.Singleton.Server.IsRunning) break;
                 FreezeAllPlayerMovement(false);
-                FreezeAllPlayerShooting(false);
                 break;
 
             case TimerAction.EndMatch:
                 if (!NetworkManager.Singleton.Server.IsRunning) break;
                 FreezeAllPlayerMovement(true);
-                FreezeAllPlayerShooting(true);
                 SendMatchOverMessage();
                 break;
 

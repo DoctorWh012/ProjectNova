@@ -7,6 +7,7 @@ public class PlayerHealth : MonoBehaviour
 
     [Header("Components")]
     [SerializeField] private Player player;
+    [SerializeField] private ParticleSystem hurtEffect;
     [SerializeField] private MultiplayerGunShoot multiplayerGunShoot;
     [SerializeField] private GunShoot gunShoot;
     [SerializeField] private PlayerMovement playerMovement;
@@ -24,6 +25,8 @@ public class PlayerHealth : MonoBehaviour
         get { return _currentHealth; }
         set
         {
+            if (value < currentHealth && player.IsLocal) hurtEffect.Play();
+
             if (value > scriptablePlayer.maxHealth)
             {
                 _currentHealth = scriptablePlayer.maxHealth;
@@ -32,6 +35,8 @@ public class PlayerHealth : MonoBehaviour
             }
             _currentHealth = value;
             SendUpdatedHealth((sbyte)_currentHealth);
+
+            GameCanvas.Instance.UpdateHealthAmmount(currentHealth.ToString("0"));
         }
     }
 
@@ -46,7 +51,6 @@ public class PlayerHealth : MonoBehaviour
     {
         isDead = state;
         playerMovement.FreezePlayerMovement(state);
-        gunShoot.FreezePlayerShooting(state);
         EnableDisablePlayerColliders(!state);
         DisableEnableModels(!state);
         if (state)
@@ -92,7 +96,6 @@ public class PlayerHealth : MonoBehaviour
             gunShoot.DisableAllMeleeMesh();
             return;
         }
-        gunShoot.EnableActiveGunMesh(gunShoot.activeGunIndex);
     }
 
     private void EnableDisablePlayerColliders(bool state)
@@ -124,7 +127,9 @@ public class PlayerHealth : MonoBehaviour
 
     private void SendUpdatedHealth(sbyte health)
     {
+        if (player.IsLocal || !NetworkManager.Singleton.Server.IsRunning) return;
         Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.healthChanged);
+        message.AddUShort(player.Id);
         message.AddSByte(health);
         NetworkManager.Singleton.Server.Send(message, player.Id);
     }
@@ -135,6 +140,15 @@ public class PlayerHealth : MonoBehaviour
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
             player.playerHealth.DieRespawnClient(message.GetBool());
+        }
+    }
+
+    [MessageHandler((ushort)ServerToClientId.healthChanged)]
+    private static void ChangeHealth(Message message)
+    {
+        if (Player.list.TryGetValue(message.GetUShort(), out Player player))
+        {
+            player.playerHealth.currentHealth = (float)message.GetSByte();
         }
     }
 }

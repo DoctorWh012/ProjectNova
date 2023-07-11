@@ -15,20 +15,12 @@ public class MultiplayerGunShoot : MonoBehaviour
     [SerializeField] private KeyCode meleeWeapon;
 
     private bool shooting;
-    private bool aiming;
     private float timer;
-
-    private void Start()
-    {
-        SendGunSettings(0);
-    }
 
     // Update is called once per frame
     void Update()
     {
         GetInput();
-
-        gunShoot.AimDownSight(aiming);
 
         timer += Time.deltaTime;
         while (timer >= GameManager.Singleton.minTimeBetweenTicks)
@@ -40,26 +32,17 @@ public class MultiplayerGunShoot : MonoBehaviour
         }
     }
 
-    private void GunSwitchInput(KeyCode keybind, int index)
-    {
-        if (Input.GetKeyDown(keybind))
-        {
-            gunShoot.SwitchGun(index, true);
-            if (GameManager.Singleton.networking) SendGunSettings(index);
-        }
-    }
-
     private void GetInput()
     {
         if (!UIManager.Instance.focused)
         {
             shooting = false;
-            aiming = false;
             return;
         }
 
         shooting = Input.GetKey(shootBTN);
-        aiming = Input.GetKey(aimBTN);
+        if (Input.GetKeyDown(aimBTN)) gunShoot.AimDownSight(true);
+        if (Input.GetKeyUp(aimBTN)) gunShoot.AimDownSight(false);
 
         GunSwitchInput(primaryGun, 0);
         GunSwitchInput(secondaryGun, 1);
@@ -70,6 +53,12 @@ public class MultiplayerGunShoot : MonoBehaviour
             gunShoot.StartGunReload();
             if (!NetworkManager.Singleton.Server.IsRunning) SendReload();
         }
+    }
+
+    private void GunSwitchInput(KeyCode keybind, int index)
+    {
+        if (Input.GetKeyDown(keybind)) SendSlotSwitch(index);
+
     }
 
     private void SendShootMessage(bool isShooting)
@@ -88,9 +77,9 @@ public class MultiplayerGunShoot : MonoBehaviour
         NetworkManager.Singleton.Client.Send(message);
     }
 
-    public void SendGunSettings(int index)
+    public void SendSlotSwitch(int index)
     {
-        Message message = Message.Create(MessageSendMode.Reliable, ClientToServerId.gunChange);
+        Message message = Message.Create(MessageSendMode.Reliable, ClientToServerId.slotChange);
         message.AddInt(index);
         NetworkManager.Singleton.Client.Send(message);
     }

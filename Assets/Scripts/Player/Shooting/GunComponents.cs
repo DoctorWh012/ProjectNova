@@ -2,22 +2,25 @@ using UnityEngine;
 
 public class GunComponents : MonoBehaviour
 {
-    public Guns gunSettings;
-    public GunSway gunSway;
-    public Transform barrelTip;
-    public Transform gunModelPos;
-    public MeshRenderer[] gunMesh;
-    public SkinnedMeshRenderer[] armMesh;
-    public MeshRenderer scopeMesh;
-    public TrailRenderer gunTrail;
-    public Animator animator;
-    public ParticleSystem muzzleFlash;
-    public AudioClip[] gunShootSounds;
+    [Header("Required Components")]
+    [SerializeField] public Guns gunSettings;
+    [SerializeField] public GunSway gunSway;
+    [SerializeField] public Transform barrelTip;
+    [SerializeField] public Transform gunModelPos;
+    [SerializeField] public MeshRenderer[] gunMesh;
+    [SerializeField] public Animator animator;
+    [SerializeField] public ParticleSystem muzzleFlash;
+
+    [Header("Extra Components")]
+    [SerializeField] public MeshRenderer scopeMesh;
+    [SerializeField] public TrailRenderer gunTrail;
+    [SerializeField] public Transform rightArmTarget;
+    [SerializeField] public Transform leftArmTarget;
 
     [Header("ScreenShake")]
-    public float shakeIntensity;
-    public float shakeRoughness;
-    public float fadeinTime;
-    public float fadeOutTime;
-    public float shakeAmmount;
+    [SerializeField] public float shakeIntensity;
+    [SerializeField] public float shakeRoughness;
+    [SerializeField] public float fadeinTime;
+    [SerializeField] public float fadeOutTime;
+    [SerializeField] public float shakeAmmount;
 }

@@ -7,7 +7,7 @@ public class RotateObject : MonoBehaviour
 
     [SerializeField] Transform objectPos;
     [SerializeField] float rotateSpeed;
-    [SerializeField] bool rotate = false;
+    [SerializeField] bool rotate = true;
     [SerializeField] bool x;
     [SerializeField] bool y;
     [SerializeField] bool z;
