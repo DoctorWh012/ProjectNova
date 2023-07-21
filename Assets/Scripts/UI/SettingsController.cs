@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
@@ -151,7 +149,7 @@ public class SettingsController : MonoBehaviour
         UpdateSliderValue(mainVolumeSliderText);
 
         musicVolumeSlider.value = playerPrefs.musicVolume;
-        SoundManager.Instance.musicSource.volume = playerPrefs.musicVolume;
+        // SoundManager.Instance.musicSource.volume = playerPrefs.musicVolume;
         UpdateSliderValue(musicVolumeSliderText);
 
         Screen.SetResolution(playerPrefs.resWidth, playerPrefs.resHeight, playerPrefs.fullScreen);

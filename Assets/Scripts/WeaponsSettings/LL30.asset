@@ -26,12 +26,16 @@ MonoBehaviour:
   currentAmmo: 5
   recoilForce: 10
   maxRecoilDistance: 6
+  weaponHum: {fileID: 0}
+  weaponPickupSound: {fileID: 0}
+  weaponReloadSound: {fileID: 0}
+  weaponSpinSound: {fileID: 0}
+  weaponShootingSounds: []
+  tracerType: 0
+  tracerLasts: 0.1
   canAim: 0
   scopeFov: 0
   isShotgun: 0
   pellets: 3
   spread: 15
-  shotgunSpreadPatterns:
-  - {x: -0.842411, y: 0.068533495}
-  - {x: -0.56475735, y: 0.46469346}
-  - {x: 0.3859207, y: 0.36585674}
+  spreadPatterns: []

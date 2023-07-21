@@ -17,8 +17,6 @@ MonoBehaviour:
   gunModel: {fileID: 919132149155446097, guid: b0bd8cf4f7f74d94ca0538f3ac1383e3, type: 3}
   gunIcon: {fileID: 21300000, guid: 1c56d5fcbe5e05e4db6af19eec8b9cb6, type: 3}
   gunName: LA-87
-  canAim: 0
-  scopeFov: 0
   damage: 25
   range: 30
   fireRate: 7
@@ -28,7 +26,16 @@ MonoBehaviour:
   currentAmmo: 35
   recoilForce: 0
   maxRecoilDistance: 0
+  weaponHum: {fileID: 0}
+  weaponPickupSound: {fileID: 0}
+  weaponReloadSound: {fileID: 0}
+  weaponSpinSound: {fileID: 0}
+  weaponShootingSounds: []
+  tracerType: 0
+  tracerLasts: 0.1
+  canAim: 0
+  scopeFov: 0
   isShotgun: 0
   pellets: 0
   spread: 0
-  shotgunSpreadPatterns: []
+  spreadPatterns: []

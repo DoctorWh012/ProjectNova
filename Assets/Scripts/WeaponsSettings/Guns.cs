@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.UI;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -10,11 +9,17 @@ public enum Gunslot : int
     secondary = 1,
     melee = 2,
 }
-public enum WeaponType : int
+public enum WeaponType
 {
     rifle,
     shotgun,
     melee,
+}
+
+public enum TracerType
+{
+    yellow,
+    red,
 }
 
 [CreateAssetMenu(fileName = "Guns", menuName = "RUSP/Guns", order = 0)]
@@ -39,8 +44,19 @@ public class Guns : ScriptableObject
     [HideInInspector] public int currentAmmo;
 
     [Header("Recoil")]
-    [SerializeField] public int recoilForce;
-    [SerializeField] public int maxRecoilDistance;
+    [SerializeField] public float knockbackForce;
+    [SerializeField] public float knockbackMaxHitDistance;
+
+    [Header("Audio")]
+    [SerializeField] public AudioClip weaponHum;
+    [SerializeField] public AudioClip weaponPickupSound;
+    [SerializeField] public AudioClip weaponReloadSound;
+    [SerializeField] public AudioClip weaponSpinSound;
+    [SerializeField] public AudioClip[] weaponShootingSounds;
+
+    [Header("Tracer")]
+    [SerializeField] public TracerType tracerType;
+    [SerializeField] public float tracerLasts;
 
     [Header("Aiming")]
     [SerializeField] public bool canAim;
@@ -51,7 +67,7 @@ public class Guns : ScriptableObject
     [SerializeField] public bool isShotgun;
     [HideInInspector] public int pellets;
     [HideInInspector] public float spread;
-    [HideInInspector] public Vector2[] shotgunSpreadPatterns;
+    [HideInInspector] public Vector2[] spreadPatterns;
 
     private void Awake()
     {
@@ -61,12 +77,12 @@ public class Guns : ScriptableObject
     public void CreateGaussianDistribution()
     {
         Debug.Log($"Recalculated spread for {this.name}");
-        shotgunSpreadPatterns = new Vector2[pellets];
+        spreadPatterns = new Vector2[pellets];
         GaussianDistribution gaussianDistribution = new GaussianDistribution();
 
         for (int i = 0; i < pellets; i++)
         {
-            shotgunSpreadPatterns[i] = new Vector2(gaussianDistribution.Next(0f, 1, -1, 1), gaussianDistribution.Next(0f, 1, -1, 1));
+            spreadPatterns[i] = new Vector2(gaussianDistribution.Next(0f, 1, -1, 1), gaussianDistribution.Next(0f, 1, -1, 1));
         }
     }
 }
@@ -78,7 +94,7 @@ public class MyScriptableObjectEditor : Editor
     private SerializedProperty shotgunSpreadPatternsProperty;
     private void OnEnable()
     {
-        shotgunSpreadPatternsProperty = serializedObject.FindProperty("shotgunSpreadPatterns");
+        shotgunSpreadPatternsProperty = serializedObject.FindProperty("spreadPatterns");
     }
 
     public override void OnInspectorGUI()

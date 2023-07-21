@@ -4,6 +4,17 @@ using System.Collections;
 using EZCameraShake;
 using DitzelGames.FastIK;
 
+/* WORK REMINDER
+
+    Turn ChangeToSlot into a coroutine
+    Network shooting
+    Does the animator really have to stay enabled when not holding the weapon?
+    Does the weapons GameObject have to stay enabled?
+    Fix weapon tilting (Check for weapon tilt when switch)
+    Should firerate be animation based or time based
+
+*/
+
 public class GaussianDistribution
 {
     // Marsaglia Polar
@@ -44,6 +55,7 @@ public class GaussianDistribution
         return x;
     }
 }
+
 public class GunShoot : MonoBehaviour
 {
     public enum WeaponState { Active, Shooting, Reloading, Switching }
@@ -61,7 +73,6 @@ public class GunShoot : MonoBehaviour
     [SerializeField] private Transform playerCam;
     [SerializeField] private HeadBobController headBobController;
     [SerializeField] private Camera scopeCam;
-    [SerializeField] private AudioSource playerAudioSource;
 
     [Header("Weapons")]
     [SerializeField] private Guns[] currentPlayerGuns;
@@ -70,10 +81,9 @@ public class GunShoot : MonoBehaviour
     [SerializeField] public MeleeComponents[] meleesComponents;
 
     [Header("Audio")]
-    [SerializeField] private AudioSource audioSource;
+    [SerializeField] private AudioSource playerAudioSource;
+    [SerializeField] private AudioSource weaponAudioSource;
     [SerializeField] private AudioClip hitMarkerSfx;
-    [SerializeField] private AudioClip spinSFX;
-    [SerializeField] private AudioClip reloadSFX;
 
     [Header("Arms")]
     [SerializeField] private SkinnedMeshRenderer leftArmMesh;
@@ -81,15 +91,23 @@ public class GunShoot : MonoBehaviour
     [SerializeField] private FastIKFabric leftArmTarget;
     [SerializeField] private FastIKFabric rightArmTarget;
 
+    // Shooting Cache
+    Vector3 dirSpread;
+    private float individualPelletDamage;
+    private Vector3 spread;
+    private RaycastHit shootingRayHit;
+    private RaycastHit[] filterRayHits;
+    private TrailRenderer tracer;
+    private ParticleSystem hitParticle;
+
+    private int playerLayer;
+    private int NetPlayerLayer;
     private IEnumerator tiltWeaponCoroutine;
     private IEnumerator reloadCoroutine;
     private GunComponents activeGunComponents;
     private MeleeComponents activeMeleeComponents;
     private Animator animator;
     private Transform barrelTip;
-    private ParticleSystem weaponEffectParticle;
-    private RaycastHit rayHit;
-    private RaycastHit[] rayHits;
     private float damageMultiplier;
     private int _ammunition;
     private int ammunition
@@ -104,13 +122,15 @@ public class GunShoot : MonoBehaviour
     private float nextTimeToFire = 0f;
     public Guns activeGun;
     private int activeGunSlot;
-
     private ushort lastShotTick;
 
     private void Awake()
     {
         currentPlayerGuns = new Guns[3];
         currentPlayerGunsIndexes = new int[3];
+
+        playerLayer = LayerMask.NameToLayer("Player");
+        NetPlayerLayer = LayerMask.NameToLayer("NetPlayer");
     }
 
     private void Start()
@@ -130,6 +150,13 @@ public class GunShoot : MonoBehaviour
     }
 
     #region Shooting
+    public void HandleClientInput(bool shooting, ushort tick)
+    {
+        if (!shooting) return;
+        lastShotTick = tick;
+        FireTick();
+    }
+
     public void FireTick()
     {
         if (activeGun.weaponType == WeaponType.rifle || activeGun.weaponType == WeaponType.shotgun) VerifyGunShoot();
@@ -138,7 +165,8 @@ public class GunShoot : MonoBehaviour
 
     private void VerifyGunShoot()
     {
-        if (currentWeaponState != WeaponState.Active) return;
+        if (currentWeaponState == WeaponState.Reloading || currentWeaponState == WeaponState.Switching) return;
+
         if (ammunition > 0 && Time.time >= nextTimeToFire)
         {
             nextTimeToFire = Time.time + 1f / activeGun.fireRate;
@@ -146,7 +174,6 @@ public class GunShoot : MonoBehaviour
             SwitchWeaponState(WeaponState.Shooting);
 
             if (!player.IsLocal && NetworkManager.Singleton.Server.IsRunning) GameManager.Singleton.SetAllPlayersPositionsTo(lastShotTick, player.Id);
-
             switch (activeGun.weaponType)
             {
                 case WeaponType.rifle:
@@ -164,9 +191,11 @@ public class GunShoot : MonoBehaviour
     private void VerifyMeleeAttack()
     {
         if (currentWeaponState != WeaponState.Active) return;
+
         if (Time.time >= nextTimeToFire)
         {
             nextTimeToFire = Time.time + 1f / activeGun.fireRate;
+            SwitchWeaponState(WeaponState.Shooting);
 
             if (!player.IsLocal && NetworkManager.Singleton.Server.IsRunning) GameManager.Singleton.SetAllPlayersPositionsTo(lastShotTick, player.Id);
 
@@ -176,114 +205,147 @@ public class GunShoot : MonoBehaviour
         }
     }
 
-    public void HandleClientInput(bool shooting, ushort tick)
-    {
-        if (!shooting) return;
-        lastShotTick = tick;
-        FireTick();
-    }
-
     private void Shoot()
     {
-        rayHits = Physics.RaycastAll(playerCam.position, playerCam.forward, activeGun.range, ~layersToIgnoreShootRaycast);
-        System.Array.Sort(rayHits, (x, y) => x.distance.CompareTo(y.distance));
+        shootingRayHit = FilteredRaycast(playerCam.forward);
 
-        for (int i = 0; i < rayHits.Length; i++) print($"{rayHits[i].collider.name} == {rayHits[i].collider.tag}");
-
-        // If didn't hit anything sends NoHit and returns
-        if (rayHits.Length <= 0)
+        if (!shootingRayHit.collider)
         {
-            ShootingEffects(false, Vector2.zero, true);
-            if (GameManager.Singleton.networking) SendShot(false, Vector2.zero, true);
+            ShootingEffects(false, false);
             return;
         }
 
-        for (int i = 0; i < rayHits.Length; i++)
-        {
-            // Checks if the shot didn't hit yourself
-            if (CompareHitCollider(rayHits[i].collider)) continue;
+        print($"Hit {shootingRayHit.collider.name}");
 
-            // If the first thing it hit is not a player break
-            rayHit = rayHits[i];
-            if (!CheckPlayerHit(rayHit.collider)) break;
+        // If it's a player damages it
+        if (CheckPlayerHit(shootingRayHit.collider)) GetHitPlayer(shootingRayHit.collider.gameObject, activeGun.damage);
 
-            // If it's a player damages it 
-            GetHitPlayer(rayHit.collider.gameObject, activeGun.damage, true);
-            break;
-        }
-
-        ShootingEffects(true, Vector2.zero, true);
-        if (GameManager.Singleton.networking) SendShot(true, Vector2.zero, true);
-        ApplyRecoil();
+        ShootingEffects(true, false);
+        ApplyKnockback();
     }
 
     private void ShotgunShoot()
     {
-        float individualPelletDamage = activeGun.damage / activeGun.pellets;
+        individualPelletDamage = activeGun.damage / activeGun.pellets;
 
         for (int i = 0; i < activeGun.pellets; i++)
         {
-            bool shouldPlay = (i == activeGun.pellets - 1);
-            Vector3 spread = new Vector3(activeGun.shotgunSpreadPatterns[i].x, activeGun.shotgunSpreadPatterns[i].y, activeGun.spread).normalized;
+            ShootWithFixedSpread(i);
+        }
+    }
 
-            rayHits = Physics.RaycastAll(playerCam.position, playerCam.rotation * spread, activeGun.range, ~layersToIgnoreShootRaycast);
-            System.Array.Sort(rayHits, (x, y) => x.distance.CompareTo(y.distance));
+    private void ShootWithFixedSpread(int spreadIndex)
+    {
+        // Gets the predefined spread
+        spread.x = activeGun.spreadPatterns[spreadIndex].x;
+        spread.y = activeGun.spreadPatterns[spreadIndex].y;
+        spread.z = 0;
 
-            if (rayHits.Length <= 0)
-            {
-                ShootingEffects(false, activeGun.shotgunSpreadPatterns[i], shouldPlay);
-                if (GameManager.Singleton.networking) SendShot(false, activeGun.shotgunSpreadPatterns[i], shouldPlay);
-                continue;
-            }
+        // Applies the spread to the raycast
+        dirSpread = playerCam.forward + Quaternion.LookRotation(playerCam.forward) * spread * activeGun.spread;
 
-            for (int j = 0; j < rayHits.Length; j++)
-            {
-                // Check if the shot didn't hit yourself
-                if (CompareHitCollider(rayHits[j].collider)) continue;
+        shootingRayHit = FilteredRaycast(dirSpread);
 
-                // If the first thing it hit is not a player break
-                rayHit = rayHits[j];
-                if (!CheckPlayerHit(rayHit.collider)) break;
-
-                // If it's a player damages it 
-                GetHitPlayer(rayHit.collider.gameObject, individualPelletDamage, (i == activeGun.pellets));
-                break;
-            }
-
-            ShootingEffects(true, activeGun.shotgunSpreadPatterns[i], shouldPlay);
-            if (GameManager.Singleton.networking) SendShot(true, activeGun.shotgunSpreadPatterns[i], shouldPlay);
+        // Checks if it did not hit anything
+        if (!shootingRayHit.collider)
+        {
+            print("<color=red> Hit Nothing </color>");
+            ShootingEffects(false, true);
+            return;
         }
 
-        ApplyRecoil();
+        print($"Hit {shootingRayHit.collider.name}");
+
+        // If it's a player damages it 
+        if (CheckPlayerHit(shootingRayHit.collider)) GetHitPlayer(shootingRayHit.collider.gameObject, individualPelletDamage);
+
+        ShootingEffects(true, true);
+        ApplyKnockback();
     }
 
     private void AttackMelee()
     {
-        rayHits = Physics.RaycastAll(playerCam.position, playerCam.forward, activeGun.range, ~layersToIgnoreShootRaycast);
-        System.Array.Sort(rayHits, (x, y) => x.distance.CompareTo(y.distance));
+        shootingRayHit = FilteredRaycast(playerCam.forward);
 
-        if (rayHits.Length <= 0)
+        if (!shootingRayHit.collider)
         {
             MeleeEffects(false);
-            if (GameManager.Singleton.networking) SendMeleeAttack(false);
             return;
         }
 
-        for (int i = 0; i < rayHits.Length; i++)
-        {
-            // Check if the ray didn't hit yourself
-            if (CompareHitCollider(rayHits[i].collider)) continue;
+        print($"Hit {shootingRayHit.collider.name}");
 
-            // If the first thing it hit is not a player break
-            rayHit = rayHits[i];
-            if (!CheckPlayerHit(rayHit.collider)) break;
-
-            GetHitPlayer(rayHit.collider.gameObject, activeGun.damage, true);
-            break;
-        }
+        // If the first thing it hit is not a player break
+        if (CheckPlayerHit(shootingRayHit.collider)) GetHitPlayer(shootingRayHit.collider.gameObject, activeGun.damage);
 
         MeleeEffects(true);
-        if (GameManager.Singleton.networking) SendMeleeAttack(true);
+    }
+
+    private RaycastHit FilteredRaycast(Vector3 dir)
+    {
+        filterRayHits = Physics.RaycastAll(playerCam.position, dir.normalized, activeGun.range, ~layersToIgnoreShootRaycast);
+        System.Array.Sort(filterRayHits, (x, y) => x.distance.CompareTo(y.distance));
+
+        for (int i = 0; i < filterRayHits.Length; i++)
+        {
+            if (CompareHitCollider(filterRayHits[i].collider))
+            {
+                // If this is the last obj the ray collided with and it is still the player returns that it didn't hit anything
+                if (filterRayHits.Length - 1 == i) return new RaycastHit();
+                continue;
+            }
+            return filterRayHits[i];
+        }
+        return new RaycastHit();
+    }
+
+    private void ShootingEffects(bool didHit, bool hasSpread)
+    {
+        animator.Play("Recoil");
+        activeGunComponents.muzzleFlash.Play();
+        ShootingTracer(didHit, hasSpread);
+
+        if (didHit) HitParticle();
+    }
+
+    private void MeleeEffects(bool didHit)
+    {
+        animator.Play("Attack");
+        if (didHit) HitParticle();
+    }
+
+    private void ShootingTracer(bool didHit, bool hasSpread)
+    {
+        // Get The Tracer From Pool
+        tracer = PoolingManager.Instance.GetBulletTracer(activeGun.tracerType);
+
+        // Configures Tracer
+        tracer.time = activeGun.tracerLasts;
+        tracer.transform.gameObject.layer = player.IsLocal ? playerLayer : NetPlayerLayer;
+        tracer.Clear();
+        tracer.AddPosition(barrelTip.position);
+
+        // Moves Tracer
+        if (didHit) tracer.transform.position = shootingRayHit.point;
+
+        else
+        {
+            if (hasSpread) tracer.transform.position = (dirSpread.normalized * activeGun.range) + barrelTip.position;
+            else tracer.transform.position = (playerCam.forward * activeGun.range) + barrelTip.position;
+        }
+
+        // Returns Tracer To Pool After It's Used
+        tracer.GetComponent<ReturnToPool>().ReturnToPoolIn(activeGun.tracerLasts);
+    }
+
+    private void HitParticle()
+    {
+        hitParticle = PoolingManager.Instance.GetHitParticle(activeGun.tracerType);
+
+        hitParticle.transform.position = shootingRayHit.point;
+        hitParticle.Play();
+
+        hitParticle.GetComponent<ReturnToPool>().ReturnToPoolIn(hitParticle.main.duration);
     }
 
     private bool CheckPlayerHit(Collider col)
@@ -311,32 +373,18 @@ public class GunShoot : MonoBehaviour
         return false;
     }
 
-    private void ApplyRecoil()
+    private void ApplyKnockback()
     {
-        if (Physics.Raycast(playerCam.position, playerCam.forward, activeGun.maxRecoilDistance, ~layersToIgnoreShootRaycast)) rb.AddForce(-playerCam.forward * activeGun.recoilForce, ForceMode.Impulse);
+        if (FilteredRaycast(playerCam.forward).collider) rb.AddForce(-playerCam.forward * activeGun.knockbackForce, ForceMode.Impulse);
     }
 
-    private void GetHitPlayer(GameObject playerHit, float damage, bool shouldPlaySFx)
+    private void GetHitPlayer(GameObject playerHit, float damage)
     {
         if (!NetworkManager.Singleton.Server.IsRunning) return;
 
         Player player = playerHit.GetComponentInParent<Player>();
 
         if (player.playerHealth.ReceiveDamage(damage * damageMultiplier)) playerScore.kills++;
-
-        SendHitPlayer(player.Id, shouldPlaySFx);
-    }
-
-    private void ShootingEffects(bool didHit, Vector2 spread, bool shouldPlaySFx)
-    {
-        BulletTrailEffect(didHit, rayHit.point, spread);
-        ShootingAnimator(shouldPlaySFx, player.IsLocal);
-    }
-
-    private void MeleeEffects(bool didHit)
-    {
-        MeleeAtackAnimator();
-        if (didHit) HitParticle(rayHit.point);
     }
 
     public void FinishPlayerShooting()
@@ -344,7 +392,6 @@ public class GunShoot : MonoBehaviour
         SwitchWeaponState(WeaponState.Active);
         CheckIfReloadIsNeeded();
     }
-
     #endregion
 
     #region Reloading
@@ -370,7 +417,7 @@ public class GunShoot : MonoBehaviour
 
     public void StartGunReload()
     {
-        if (ammunition == activeGun.maxAmmo || currentWeaponState != WeaponState.Active) return;
+        if (ammunition == activeGun.maxAmmo || currentWeaponState == WeaponState.Reloading) return;
         reloadCoroutine = RotateReloadGun(activeGun.reloadSpins, activeGun.reloadTime);
         StartCoroutine(reloadCoroutine);
     }
@@ -378,14 +425,13 @@ public class GunShoot : MonoBehaviour
     private void StopReload()
     {
         StopCoroutine(reloadCoroutine);
-        SwitchWeaponState(WeaponState.Active);
         animator.enabled = true;
         animator.Play("Idle");
     }
 
     #endregion
 
-    #region  GunSwitching
+    #region GunSwitching
     public void PickStartingWeapons()
     {
         for (int i = 0; i < currentPlayerGuns.Length; i++)
@@ -410,16 +456,16 @@ public class GunShoot : MonoBehaviour
 
     public void SwitchToSlot(int slotIndex)
     {
-        if (currentPlayerGuns[slotIndex] == null || currentPlayerGuns[slotIndex] == activeGun) return;
+        if (currentWeaponState == WeaponState.Shooting) return;
+        if (!currentPlayerGuns[slotIndex] || currentPlayerGuns[slotIndex] == activeGun) return;
 
         if (currentWeaponState == WeaponState.Reloading) StopReload();
 
         SwitchWeaponState(WeaponState.Switching);
         activeGunSlot = slotIndex;
 
-
         // This is saving the ammunition before changing guns
-        if (activeGun != null) activeGun.currentAmmo = ammunition;
+        if (activeGun) activeGun.currentAmmo = ammunition;
 
         // Changes guns
         activeGun = currentPlayerGuns[slotIndex];
@@ -427,9 +473,7 @@ public class GunShoot : MonoBehaviour
 
         if (activeGun.weaponType != WeaponType.melee) SwitchGun(currentPlayerGunsIndexes[slotIndex]);
         else SwitchMelee(currentPlayerGunsIndexes[slotIndex]);
-
         animator.Play("Raise");
-        Invoke("FinishSwitching", 0.3f);
 
         if (NetworkManager.Singleton.Server.IsRunning) SendGunSwitch(slotIndex);
     }
@@ -440,7 +484,6 @@ public class GunShoot : MonoBehaviour
 
         barrelTip = gunsComponents[index].barrelTip;
         animator = gunsComponents[index].animator;
-        weaponEffectParticle = gunsComponents[index].muzzleFlash;
 
         if (player.IsLocal) GameCanvas.Instance.ChangeGunSlotIcon(((int)activeGun.slot), activeGun.gunIcon, activeGun.gunName);
 
@@ -473,7 +516,7 @@ public class GunShoot : MonoBehaviour
         SwitchToSlot(2);
     }
 
-    private void FinishSwitching()
+    public void FinishSwitching()
     {
         SwitchWeaponState(WeaponState.Active);
         CheckIfReloadIsNeeded();
@@ -549,100 +592,6 @@ public class GunShoot : MonoBehaviour
         }
     }
 
-    public void ShootingAnimator(bool shouldPlay, bool playerIsLocal)
-    {
-        // if (shouldPlay) SoundManager.Instance.PlaySound(playerAudioSource, activeGunComponents.gunShootSounds[0]);
-        if (playerIsLocal && shouldPlay) ShootShaker();
-        weaponEffectParticle.Play();
-        animator.Play("Recoil");
-    }
-
-    public void MeleeAtackAnimator()
-    {
-        animator.Play("Attack");
-        SoundManager.Instance.PlaySound(playerAudioSource, activeMeleeComponents.meleeSounds[0]);
-        weaponEffectParticle.Play();
-    }
-
-    public void HitParticle(Vector3 hitPos)
-    {
-        Instantiate(GameManager.Singleton.HitPrefab, hitPos, Quaternion.identity);
-    }
-
-    public void BulletTrailEffect(bool didHit, Vector3 hitPos, Vector2 spread)
-    {
-        // If the raycast hit something places the GameObject at rayHit.point
-        if (didHit)
-        {
-            HitParticle(hitPos);
-            TrailRenderer tracer = Instantiate(GameManager.Singleton.ShotTrail, barrelTip.position, Quaternion.identity);
-            tracer.AddPosition(barrelTip.position);
-            tracer.transform.position = hitPos;
-        }
-
-        // If it didn't hit something just moves the GameObject foward
-        else
-        {
-            TrailRenderer tracer = Instantiate(GameManager.Singleton.ShotTrail, barrelTip.position, Quaternion.LookRotation(barrelTip.forward));
-            tracer.AddPosition(barrelTip.position);
-            if (spread != Vector2.zero) tracer.transform.position += (barrelTip.rotation * new Vector3(spread.x, spread.y, activeGun.spread)) * activeGun.range;
-            tracer.transform.position += (barrelTip.forward * activeGun.range);
-
-            //Fix Needed
-        }
-    }
-
-    private void HitEffect(Vector3 position)
-    {
-        ParticleSystem hitEffect = Instantiate(GameManager.Singleton.PlayerHitPrefab, position, Quaternion.identity);
-    }
-
-    private void PlayHitmarker(bool shouldPlay)
-    {
-        if (shouldPlay) SoundManager.Instance.PlaySound(audioSource, hitMarkerSfx);
-    }
-
-    private void ShootShaker()
-    {
-        for (int i = 0; i < activeGunComponents.shakeAmmount; i++)
-        {
-            CameraShaker.Instance.ShakeOnce(activeGunComponents.shakeIntensity, activeGunComponents.shakeRoughness, activeGunComponents.fadeinTime, activeGunComponents.fadeOutTime);
-        }
-    }
-
-    // Multiplayer Handler
-    private void SendShot(bool didHit, Vector2 spread, bool shouldPlaySFx)
-    {
-        if (!NetworkManager.Singleton.Server.IsRunning) return;
-        Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.playerShot);
-        message.AddUShort(player.Id);
-        message.AddUShort((ushort)ammunition);
-        message.AddBool(didHit);
-        message.AddVector3(rayHit.point);
-        message.AddVector2(spread);
-        message.AddBool(shouldPlaySFx);
-        NetworkManager.Singleton.Server.SendToAll(message);
-    }
-
-    private void SendMeleeAttack(bool didHit)
-    {
-        if (!NetworkManager.Singleton.Server.IsRunning) return;
-        Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.meleeAtack);
-        message.AddUShort(player.Id);
-        message.AddBool(didHit);
-        message.AddVector3(rayHit.point);
-        NetworkManager.Singleton.Server.SendToAll(message);
-    }
-
-    private void SendHitPlayer(ushort playerHitId, bool shouldPlaySFx)
-    {
-        Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.playerHit);
-        message.AddUShort(playerHitId);
-        message.AddVector3(rayHit.point);
-        message.AddBool(shouldPlaySFx);
-        NetworkManager.Singleton.Server.SendToAll(message);
-    }
-
     private void SendGunSwitch(int gunSlot)
     {
         Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.gunChanged);
@@ -662,6 +611,7 @@ public class GunShoot : MonoBehaviour
 
     private void SendWeaponSync(ushort id)
     {
+        if (!player) return;
         print($"Sending the guns of {player.name} to {id}");
         Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.weaponSync);
         message.AddUShort(player.Id);
@@ -721,39 +671,6 @@ public class GunShoot : MonoBehaviour
         }
     }
 
-    [MessageHandler((ushort)ServerToClientId.playerShot)]
-    private static void PlayerShot(Message message)
-    {
-        if (Player.list.TryGetValue(message.GetUShort(), out Player player))
-        {
-            if (NetworkManager.Singleton.Server.IsRunning) return;
-            if (player.IsLocal) { player.gunShoot.ammunition = message.GetUShort(); return; }
-            player.gunShoot.BulletTrailEffect(message.GetBool(), message.GetVector3(), message.GetVector2());
-            player.gunShoot.ShootingAnimator(message.GetBool(), player.IsLocal);
-        }
-    }
-
-    [MessageHandler((ushort)ServerToClientId.meleeAtack)]
-    private static void PlayerAtackedMelee(Message message)
-    {
-        if (Player.list.TryGetValue(message.GetUShort(), out Player player))
-        {
-            if (NetworkManager.Singleton.Server.IsRunning || player.IsLocal) return;
-            player.gunShoot.MeleeAtackAnimator();
-            if (message.GetBool()) player.gunShoot.HitParticle(message.GetVector3());
-        }
-    }
-
-    [MessageHandler((ushort)ServerToClientId.playerHit)]
-    private static void PlayerHit(Message message)
-    {
-        if (Player.list.TryGetValue(message.GetUShort(), out Player player))
-        {
-            player.gunShoot.HitEffect(message.GetVector3());
-            if (!player.IsLocal) player.gunShoot.PlayHitmarker(message.GetBool());
-        }
-    }
-
     [MessageHandler((ushort)ServerToClientId.gunChanged)]
     private static void ChangeGun(Message message)
     {
@@ -771,13 +688,17 @@ public class GunShoot : MonoBehaviour
         StartCoroutine(tiltWeaponCoroutine);
     }
 
+    // FUCK QUATERNIONS
     public IEnumerator RotateReloadGun(int times, float duration)
     {
-        // while (currentWeaponState == WeaponState.Shooting) yield return null;
+        while (currentWeaponState != WeaponState.Active) yield return null;
+
+        weaponAudioSource.clip = activeGun.weaponSpinSound;
+        weaponAudioSource.loop = true;
+        weaponAudioSource.Play();
 
         SwitchWeaponState(WeaponState.Reloading);
-        // FUCK QUATERNIONS
-        activeGunComponents.animator.enabled = false;
+        animator.enabled = false;
 
         Vector3 startingAngle = activeGunComponents.gunModelPos.localEulerAngles;
         float toAngle = startingAngle.x + -360 * times;
@@ -792,8 +713,13 @@ public class GunShoot : MonoBehaviour
         }
 
         activeGunComponents.gunModelPos.localEulerAngles = startingAngle;
-        activeGunComponents.animator.enabled = true;
+        animator.enabled = true;
         ReplenishAmmo();
+
+        weaponAudioSource.Stop();
+        weaponAudioSource.loop = false;
+        weaponAudioSource.PlayOneShot(activeGun.weaponReloadSound);
+
         SwitchWeaponState(WeaponState.Active);
     }
 

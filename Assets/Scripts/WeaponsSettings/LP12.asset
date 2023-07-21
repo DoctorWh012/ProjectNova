@@ -17,8 +17,6 @@ MonoBehaviour:
   gunModel: {fileID: 919132149155446097, guid: 7b4fec31ca43ae64abe4977ed7dac725, type: 3}
   gunIcon: {fileID: 21300000, guid: 29bf47caf710a62469d15683ad5e9aaf, type: 3}
   gunName: LP-12
-  canAim: 0
-  scopeFov: 0
   damage: 150
   range: 20
   fireRate: 3
@@ -26,18 +24,27 @@ MonoBehaviour:
   reloadSpins: 3
   maxAmmo: 2
   currentAmmo: 2
-  recoilForce: 15
-  maxRecoilDistance: 5
+  knockbackForce: 1.3
+  knockbackMaxHitDistance: 5
+  weaponHum: {fileID: 0}
+  weaponPickupSound: {fileID: 0}
+  weaponReloadSound: {fileID: 0}
+  weaponSpinSound: {fileID: 0}
+  weaponShootingSounds: []
+  tracerType: 0
+  tracerLasts: 0.1
+  canAim: 0
+  scopeFov: 0
   isShotgun: 1
   pellets: 9
-  spread: 12
-  shotgunSpreadPatterns:
-  - {x: 0.19091612, y: 0.4087499}
-  - {x: -0.59193784, y: 0.61378485}
-  - {x: -0.22344057, y: -0.058143}
-  - {x: 0.49176002, y: -0.07276487}
-  - {x: -0.38468978, y: 0.72200114}
-  - {x: 0.4931308, y: 0.5801564}
-  - {x: -0.9001713, y: -0.8981881}
-  - {x: -0.7562257, y: 0.14975657}
-  - {x: 0.62260544, y: 0.4380617}
+  spread: 0.18
+  spreadPatterns:
+  - {x: -0.015785472, y: -0.48599988}
+  - {x: 0.037937675, y: -0.25998795}
+  - {x: -0.59049135, y: 0.4858608}
+  - {x: -0.8356588, y: 0.42279002}
+  - {x: 0.6238036, y: 0.17699492}
+  - {x: 0.5684599, y: 0.04972874}
+  - {x: -0.41036227, y: 0.2914857}
+  - {x: 0.1468905, y: -0.32404172}
+  - {x: -0.07715513, y: 0.0062392736}

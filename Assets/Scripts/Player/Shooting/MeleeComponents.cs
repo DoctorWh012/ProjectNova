@@ -2,11 +2,21 @@ using UnityEngine;
 
 public class MeleeComponents : MonoBehaviour
 {
-    public Guns meleeSettings;
-    public Transform gunModelPos;
-    public MeshRenderer[] meleeMesh;
+    [Header("Required Components")]
+    [SerializeField] public Guns meleeSettings;
+    [SerializeField] public MeshRenderer[] meleeMesh;
+    [SerializeField] public Animator animator;
+    [SerializeField] private AudioSource humSource;
+
+    [Header("Extra Components")]
     [SerializeField] public Transform rightArmTarget;
     [SerializeField] public Transform leftArmTarget;
-    public Animator animator;
-    public AudioClip[] meleeSounds;
+
+    private void Awake()
+    {
+        if (!meleeSettings.weaponHum) return;
+        humSource.clip = meleeSettings.weaponHum;
+        humSource.loop = true;
+        humSource.Play();
+    }
 }

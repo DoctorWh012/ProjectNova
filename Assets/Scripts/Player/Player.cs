@@ -91,7 +91,7 @@ public class Player : MonoBehaviour
         list.Add(id, player);
         ScoreBoard.Instance.AddScoreBoarditem(list[id]);
         player.SendSpawned();
-        playerJoinedServer(player.Id);
+        playerJoinedServer(id);
     }
 
     //Sends LocalPlayer

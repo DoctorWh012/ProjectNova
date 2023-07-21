@@ -9825,7 +9825,7 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 3480687798962883498}
-  m_LocalRotation: {x: -0.7069834, y: -0, z: -0, w: 0.7072302}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0.022, z: 0.747}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
@@ -9857,7 +9857,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7846171121978502266}
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.093, z: -0.013}
+  m_LocalPosition: {x: 0, y: 0.152, z: -0.013}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 3133968815300857491}
@@ -9873,6 +9873,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5421214884409217414}
   - component: {fileID: 6714425835603327252}
+  - component: {fileID: 7932195023869790470}
   m_Layer: 6
   m_Name: LP-12
   m_TagString: Untagged
@@ -9917,8 +9918,9 @@ MonoBehaviour:
   - {fileID: 7422106438867107392}
   animator: {fileID: 1919835989534110335}
   muzzleFlash: {fileID: 8296219874312441972}
-  scopeMesh: {fileID: 0}
   gunTrail: {fileID: 8980087394283016832}
+  humSource: {fileID: 7932195023869790470}
+  scopeMesh: {fileID: 0}
   rightArmTarget: {fileID: 8776309687413511961}
   leftArmTarget: {fileID: 6925995181456450048}
   shakeIntensity: 2.3
@@ -9926,6 +9928,102 @@ MonoBehaviour:
   fadeinTime: 0.1
   fadeOutTime: 1
   shakeAmmount: 3
+--- !u!82 &7932195023869790470
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8994001213246116810}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 0}
+  m_audioClip: {fileID: 0}
+  m_PlayOnAwake: 1
+  m_Volume: 1
+  m_Pitch: 1
+  Loop: 0
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 500
+  Pan2D: 0
+  rolloffMode: 0
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
 --- !u!1 &9150726599210097887
 GameObject:
   m_ObjectHideFlags: 0
@@ -10177,14 +10275,9 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 7b4fec31ca43ae64abe4977ed7dac725, type: 3}
---- !u!1 &2239682580892723823 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 7b4fec31ca43ae64abe4977ed7dac725, type: 3}
-  m_PrefabInstance: {fileID: 1429218473169426238}
-  m_PrefabAsset: {fileID: 0}
---- !u!4 &1467931433376805077 stripped
+--- !u!4 &3133968815300857491 stripped
 Transform:
-  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 7b4fec31ca43ae64abe4977ed7dac725, type: 3}
+  m_CorrespondingSourceObject: {fileID: 4083501151425157549, guid: 7b4fec31ca43ae64abe4977ed7dac725, type: 3}
   m_PrefabInstance: {fileID: 1429218473169426238}
   m_PrefabAsset: {fileID: 0}
 --- !u!23 &293876371935071162 stripped
@@ -10192,9 +10285,14 @@ MeshRenderer:
   m_CorrespondingSourceObject: {fileID: -7511558181221131132, guid: 7b4fec31ca43ae64abe4977ed7dac725, type: 3}
   m_PrefabInstance: {fileID: 1429218473169426238}
   m_PrefabAsset: {fileID: 0}
---- !u!4 &3133968815300857491 stripped
+--- !u!4 &1467931433376805077 stripped
 Transform:
-  m_CorrespondingSourceObject: {fileID: 4083501151425157549, guid: 7b4fec31ca43ae64abe4977ed7dac725, type: 3}
+  m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 7b4fec31ca43ae64abe4977ed7dac725, type: 3}
+  m_PrefabInstance: {fileID: 1429218473169426238}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &2239682580892723823 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 7b4fec31ca43ae64abe4977ed7dac725, type: 3}
   m_PrefabInstance: {fileID: 1429218473169426238}
   m_PrefabAsset: {fileID: 0}
 --- !u!23 &8677869651515847983 stripped
@@ -10241,4 +10339,16 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   call:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 0}
+        m_TargetAssemblyTypeName: GunShoot, Assembly-CSharp
+        m_MethodName: FinishPlayerShooting
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2

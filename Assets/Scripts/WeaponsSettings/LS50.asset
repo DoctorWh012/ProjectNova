@@ -24,11 +24,18 @@ MonoBehaviour:
   reloadSpins: 3
   maxAmmo: 3
   currentAmmo: 3
-  recoilForce: 20
-  maxRecoilDistance: 6
+  knockbackForce: 12
+  knockbackMaxHitDistance: 10
+  weaponHum: {fileID: 0}
+  weaponPickupSound: {fileID: 0}
+  weaponReloadSound: {fileID: 0}
+  weaponSpinSound: {fileID: 0}
+  weaponShootingSounds: []
+  tracerType: 0
+  tracerLasts: 0.1
   canAim: 1
   scopeFov: 50
   isShotgun: 0
   pellets: 0
   spread: 0
-  shotgunSpreadPatterns: []
+  spreadPatterns: []
