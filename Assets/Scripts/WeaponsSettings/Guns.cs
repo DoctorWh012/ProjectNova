@@ -50,8 +50,8 @@ public class Guns : ScriptableObject
     [Header("Audio")]
     [SerializeField] public AudioClip weaponHum;
     [SerializeField] public AudioClip weaponPickupSound;
-    [SerializeField] public AudioClip weaponReloadSound;
     [SerializeField] public AudioClip weaponSpinSound;
+    [SerializeField] public AudioClip weaponReloadSound;
     [SerializeField] public AudioClip[] weaponShootingSounds;
 
     [Header("Tracer")]

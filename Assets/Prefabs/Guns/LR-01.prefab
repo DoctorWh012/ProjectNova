@@ -10019,13 +10019,8 @@ MonoBehaviour:
   gunSway: {fileID: 4688795006849904522}
   barrelTip: {fileID: 8276888900484816781}
   gunModelPos: {fileID: 8455459815030693810}
-  gunMesh:
-  - {fileID: 7285978929056277725}
-  - {fileID: 8185960099314129740}
-  - {fileID: 1238192071406407302}
   animator: {fileID: 8276888901474580573}
   muzzleFlash: {fileID: 5320013390611132782}
-  gunTrail: {fileID: 6772011829872577222}
   humSource: {fileID: 2592995775017175692}
   scopeMesh: {fileID: 0}
   rightArmTarget: {fileID: 856091267}
@@ -10267,29 +10262,9 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 0341724fb728ce84f8d56d99d7a84a2a, type: 3}
---- !u!23 &1238192071406407302 stripped
-MeshRenderer:
-  m_CorrespondingSourceObject: {fileID: 7202271454713460447, guid: 0341724fb728ce84f8d56d99d7a84a2a, type: 3}
-  m_PrefabInstance: {fileID: 8276888901474580569}
-  m_PrefabAsset: {fileID: 0}
---- !u!4 &3379915306968605288 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: -2577548232221058511, guid: 0341724fb728ce84f8d56d99d7a84a2a, type: 3}
-  m_PrefabInstance: {fileID: 8276888901474580569}
-  m_PrefabAsset: {fileID: 0}
---- !u!1 &4639904997571098201 stripped
+--- !u!1 &9087141771029169416 stripped
 GameObject:
-  m_CorrespondingSourceObject: {fileID: -5568371526223589888, guid: 0341724fb728ce84f8d56d99d7a84a2a, type: 3}
-  m_PrefabInstance: {fileID: 8276888901474580569}
-  m_PrefabAsset: {fileID: 0}
---- !u!23 &8185960099314129740 stripped
-MeshRenderer:
-  m_CorrespondingSourceObject: {fileID: 236216658851537685, guid: 0341724fb728ce84f8d56d99d7a84a2a, type: 3}
-  m_PrefabInstance: {fileID: 8276888901474580569}
-  m_PrefabAsset: {fileID: 0}
---- !u!23 &7285978929056277725 stripped
-MeshRenderer:
-  m_CorrespondingSourceObject: {fileID: -7511558181221131132, guid: 0341724fb728ce84f8d56d99d7a84a2a, type: 3}
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 0341724fb728ce84f8d56d99d7a84a2a, type: 3}
   m_PrefabInstance: {fileID: 8276888901474580569}
   m_PrefabAsset: {fileID: 0}
 --- !u!4 &8455459815030693810 stripped
@@ -10297,9 +10272,14 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 0341724fb728ce84f8d56d99d7a84a2a, type: 3}
   m_PrefabInstance: {fileID: 8276888901474580569}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &9087141771029169416 stripped
+--- !u!1 &4639904997571098201 stripped
 GameObject:
-  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 0341724fb728ce84f8d56d99d7a84a2a, type: 3}
+  m_CorrespondingSourceObject: {fileID: -5568371526223589888, guid: 0341724fb728ce84f8d56d99d7a84a2a, type: 3}
+  m_PrefabInstance: {fileID: 8276888901474580569}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &3379915306968605288 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -2577548232221058511, guid: 0341724fb728ce84f8d56d99d7a84a2a, type: 3}
   m_PrefabInstance: {fileID: 8276888901474580569}
   m_PrefabAsset: {fileID: 0}
 --- !u!114 &4014315389790142572
@@ -10352,12 +10332,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 642e3ad01b7184d47b6dfdca9faa78aa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  call:
+  finishShooting:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: GunShoot, Assembly-CSharp
         m_MethodName: FinishPlayerShooting
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  finishSwitching:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 0}
+        m_TargetAssemblyTypeName: GunShoot, Assembly-CSharp
+        m_MethodName: FinishSwitching
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}

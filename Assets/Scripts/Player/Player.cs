@@ -83,6 +83,7 @@ public class Player : MonoBehaviour
             player.rb.collisionDetectionMode = CollisionDetectionMode.Discrete;
             player.rb.interpolation = RigidbodyInterpolation.None;
             player.rb.isKinematic = true;
+            playerJoinedServer(id);
         }
 
         player.name = $"Player {id} ({(string.IsNullOrEmpty(username) ? "Guest" : username)}";
@@ -91,7 +92,6 @@ public class Player : MonoBehaviour
         list.Add(id, player);
         ScoreBoard.Instance.AddScoreBoarditem(list[id]);
         player.SendSpawned();
-        playerJoinedServer(id);
     }
 
     //Sends LocalPlayer

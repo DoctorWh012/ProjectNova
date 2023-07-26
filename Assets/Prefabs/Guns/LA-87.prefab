@@ -247,12 +247,8 @@ MonoBehaviour:
   gunSway: {fileID: 972498956598310413}
   barrelTip: {fileID: 8074524265749238165}
   gunModelPos: {fileID: 5528002620912496326}
-  gunMesh:
-  - {fileID: 6700307057846064553}
-  - {fileID: 2343480102376549180}
   animator: {fileID: 4840961904275803292}
   muzzleFlash: {fileID: 4523389326115453825}
-  gunTrail: {fileID: 1505064280}
   humSource: {fileID: 1426295045980129388}
   scopeMesh: {fileID: 0}
   rightArmTarget: {fileID: 2133064918}
@@ -10236,16 +10232,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: b0bd8cf4f7f74d94ca0538f3ac1383e3, type: 3}
   m_PrefabInstance: {fileID: 5421718659277490477}
   m_PrefabAsset: {fileID: 0}
---- !u!23 &6700307057846064553 stripped
-MeshRenderer:
-  m_CorrespondingSourceObject: {fileID: -7511558181221131132, guid: b0bd8cf4f7f74d94ca0538f3ac1383e3, type: 3}
-  m_PrefabInstance: {fileID: 5421718659277490477}
-  m_PrefabAsset: {fileID: 0}
---- !u!23 &2343480102376549180 stripped
-MeshRenderer:
-  m_CorrespondingSourceObject: {fileID: -1461304994638716399, guid: b0bd8cf4f7f74d94ca0538f3ac1383e3, type: 3}
-  m_PrefabInstance: {fileID: 5421718659277490477}
-  m_PrefabAsset: {fileID: 0}
 --- !u!95 &4840961904275803292
 Animator:
   serializedVersion: 5
@@ -10278,12 +10264,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 642e3ad01b7184d47b6dfdca9faa78aa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  call:
+  finishShooting:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: GunShoot, Assembly-CSharp
         m_MethodName: FinishPlayerShooting
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  finishSwitching:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 0}
+        m_TargetAssemblyTypeName: GunShoot, Assembly-CSharp
+        m_MethodName: FinishSwitching
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}

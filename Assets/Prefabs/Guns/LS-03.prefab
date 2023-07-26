@@ -29,7 +29,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 2520049890725987984}
-  m_RootOrder: 3
+  m_RootOrder: 6
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!96 &799741110
 TrailRenderer:
@@ -166,7 +166,7 @@ Transform:
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 2520049890725987984}
-  m_RootOrder: 2
+  m_RootOrder: 5
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &888279976762891581
 GameObject:
@@ -5079,13 +5079,8 @@ MonoBehaviour:
   gunSway: {fileID: 8443913671951262448}
   barrelTip: {fileID: 5171559190111546996}
   gunModelPos: {fileID: 2520049890725987984}
-  gunMesh:
-  - {fileID: 3653027167553715711}
-  - {fileID: 3089322173417802434}
-  - {fileID: 4977571146475201363}
   animator: {fileID: 3480114738045390724}
   muzzleFlash: {fileID: 6642252029112808261}
-  gunTrail: {fileID: 799741110}
   humSource: {fileID: 8180781009091033850}
   scopeMesh: {fileID: 0}
   rightArmTarget: {fileID: 1781781276}
@@ -10139,6 +10134,10 @@ PrefabInstance:
   m_Modification:
     m_TransformParent: {fileID: 7389205802140004488}
     m_Modifications:
+    - target: {fileID: -9062116833732159610, guid: 3961b4ca4078ae243a19cae004fe790e, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
     - target: {fileID: -8679921383154817045, guid: 3961b4ca4078ae243a19cae004fe790e, type: 3}
       propertyPath: m_RootOrder
       value: 0
@@ -10183,6 +10182,14 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -8469990867830010200, guid: 3961b4ca4078ae243a19cae004fe790e, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: -5262915250123679943, guid: 3961b4ca4078ae243a19cae004fe790e, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 3961b4ca4078ae243a19cae004fe790e, type: 3}
       propertyPath: m_Name
       value: LaserScrewdriver
@@ -10195,15 +10202,37 @@ PrefabInstance:
       propertyPath: m_Layer
       value: 6
       objectReference: {fileID: 0}
+    - target: {fileID: 3316992658331686828, guid: 3961b4ca4078ae243a19cae004fe790e, type: 3}
+      propertyPath: m_RootOrder
+      value: 4
+      objectReference: {fileID: 0}
+    - target: {fileID: 3982486219131330239, guid: 3961b4ca4078ae243a19cae004fe790e, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 7089723578995471773, guid: 3961b4ca4078ae243a19cae004fe790e, type: 3}
+      propertyPath: m_Layer
+      value: 6
+      objectReference: {fileID: 0}
     - target: {fileID: 8700725330082129686, guid: 3961b4ca4078ae243a19cae004fe790e, type: 3}
       propertyPath: m_Layer
       value: 6
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 3961b4ca4078ae243a19cae004fe790e, type: 3}
---- !u!1 &3004697730205113386 stripped
+--- !u!1 &1406780106669897282 stripped
 GameObject:
-  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 3961b4ca4078ae243a19cae004fe790e, type: 3}
+  m_CorrespondingSourceObject: {fileID: -5262915250123679943, guid: 3961b4ca4078ae243a19cae004fe790e, type: 3}
+  m_PrefabInstance: {fileID: 2698708939419246971}
+  m_PrefabAsset: {fileID: 0}
+--- !u!4 &3450822373500673938 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 761237878561521385, guid: 3961b4ca4078ae243a19cae004fe790e, type: 3}
+  m_PrefabInstance: {fileID: 2698708939419246971}
+  m_PrefabAsset: {fileID: 0}
+--- !u!1 &1312552342980624324 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 3982486219131330239, guid: 3961b4ca4078ae243a19cae004fe790e, type: 3}
   m_PrefabInstance: {fileID: 2698708939419246971}
   m_PrefabAsset: {fileID: 0}
 --- !u!4 &2520049890725987984 stripped
@@ -10211,21 +10240,80 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 3961b4ca4078ae243a19cae004fe790e, type: 3}
   m_PrefabInstance: {fileID: 2698708939419246971}
   m_PrefabAsset: {fileID: 0}
---- !u!23 &3653027167553715711 stripped
-MeshRenderer:
-  m_CorrespondingSourceObject: {fileID: -7511558181221131132, guid: 3961b4ca4078ae243a19cae004fe790e, type: 3}
+--- !u!1 &3004697730205113386 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 3961b4ca4078ae243a19cae004fe790e, type: 3}
   m_PrefabInstance: {fileID: 2698708939419246971}
   m_PrefabAsset: {fileID: 0}
---- !u!23 &3089322173417802434 stripped
-MeshRenderer:
-  m_CorrespondingSourceObject: {fileID: 1129496810705857465, guid: 3961b4ca4078ae243a19cae004fe790e, type: 3}
+--- !u!1 &2832581353991567101 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: -9062116833732159610, guid: 3961b4ca4078ae243a19cae004fe790e, type: 3}
   m_PrefabInstance: {fileID: 2698708939419246971}
   m_PrefabAsset: {fileID: 0}
---- !u!23 &4977571146475201363 stripped
-MeshRenderer:
-  m_CorrespondingSourceObject: {fileID: 6944656104360116776, guid: 3961b4ca4078ae243a19cae004fe790e, type: 3}
+--- !u!4 &2303157807031017778 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 4216997257557377097, guid: 3961b4ca4078ae243a19cae004fe790e, type: 3}
   m_PrefabInstance: {fileID: 2698708939419246971}
   m_PrefabAsset: {fileID: 0}
+--- !u!4 &1466664814213899287 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: -5680975800366938772, guid: 3961b4ca4078ae243a19cae004fe790e, type: 3}
+  m_PrefabInstance: {fileID: 2698708939419246971}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &7110359192724918182
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1312552342980624324}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 92d2118d98cccb7468cadd0aaf03b864, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  objectPos: {fileID: 3450822373500673938}
+  rotateSpeed: 1.1
+  rotate: 1
+  x: 0
+  y: 1
+  z: 0
+--- !u!114 &8024705590516730986
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1406780106669897282}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 92d2118d98cccb7468cadd0aaf03b864, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  objectPos: {fileID: 2303157807031017778}
+  rotateSpeed: -1
+  rotate: 1
+  x: 0
+  y: 1
+  z: 0
+--- !u!114 &7430820962808660486
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2832581353991567101}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 92d2118d98cccb7468cadd0aaf03b864, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  objectPos: {fileID: 1466664814213899287}
+  rotateSpeed: 1
+  rotate: 1
+  x: 0
+  y: 1
+  z: 0
 --- !u!95 &3480114738045390724
 Animator:
   serializedVersion: 5
@@ -10260,7 +10348,31 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   finishShooting:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 0}
+        m_TargetAssemblyTypeName: GunShoot, Assembly-CSharp
+        m_MethodName: FinishPlayerShooting
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
   finishSwitching:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 0}
+        m_TargetAssemblyTypeName: GunShoot, Assembly-CSharp
+        m_MethodName: FinishSwitching
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2

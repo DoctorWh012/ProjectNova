@@ -92,8 +92,8 @@ public class PlayerHealth : MonoBehaviour
 
         if (!state)
         {
-            gunShoot.DisableAllGunMeshes();
-            gunShoot.DisableAllMeleeMesh();
+            gunShoot.DisableAllGuns();
+            gunShoot.DisableAllMelees();
             return;
         }
     }

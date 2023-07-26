@@ -109,16 +109,8 @@ MonoBehaviour:
   gunSway: {fileID: 3429129780809882384}
   barrelTip: {fileID: 884309071257084000}
   gunModelPos: {fileID: 8865037875261232895}
-  gunMesh:
-  - {fileID: 7732078191825366416}
-  - {fileID: 4091172095284793002}
-  - {fileID: 2837752467230191803}
-  - {fileID: 1746648729600982660}
-  - {fileID: 9065667798019870309}
-  - {fileID: 9208590525811724801}
   animator: {fileID: 119105208424909170}
   muzzleFlash: {fileID: 97338299934130536}
-  gunTrail: {fileID: 8644144546999245452}
   humSource: {fileID: 8407401465648363184}
   scopeMesh: {fileID: 0}
   rightArmTarget: {fileID: 2040867549}
@@ -10302,19 +10294,9 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 9a5985c8af170834aab5a7b6e1ae376a, type: 3}
---- !u!4 &904144250409496130 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 8070560346956865366, guid: 9a5985c8af170834aab5a7b6e1ae376a, type: 3}
-  m_PrefabInstance: {fileID: 8974629005871886612}
-  m_PrefabAsset: {fileID: 0}
---- !u!1 &7003813801633850491 stripped
+--- !u!1 &8092159659628301381 stripped
 GameObject:
-  m_CorrespondingSourceObject: {fileID: -7080008205057387153, guid: 9a5985c8af170834aab5a7b6e1ae376a, type: 3}
-  m_PrefabInstance: {fileID: 8974629005871886612}
-  m_PrefabAsset: {fileID: 0}
---- !u!23 &7732078191825366416 stripped
-MeshRenderer:
-  m_CorrespondingSourceObject: {fileID: -7511558181221131132, guid: 9a5985c8af170834aab5a7b6e1ae376a, type: 3}
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 9a5985c8af170834aab5a7b6e1ae376a, type: 3}
   m_PrefabInstance: {fileID: 8974629005871886612}
   m_PrefabAsset: {fileID: 0}
 --- !u!4 &8865037875261232895 stripped
@@ -10322,34 +10304,14 @@ Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 9a5985c8af170834aab5a7b6e1ae376a, type: 3}
   m_PrefabInstance: {fileID: 8974629005871886612}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &8092159659628301381 stripped
+--- !u!1 &7003813801633850491 stripped
 GameObject:
-  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: 9a5985c8af170834aab5a7b6e1ae376a, type: 3}
+  m_CorrespondingSourceObject: {fileID: -7080008205057387153, guid: 9a5985c8af170834aab5a7b6e1ae376a, type: 3}
   m_PrefabInstance: {fileID: 8974629005871886612}
   m_PrefabAsset: {fileID: 0}
---- !u!23 &9065667798019870309 stripped
-MeshRenderer:
-  m_CorrespondingSourceObject: {fileID: 91181758095376241, guid: 9a5985c8af170834aab5a7b6e1ae376a, type: 3}
-  m_PrefabInstance: {fileID: 8974629005871886612}
-  m_PrefabAsset: {fileID: 0}
---- !u!23 &1746648729600982660 stripped
-MeshRenderer:
-  m_CorrespondingSourceObject: {fileID: -1967758284531576944, guid: 9a5985c8af170834aab5a7b6e1ae376a, type: 3}
-  m_PrefabInstance: {fileID: 8974629005871886612}
-  m_PrefabAsset: {fileID: 0}
---- !u!23 &2837752467230191803 stripped
-MeshRenderer:
-  m_CorrespondingSourceObject: {fileID: 6624215963641790895, guid: 9a5985c8af170834aab5a7b6e1ae376a, type: 3}
-  m_PrefabInstance: {fileID: 8974629005871886612}
-  m_PrefabAsset: {fileID: 0}
---- !u!23 &4091172095284793002 stripped
-MeshRenderer:
-  m_CorrespondingSourceObject: {fileID: -4302473800335097922, guid: 9a5985c8af170834aab5a7b6e1ae376a, type: 3}
-  m_PrefabInstance: {fileID: 8974629005871886612}
-  m_PrefabAsset: {fileID: 0}
---- !u!23 &9208590525811724801 stripped
-MeshRenderer:
-  m_CorrespondingSourceObject: {fileID: 236216658851537685, guid: 9a5985c8af170834aab5a7b6e1ae376a, type: 3}
+--- !u!4 &904144250409496130 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 8070560346956865366, guid: 9a5985c8af170834aab5a7b6e1ae376a, type: 3}
   m_PrefabInstance: {fileID: 8974629005871886612}
   m_PrefabAsset: {fileID: 0}
 --- !u!114 &288745402396528310
@@ -10402,12 +10364,27 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 642e3ad01b7184d47b6dfdca9faa78aa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  call:
+  finishShooting:
     m_PersistentCalls:
       m_Calls:
       - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: GunShoot, Assembly-CSharp
         m_MethodName: FinishPlayerShooting
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
+  finishSwitching:
+    m_PersistentCalls:
+      m_Calls:
+      - m_Target: {fileID: 0}
+        m_TargetAssemblyTypeName: GunShoot, Assembly-CSharp
+        m_MethodName: FinishSwitching
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}

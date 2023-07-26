@@ -58,7 +58,6 @@ public class MultiplayerGunShoot : MonoBehaviour
     private void GunSwitchInput(KeyCode keybind, int index)
     {
         if (Input.GetKeyDown(keybind)) SendSlotSwitch(index);
-
     }
 
     private void SendShootMessage(bool isShooting)
