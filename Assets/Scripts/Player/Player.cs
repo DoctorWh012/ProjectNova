@@ -23,10 +23,7 @@ public class Player : MonoBehaviour
     {
         DontDestroyOnLoad(gameObject);
     }
-    private void Start()
-    {
-        if (!GameManager.Singleton.networking) IsLocal = true;
-    }
+
     // --------CLIENT--------
     private void OnDestroy()
     {
@@ -41,12 +38,12 @@ public class Player : MonoBehaviour
         Player player;
         if (id == NetworkManager.Singleton.Client.Id)
         {
-            player = Instantiate(GameManager.Singleton.LocalPlayerPrefab, position, Quaternion.identity).GetComponent<Player>();
+            player = Instantiate(NetworkManager.Singleton.localPlayerPrefab, position, Quaternion.identity).GetComponent<Player>();
             player.IsLocal = true;
         }
         else
         {
-            player = Instantiate(GameManager.Singleton.PlayerPrefab, position, Quaternion.identity).GetComponent<Player>();
+            player = Instantiate(NetworkManager.Singleton.netPlayerPrefab, position, Quaternion.identity).GetComponent<Player>();
             player.IsLocal = false;
 
             player.rb.collisionDetectionMode = CollisionDetectionMode.Discrete;
@@ -70,14 +67,14 @@ public class Player : MonoBehaviour
         Player player;
         if (id == NetworkManager.Singleton.Client.Id)
         {
-            player = Instantiate(GameManager.Singleton.LocalPlayerPrefab, SpawnHandler.Instance.GetSpawnLocation(), Quaternion.identity).GetComponent<Player>();
+            player = Instantiate(NetworkManager.Singleton.localPlayerPrefab, SpawnHandler.Instance.GetSpawnLocation(), Quaternion.identity).GetComponent<Player>();
             player.IsLocal = true;
         }
 
         //Spawns NetPlayer if im the Host
         else
         {
-            player = Instantiate(GameManager.Singleton.PlayerPrefab, SpawnHandler.Instance.GetSpawnLocation(), Quaternion.identity).GetComponent<Player>();
+            player = Instantiate(NetworkManager.Singleton.netPlayerPrefab, SpawnHandler.Instance.GetSpawnLocation(), Quaternion.identity).GetComponent<Player>();
             player.IsLocal = false;
 
             player.rb.collisionDetectionMode = CollisionDetectionMode.Discrete;

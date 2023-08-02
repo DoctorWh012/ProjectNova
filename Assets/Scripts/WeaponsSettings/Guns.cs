@@ -25,6 +25,8 @@ public enum TracerType
 [CreateAssetMenu(fileName = "Guns", menuName = "RUSP/Guns", order = 0)]
 public class Guns : ScriptableObject
 {
+    public float tickFireRate { get; private set; }
+
     [Header("Weapon")]
     [SerializeField] public Gunslot slot;
     [SerializeField] public WeaponType weaponType;
@@ -52,6 +54,8 @@ public class Guns : ScriptableObject
     [SerializeField] public AudioClip weaponPickupSound;
     [SerializeField] public AudioClip weaponSpinSound;
     [SerializeField] public AudioClip weaponReloadSound;
+    [Range(0, 1)]
+    [SerializeField] public float weaponShootingSoundVolume = 1;
     [SerializeField] public AudioClip[] weaponShootingSounds;
 
     [Header("Tracer")]
@@ -72,6 +76,7 @@ public class Guns : ScriptableObject
     private void Awake()
     {
         currentAmmo = maxAmmo;
+        tickFireRate = (1f / fireRate) / (1f / NetworkManager.ServerTickRate);
     }
 
     public void CreateGaussianDistribution()

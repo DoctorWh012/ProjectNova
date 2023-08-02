@@ -19,18 +19,19 @@ MonoBehaviour:
   gunName: LA-07
   damage: 15
   range: 50
-  fireRate: 7.5
+  fireRate: 8.5
   reloadTime: 1
   reloadSpins: 2
   maxAmmo: 40
-  currentAmmo: 40
+  currentAmmo: 0
   knockbackForce: 0
   knockbackMaxHitDistance: 0
   weaponHum: {fileID: 0}
-  weaponPickupSound: {fileID: 0}
-  weaponReloadSound: {fileID: 0}
-  weaponSpinSound: {fileID: 0}
-  weaponShootingSounds: []
+  weaponPickupSound: {fileID: 8300000, guid: d5569ed4a10935d46be5ad4b9f4da396, type: 3}
+  weaponSpinSound: {fileID: 8300000, guid: 2bcd552318991af4f91eac08804a20a4, type: 3}
+  weaponReloadSound: {fileID: 8300000, guid: d3e77d5d17a857c409a0bdda6fd9cf06, type: 3}
+  weaponShootingSounds:
+  - {fileID: 8300000, guid: fed2480535db54a94b619c2e179c9866, type: 3}
   tracerType: 0
   tracerLasts: 0.076
   canAim: 0

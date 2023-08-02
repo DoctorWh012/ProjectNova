@@ -17,8 +17,6 @@ MonoBehaviour:
   gunModel: {fileID: 919132149155446097, guid: 54174e0dd33002742b8b71469a8da675, type: 3}
   gunIcon: {fileID: 21300000, guid: bb973c81cfdde10478b316559f57fe75, type: 3}
   gunName: K.N.I.F.E
-  canAim: 0
-  scopeFov: 0
   damage: 150
   range: 5
   fireRate: 2.5
@@ -26,9 +24,19 @@ MonoBehaviour:
   reloadSpins: 0
   maxAmmo: 0
   currentAmmo: 0
-  recoilForce: 0
-  maxRecoilDistance: 0
+  knockbackForce: 0
+  knockbackMaxHitDistance: 0
+  weaponHum: {fileID: 0}
+  weaponPickupSound: {fileID: 8300000, guid: d5569ed4a10935d46be5ad4b9f4da396, type: 3}
+  weaponSpinSound: {fileID: 0}
+  weaponReloadSound: {fileID: 0}
+  weaponShootingSounds:
+  - {fileID: 8300000, guid: a693a8d90253f430a97aa0907971aca5, type: 3}
+  tracerType: 0
+  tracerLasts: 0
+  canAim: 0
+  scopeFov: 0
   isShotgun: 0
   pellets: 0
   spread: 0
-  shotgunSpreadPatterns: []
+  spreadPatterns: []

@@ -1,17 +1,16 @@
 using Riptide;
 using UnityEngine;
 using System.Collections;
-using EZCameraShake;
 using DitzelGames.FastIK;
 
 /* WORK REMINDER
 
-    Turn ChangeToSlot into a coroutine | Fixed
     Network shooting
-    Does the weapons GameObject have to stay enabled? | Fixed
-    Fix weapon tilting (Check for weapon tilt when switch)
-    Should firerate be animation based or time based | Fixed
     Implement CameraShake
+    Implement Ik Aiming
+    Fix weapon tilting (Check for weapon tilt when switch)
+    Timestamp weaponSwitch if shot was before weapon switch make it count
+    If Reload on server reload on client
 
 */
 
@@ -58,12 +57,12 @@ public class GaussianDistribution
 
 public class GunShoot : MonoBehaviour
 {
-    public enum WeaponState { Active, Shooting, Reloading, Switching }
+    private enum ShootingState { Active, OnCooldown }
+    public enum WeaponState { Idle, Shooting, Reloading, Switching }
     public bool isWeaponTilted { get; private set; } = false;
 
-    [SerializeField] private WeaponState currentWeaponState = WeaponState.Active; // Serialized for Debugging
-
     [Header("Components")]
+    [Space(5)]
     [SerializeField] private Player player;
     [SerializeField] private ScriptablePlayer scriptablePlayer;
     [SerializeField] private BoxCollider[] bodyColliders;
@@ -75,20 +74,30 @@ public class GunShoot : MonoBehaviour
     [SerializeField] private Camera scopeCam;
 
     [Header("Weapons")]
-    [SerializeField] private Guns[] currentPlayerGuns; // Serialized for Debugging
-    [SerializeField] private int[] currentPlayerGunsIndexes; // Serialized for Debugging
+    [Space(5)]
     [SerializeField] public GunComponents[] gunsComponents;
     [SerializeField] public MeleeComponents[] meleesComponents;
 
     [Header("Audio")]
+    [Space(5)]
     [SerializeField] private AudioSource weaponAudioSource;
     [SerializeField] private AudioSource weaponHumAudioSource;
 
     [Header("Arms")]
+    [Space(5)]
     [SerializeField] private SkinnedMeshRenderer leftArmMesh;
     [SerializeField] private SkinnedMeshRenderer rightArmMesh;
     [SerializeField] private FastIKFabric leftArmIk;
     [SerializeField] private FastIKFabric rightArmIk;
+
+    [Header("Debugging Serialized")]
+    [Space(5)]
+    [SerializeField] private WeaponState currentWeaponState = WeaponState.Idle; // Serialized for Debugging
+    [SerializeField] private ShootingState currentShootingState = ShootingState.Active; // Serialized for Debugging
+    [SerializeField] private Guns[] currentPlayerGuns; // Serialized for Debugging
+    [SerializeField] private int[] currentPlayerGunsIndexes; // Serialized for Debugging
+    [SerializeField] private Guns activeGun; // Serialized for Debugging
+    [SerializeField] private int _ammunition; // Serialized For Debugging
 
     // Shooting Cache
     Vector3 dirSpread;
@@ -98,17 +107,25 @@ public class GunShoot : MonoBehaviour
     private RaycastHit[] filterRayHits;
     private TrailRenderer tracer;
     private ParticleSystem hitParticle;
+    private float damageMultiplier;
+    private int activeGunSlot;
+
+    private ushort lastShotTick = 0;
+    private ushort lastSlotChangeTick = 0;
+    private ushort lastReloadTick = 0;
 
     private int playerLayer;
     private int NetPlayerLayer;
+
     private IEnumerator tiltWeaponCoroutine;
     private IEnumerator reloadCoroutine;
+
     private GunComponents activeGunComponents;
     private MeleeComponents activeMeleeComponents;
+
     private Animator animator;
     private Transform barrelTip;
-    private float damageMultiplier;
-    private int _ammunition;
+
     private int ammunition
     {
         get { return _ammunition; }
@@ -118,11 +135,6 @@ public class GunShoot : MonoBehaviour
             if (player.IsLocal) GameCanvas.Instance.UpdateAmmunition(ammunition, activeGun.maxAmmo);
         }
     }
-    private float nextTimeToFire = 0f;
-    private bool isWaitingForAction;
-    public Guns activeGun;
-    private int activeGunSlot;
-    private ushort lastShotTick;
 
     private void Awake()
     {
@@ -144,65 +156,110 @@ public class GunShoot : MonoBehaviour
         Player.playerJoinedServer += SendWeaponSync;
     }
 
+    private void Update()
+    {
+        if (player.IsLocal) GetInput();
+    }
+
+    private void GetInput()
+    {
+        if (Input.GetKey(Keybinds.fireBtn)) FireTick(NetworkManager.Singleton.serverTick);
+
+        GunSwitchInput(Keybinds.primarySlotKey, 0);
+        GunSwitchInput(Keybinds.secondarySlotKey, 1);
+        GunSwitchInput(Keybinds.tertiarySlotKey, 2);
+
+        if (Input.GetKeyDown(Keybinds.reloadKey)) StartGunReload(NetworkManager.Singleton.serverTick);
+    }
+
+    private void GunSwitchInput(KeyCode keybind, int index)
+    {
+        if (Input.GetKeyDown(keybind)) StartSlotSwitch(index, NetworkManager.Singleton.serverTick);
+
+    }
+
     public void SwitchWeaponState(WeaponState desiredState)
     {
         currentWeaponState = desiredState;
     }
 
-    #region Shooting
-    public void HandleClientInput(bool shooting, ushort tick)
+    private bool GetShootingState(ushort tick, bool compensatingForSwitch)
     {
-        if (!shooting) return;
+        if (ammunition <= 0 && activeGun.weaponType != WeaponType.melee) return false;
+
+        if (tick - activeGun.tickFireRate < lastShotTick) return false;
+
+        if (!compensatingForSwitch && currentWeaponState == WeaponState.Switching) { print("<color=red> Unable to shoot cause it's switching </color>"); return false; }
+        else if (compensatingForSwitch) { print("<color=green> Passed because of compensation </color>"); }
+
+        if (currentWeaponState == WeaponState.Reloading) return false;
+
         lastShotTick = tick;
-        FireTick();
+        return true;
     }
 
-    public void FireTick()
+    #region Shooting
+    private void HandleClientFired(int slot, ushort tick)
     {
+        bool compensatingForSwitch = tick <= lastSlotChangeTick && activeGun != currentPlayerGuns[slot];
+
+        if (compensatingForSwitch) activeGun = currentPlayerGuns[slot];
+
+        FireTick(tick, compensatingForSwitch);
+
+        if (compensatingForSwitch) activeGun = currentPlayerGuns[activeGunSlot];
+    }
+
+    public void FireTick(ushort tick, bool compensatingForSwitch = false)
+    {
+        if (GetShootingState(tick, compensatingForSwitch)) currentShootingState = ShootingState.Active;
+        else currentShootingState = ShootingState.OnCooldown;
+
         if (activeGun.weaponType == WeaponType.rifle || activeGun.weaponType == WeaponType.shotgun) VerifyGunShoot();
         else if (activeGun.weaponType == WeaponType.melee) VerifyMeleeAttack();
     }
 
     private void VerifyGunShoot()
     {
-        if (currentWeaponState == WeaponState.Reloading || currentWeaponState == WeaponState.Switching || isWaitingForAction) return;
+        if (currentShootingState != ShootingState.Active) return;
 
-        if (ammunition > 0 && Time.time >= nextTimeToFire)
+        ammunition--;
+        SwitchWeaponState(WeaponState.Shooting);
+
+        if (!player.IsLocal && NetworkManager.Singleton.Server.IsRunning) NetworkManager.Singleton.SetAllPlayersPositionsTo(lastShotTick, player.Id);
+
+        switch (activeGun.weaponType)
         {
-            nextTimeToFire = Time.time + 1f / activeGun.fireRate;
-            ammunition--;
-            SwitchWeaponState(WeaponState.Shooting);
+            case WeaponType.rifle:
+                Shoot();
+                break;
 
-            if (!player.IsLocal && NetworkManager.Singleton.Server.IsRunning) GameManager.Singleton.SetAllPlayersPositionsTo(lastShotTick, player.Id);
-            switch (activeGun.weaponType)
-            {
-                case WeaponType.rifle:
-                    Shoot();
-                    break;
-
-                case WeaponType.shotgun:
-                    ShotgunShoot();
-                    break;
-            }
-            if (!player.IsLocal && NetworkManager.Singleton.Server.IsRunning) GameManager.Singleton.ResetPlayersPositions(player.Id);
+            case WeaponType.shotgun:
+                ShotgunShoot();
+                break;
         }
+
+        if (!player.IsLocal && NetworkManager.Singleton.Server.IsRunning) NetworkManager.Singleton.ResetPlayersPositions(player.Id);
+
+        if (NetworkManager.Singleton.Server.IsRunning) SendPlayerFire();
+        else if (player.IsLocal) SendShootMessage();
     }
 
     private void VerifyMeleeAttack()
     {
-        if (currentWeaponState == WeaponState.Reloading || currentWeaponState == WeaponState.Switching || isWaitingForAction) return;
+        if (currentShootingState != ShootingState.Active) return;
 
-        if (Time.time >= nextTimeToFire)
-        {
-            nextTimeToFire = Time.time + 1f / activeGun.fireRate;
-            SwitchWeaponState(WeaponState.Shooting);
+        SwitchWeaponState(WeaponState.Shooting);
 
-            if (!player.IsLocal && NetworkManager.Singleton.Server.IsRunning) GameManager.Singleton.SetAllPlayersPositionsTo(lastShotTick, player.Id);
+        if (!player.IsLocal && NetworkManager.Singleton.Server.IsRunning) NetworkManager.Singleton.SetAllPlayersPositionsTo(lastShotTick, player.Id);
 
-            AttackMelee();
+        AttackMelee();
 
-            if (!player.IsLocal && NetworkManager.Singleton.Server.IsRunning) GameManager.Singleton.ResetPlayersPositions(player.Id);
-        }
+        if (!player.IsLocal && NetworkManager.Singleton.Server.IsRunning) NetworkManager.Singleton.ResetPlayersPositions(player.Id);
+
+        if (NetworkManager.Singleton.Server.IsRunning) SendPlayerFire();
+        else if (player.IsLocal) SendShootMessage();
+
     }
 
     private void Shoot()
@@ -220,6 +277,7 @@ public class GunShoot : MonoBehaviour
 
         ShootingEffects(true, false);
         ApplyKnockback();
+
     }
 
     private void ShotgunShoot()
@@ -297,7 +355,8 @@ public class GunShoot : MonoBehaviour
         animator.Play("Recoil");
         if (activeGun.weaponShootingSounds.Length != 0)
         {
-            weaponAudioSource.PlayOneShot(activeGun.weaponShootingSounds[Random.Range(0, activeGun.weaponShootingSounds.Length)]);
+            weaponAudioSource.pitch = Utilities.GetRandomPitch(-0.1f, 0.02f);
+            weaponAudioSource.PlayOneShot(activeGun.weaponShootingSounds[Random.Range(0, activeGun.weaponShootingSounds.Length)], activeGun.weaponShootingSoundVolume);
         }
         activeGunComponents.muzzleFlash.Play();
         ShootingTracer(didHit, hasSpread);
@@ -354,7 +413,6 @@ public class GunShoot : MonoBehaviour
             if (col.CompareTag(scriptablePlayer.bodyPartHitTagMultipliers[i].bodyPartTag))
             {
                 damageMultiplier = scriptablePlayer.bodyPartHitTagMultipliers[i].bodyPartMultiplier;
-                print($"Hit {col.gameObject.name} of tag {col.tag} multiplier set to {damageMultiplier}");
                 return true;
             }
         }
@@ -387,14 +445,14 @@ public class GunShoot : MonoBehaviour
     public void FinishPlayerShooting()
     {
         CheckIfReloadIsNeeded();
-        SwitchWeaponState(WeaponState.Active);
+        SwitchWeaponState(WeaponState.Idle);
     }
     #endregion
 
     #region Reloading
     public void CheckIfReloadIsNeeded()
     {
-        if (ammunition <= 0 && activeGun.weaponType != WeaponType.melee) StartGunReload();
+        if (ammunition <= 0 && activeGun.weaponType != WeaponType.melee) StartGunReload(NetworkManager.Singleton.serverTick);
     }
 
     public void ReplenishAmmo()
@@ -412,10 +470,20 @@ public class GunShoot : MonoBehaviour
         ammunition = activeGun.maxAmmo;
     }
 
-    public void StartGunReload()
+    private void HandleClientReload(int slot, ushort tick)
+    {
+        if (tick < lastReloadTick || activeGunSlot != slot) { print("<color=red> Unable to reload cause Reload Message is too old or was trying to reload a different Gun"); return; }
+        StartGunReload(tick);
+    }
+
+    public void StartGunReload(ushort tick)
     {
         if (ammunition == activeGun.maxAmmo || currentWeaponState == WeaponState.Reloading) return;
-        isWaitingForAction = true;
+
+        lastReloadTick = tick;
+        if (NetworkManager.Singleton.Server.IsRunning) SendReloading();
+        else if (player.IsLocal) SendReload();
+
         reloadCoroutine = RotateReloadGun(activeGun.reloadSpins, activeGun.reloadTime);
         StartCoroutine(reloadCoroutine);
     }
@@ -424,9 +492,10 @@ public class GunShoot : MonoBehaviour
     {
         StopCoroutine(reloadCoroutine);
         animator.enabled = true;
-        SwitchWeaponState(WeaponState.Active);
+        weaponAudioSource.loop = false;
+        weaponAudioSource.Stop();
+        SwitchWeaponState(WeaponState.Idle);
     }
-
     #endregion
 
     #region GunSwitching
@@ -439,30 +508,67 @@ public class GunShoot : MonoBehaviour
             if (currentPlayerGuns[i]) GameCanvas.Instance.ChangeGunSlotIcon(((int)currentPlayerGuns[i].slot), currentPlayerGuns[i].gunIcon, currentPlayerGuns[i].gunName);
         }
 
-        StartSlotSwitch(0);
+        StartSlotSwitch(0, NetworkManager.Singleton.serverTick);
     }
 
     private void PickSyncedWeapons(int primaryIndex, int secondaryIndex, int meleeIndex)
     {
         currentPlayerGuns[0] = gunsComponents[primaryIndex].gunSettings;
         currentPlayerGunsIndexes[0] = primaryIndex;
+
         currentPlayerGuns[1] = gunsComponents[secondaryIndex].gunSettings;
         currentPlayerGunsIndexes[1] = secondaryIndex;
+
         currentPlayerGuns[2] = meleesComponents[meleeIndex].meleeSettings;
         currentPlayerGunsIndexes[2] = meleeIndex;
     }
 
-    public void StartSlotSwitch(int slotIndex)
+    private void HandleServerWeaponSwitch(ushort tick, ushort ammo, int slot)
     {
-        if (!currentPlayerGuns[slotIndex] || currentPlayerGuns[slotIndex] == activeGun) { print($"<color=red> NO WEAPON ON SLOT OR TRYING TO SWITCH TO SAME SLOT {!currentPlayerGuns[slotIndex]} {currentPlayerGuns[slotIndex] == activeGun} </color>"); return; }
-        if (currentWeaponState == WeaponState.Reloading) StopReload();
-        isWaitingForAction = true;
-        StartCoroutine(SlotSwitch(slotIndex));
+        if (tick < lastSlotChangeTick) { print("<color=red> Returned From Switch Cause Message Is Too Old </color>"); return; }
+        StartSlotSwitch(slot, tick);
+        activeGun.currentAmmo = ammo;
     }
+
+    private void HandleClientWeaponSwitch(ushort tick, int slot)
+    {
+        if (tick < lastSlotChangeTick) { print("<color=red> Returned From Switch Cause Message Is Too Old </color>"); return; }
+        StartSlotSwitch(slot, tick);
+        // activeGun.currentAmmo = ammo;
+    }
+
+    public void StartSlotSwitch(int slotIndex, ushort tick)
+    {
+        if (!currentPlayerGuns[slotIndex] || currentPlayerGuns[slotIndex] == activeGun) return;
+        if (currentWeaponState == WeaponState.Reloading) StopReload();
+
+        lastSlotChangeTick = tick;
+        if (NetworkManager.Singleton.Server.IsRunning) SendGunSwitch(slotIndex);
+        else if (player.IsLocal) SendSlotSwitch(slotIndex);
+
+        SlotSwitch(slotIndex);
+    }
+
+    private void SlotSwitch(int slotIndex)
+    {
+        SwitchWeaponState(WeaponState.Switching);
+        activeGunSlot = slotIndex;
+
+        // This is saving the ammunition before changing guns
+        if (activeGun) activeGun.currentAmmo = ammunition;
+
+        // Changes guns
+        activeGun = currentPlayerGuns[slotIndex];
+        ammunition = activeGun.currentAmmo;
+
+        if (activeGun.weaponType != WeaponType.melee) SwitchGun(currentPlayerGunsIndexes[slotIndex]);
+        else SwitchMelee(currentPlayerGunsIndexes[slotIndex]);
+        animator.Play("Raise");
+    }
+
 
     public void SwitchGun(int index)
     {
-        print("Gets here");
         activeGunComponents = gunsComponents[index];
 
         barrelTip = gunsComponents[index].barrelTip;
@@ -481,27 +587,27 @@ public class GunShoot : MonoBehaviour
         EnableActiveWeapon(WeaponType.melee);
     }
 
-    public void PickUpGun(int slot, int pickedGunIndex)
+    public void PickUpGun(int slot, int pickedGunIndex, ushort tick)
     {
-        print($"Trying to switch the weapon on slot {slot} to weapon of id {pickedGunIndex} which is {gunsComponents[pickedGunIndex].gunSettings.name}");
         Guns pickedGun = gunsComponents[pickedGunIndex].gunSettings;
         currentPlayerGuns[slot] = pickedGun;
         currentPlayerGunsIndexes[slot] = pickedGunIndex;
-        StartSlotSwitch(((int)pickedGun.slot));
+        StartSlotSwitch(slot, tick);
         ReplenishAmmo();
+        if (NetworkManager.Singleton.Server.IsRunning) SendPickedUpGun(slot, pickedGunIndex);
     }
 
-    public void PickUpMelee(int pickedGunIndex)
+    public void PickUpMelee(int pickedGunIndex, ushort tick)
     {
         Guns pickedMelee = meleesComponents[pickedGunIndex].meleeSettings;
         currentPlayerGuns[2] = pickedMelee;
         currentPlayerGunsIndexes[2] = pickedGunIndex;
-        StartSlotSwitch(2);
+        StartSlotSwitch(2, tick);
     }
 
     public void FinishSwitching()
     {
-        SwitchWeaponState(WeaponState.Active);
+        SwitchWeaponState(WeaponState.Idle);
         CheckIfReloadIsNeeded();
     }
     #endregion
@@ -533,7 +639,11 @@ public class GunShoot : MonoBehaviour
         }
         else weaponHumAudioSource.Stop();
 
-        if (activeGun.weaponPickupSound) weaponAudioSource.PlayOneShot(activeGun.weaponPickupSound);
+        if (activeGun.weaponPickupSound)
+        {
+            weaponAudioSource.pitch = Utilities.GetRandomPitch(0.1f, 0.05f);
+            weaponAudioSource.PlayOneShot(activeGun.weaponPickupSound);
+        }
 
         if (weaponType != WeaponType.melee)
         {
@@ -594,73 +704,103 @@ public class GunShoot : MonoBehaviour
         }
     }
 
+
+    #region ServerSenders
+    private void SendPlayerFire()
+    {
+        Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.playerFired);
+        message.AddUShort(player.Id);
+        message.AddByte((byte)activeGunSlot);
+        message.AddUShort(lastShotTick);
+        NetworkManager.Singleton.Server.SendToAll(message);
+    }
+
     private void SendGunSwitch(int gunSlot)
     {
-        Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.gunChanged);
+        Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.gunChanged);
         message.AddUShort(player.Id);
+        message.AddUShort(lastSlotChangeTick);
+        message.AddUShort((ushort)ammunition);
         message.AddByte((byte)gunSlot);
+        NetworkManager.Singleton.Server.SendToAll(message);
+    }
+
+    private void SendReloading()
+    {
+        Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.gunReloading);
+        message.AddUShort(player.Id);
+        message.AddByte((byte)activeGunSlot);
+        message.AddUShort(lastReloadTick);
         NetworkManager.Singleton.Server.SendToAll(message);
     }
 
     public void SendPickedUpGun(int slot, int pickedGunIndex)
     {
-        Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.pickedGun);
+        Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.pickedGun);
         message.AddUShort(player.Id);
         message.AddByte((byte)slot);
         message.AddByte((byte)pickedGunIndex);
+        message.AddUShort(lastSlotChangeTick);
         NetworkManager.Singleton.Server.SendToAll(message);
     }
 
     private void SendWeaponSync(ushort id)
     {
         if (!player) return;
-        print($"Sending the guns of {player.name} to {id}");
-        Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.weaponSync);
+        Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.weaponSync);
         message.AddUShort(player.Id);
         message.AddByte((byte)currentPlayerGunsIndexes[0]);
         message.AddByte((byte)currentPlayerGunsIndexes[1]);
         message.AddByte((byte)currentPlayerGunsIndexes[2]);
 
         message.AddByte((byte)activeGunSlot);
+        message.AddUShort(lastSlotChangeTick);
         NetworkManager.Singleton.Server.Send(message, id);
     }
+    #endregion
 
-    [MessageHandler((ushort)ClientToServerId.gunInput)]
-    private static void GunInput(ushort fromClientId, Message message)
+    #region ClientSenders
+    private void SendShootMessage()
+    {
+        Message message = Message.Create(MessageSendMode.Unreliable, ClientToServerId.fireInput);
+        message.AddByte((byte)activeGunSlot);
+        message.AddUShort(lastShotTick);
+        NetworkManager.Singleton.Client.Send(message);
+    }
+
+    private void SendReload()
+    {
+        Message message = Message.Create(MessageSendMode.Unreliable, ClientToServerId.gunReload);
+        message.AddByte((byte)activeGunSlot);
+        message.AddUShort(lastReloadTick);
+        NetworkManager.Singleton.Client.Send(message);
+    }
+
+    public void SendSlotSwitch(int index)
+    {
+        Message message = Message.Create(MessageSendMode.Unreliable, ClientToServerId.slotChange);
+        message.AddUShort(lastSlotChangeTick);
+        message.AddByte((byte)index);
+        NetworkManager.Singleton.Client.Send(message);
+    }
+    #endregion
+
+    #region ClientToServerHandlers
+    [MessageHandler((ushort)ClientToServerId.fireInput)]
+    private static void FireInput(ushort fromClientId, Message message)
     {
         if (Player.list.TryGetValue(fromClientId, out Player player))
         {
-            player.gunShoot.HandleClientInput(message.GetBool(), message.GetUShort());
+            player.gunShoot.HandleClientFired(message.GetByte(), message.GetUShort());
         }
     }
 
     [MessageHandler((ushort)ClientToServerId.slotChange)]
-    private static void ChangeWeaponSetting(ushort fromClientId, Message message)
+    private static void ChangeSlot(ushort fromClientId, Message message)
     {
         if (Player.list.TryGetValue(fromClientId, out Player player))
         {
-            player.gunShoot.StartSlotSwitch(message.GetInt());
-        }
-    }
-
-    [MessageHandler((ushort)ServerToClientId.pickedGun)]
-    private static void PickGun(Message message)
-    {
-        if (Player.list.TryGetValue(message.GetUShort(), out Player player))
-        {
-            player.gunShoot.PickUpGun((int)message.GetByte(), (int)message.GetByte());
-        }
-    }
-
-    [MessageHandler((ushort)ServerToClientId.weaponSync)]
-    private static void SyncWeapons(Message message)
-    {
-        print("Got the sync");
-        if (Player.list.TryGetValue(message.GetUShort(), out Player player))
-        {
-            print("Player on list");
-            player.gunShoot.PickSyncedWeapons((int)message.GetByte(), (int)message.GetByte(), (int)message.GetByte());
-            player.gunShoot.StartSlotSwitch((int)message.GetByte());
+            player.gunShoot.HandleClientWeaponSwitch(message.GetUShort(), (int)message.GetByte());
         }
     }
 
@@ -669,19 +809,63 @@ public class GunShoot : MonoBehaviour
     {
         if (Player.list.TryGetValue(fromClientId, out Player player))
         {
-            player.gunShoot.StartGunReload();
+            player.gunShoot.HandleClientReload((int)message.GetByte(), message.GetUShort());
+        }
+    }
+    #endregion
+
+    #region ServerToClientHandlers
+    [MessageHandler((ushort)ServerToClientId.playerFired)]
+    private static void PlayerFired(Message message)
+    {
+        if (NetworkManager.Singleton.Server.IsRunning) return;
+        if (Player.list.TryGetValue(message.GetUShort(), out Player player))
+        {
+            if (player.IsLocal) return;
+            player.gunShoot.HandleClientFired((int)message.GetByte(), message.GetUShort());
+        }
+    }
+
+    [MessageHandler((ushort)ServerToClientId.pickedGun)]
+    private static void PickGun(Message message)
+    {
+        if (NetworkManager.Singleton.Server.IsRunning) return;
+        if (Player.list.TryGetValue(message.GetUShort(), out Player player))
+        {
+            player.gunShoot.PickUpGun((int)message.GetByte(), (int)message.GetByte(), message.GetUShort());
+        }
+    }
+
+    [MessageHandler((ushort)ServerToClientId.gunReloading)]
+    private static void PlayerGunReloading(Message message)
+    {
+        if (NetworkManager.Singleton.Server.IsRunning) return;
+        if (Player.list.TryGetValue(message.GetUShort(), out Player player))
+        {
+            player.gunShoot.HandleClientReload((int)message.GetByte(), message.GetUShort());
+        }
+    }
+
+    [MessageHandler((ushort)ServerToClientId.weaponSync)]
+    private static void SyncWeapons(Message message)
+    {
+        if (Player.list.TryGetValue(message.GetUShort(), out Player player))
+        {
+            player.gunShoot.PickSyncedWeapons((int)message.GetByte(), (int)message.GetByte(), (int)message.GetByte());
+            player.gunShoot.StartSlotSwitch((int)message.GetByte(), message.GetUShort());
         }
     }
 
     [MessageHandler((ushort)ServerToClientId.gunChanged)]
     private static void ChangeGun(Message message)
     {
+        if (NetworkManager.Singleton.Server.IsRunning) return;
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
-            if (NetworkManager.Singleton.Server.IsRunning && player.IsLocal) return;
-            player.gunShoot.StartSlotSwitch(message.GetByte());
+            player.gunShoot.HandleServerWeaponSwitch(message.GetUShort(), message.GetUShort(), (int)message.GetByte());
         }
     }
+    #endregion
 
     public void TiltGun(float angle, float duration)
     {
@@ -690,35 +874,11 @@ public class GunShoot : MonoBehaviour
         StartCoroutine(tiltWeaponCoroutine);
     }
 
-    private IEnumerator SlotSwitch(int slotIndex)
-    {
-        while (currentWeaponState != WeaponState.Active) yield return null;
-        print("Got here");
-        isWaitingForAction = false;
-
-        SwitchWeaponState(WeaponState.Switching);
-        activeGunSlot = slotIndex;
-
-        // This is saving the ammunition before changing guns
-        if (activeGun) activeGun.currentAmmo = ammunition;
-
-        // Changes guns
-        activeGun = currentPlayerGuns[slotIndex];
-        ammunition = activeGun.currentAmmo;
-
-        if (activeGun.weaponType != WeaponType.melee) SwitchGun(currentPlayerGunsIndexes[slotIndex]);
-        else SwitchMelee(currentPlayerGunsIndexes[slotIndex]);
-        animator.Play("Raise");
-        print("Got in here");
-        if (NetworkManager.Singleton.Server.IsRunning) SendGunSwitch(slotIndex);
-    }
-
     // FUCK QUATERNIONS
     public IEnumerator RotateReloadGun(int times, float duration)
     {
-        while (currentWeaponState != WeaponState.Active) yield return null;
+        while (currentWeaponState != WeaponState.Idle) yield return null;
         SwitchWeaponState(WeaponState.Reloading);
-        isWaitingForAction = false;
 
         if (activeGun.weaponSpinSound)
         {
@@ -749,10 +909,14 @@ public class GunShoot : MonoBehaviour
         {
             weaponAudioSource.Stop();
             weaponAudioSource.loop = false;
-            if (activeGun.weaponReloadSound) weaponAudioSource.PlayOneShot(activeGun.weaponReloadSound);
+            if (activeGun.weaponReloadSound)
+            {
+                weaponAudioSource.pitch = Utilities.GetRandomPitch(0.1f, 0.05f);
+                weaponAudioSource.PlayOneShot(activeGun.weaponReloadSound);
+            }
         }
 
-        SwitchWeaponState(WeaponState.Active);
+        SwitchWeaponState(WeaponState.Idle);
     }
 
     private IEnumerator TiltWeapon(float tiltAngle, float duration)

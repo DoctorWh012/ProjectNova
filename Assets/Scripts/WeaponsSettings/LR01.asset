@@ -19,18 +19,20 @@ MonoBehaviour:
   gunName: LR-01
   damage: 40
   range: 100
-  fireRate: 0.8
+  fireRate: 1.1
   reloadTime: 1.5
   reloadSpins: 3
   maxAmmo: 6
   currentAmmo: 6
-  recoilForce: 0
-  maxRecoilDistance: 0
-  weaponHum: {fileID: 0}
-  weaponPickupSound: {fileID: 0}
-  weaponReloadSound: {fileID: 0}
-  weaponSpinSound: {fileID: 0}
-  weaponShootingSounds: []
+  knockbackForce: 0
+  knockbackMaxHitDistance: 0
+  weaponHum: {fileID: 8300000, guid: 16093b3e0a27c5b4aa0106bafa9111f7, type: 3}
+  weaponPickupSound: {fileID: 8300000, guid: d5569ed4a10935d46be5ad4b9f4da396, type: 3}
+  weaponSpinSound: {fileID: 8300000, guid: 2e203367ed843bc498353185d0d7a3b6, type: 3}
+  weaponReloadSound: {fileID: 8300000, guid: 3ef8947694944ee4b85d3d47d558ed7c, type: 3}
+  weaponShootingSounds:
+  - {fileID: 8300000, guid: 8c814eae2d81daf44a02089ba615bcc7, type: 3}
+  - {fileID: 8300000, guid: 406daddd33f7fca4fa978fcdbe63dedc, type: 3}
   tracerType: 0
   tracerLasts: 0.1
   canAim: 0

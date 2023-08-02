@@ -24,13 +24,14 @@ MonoBehaviour:
   reloadSpins: 3
   maxAmmo: 5
   currentAmmo: 5
-  recoilForce: 10
-  maxRecoilDistance: 6
+  knockbackForce: 0
+  knockbackMaxHitDistance: 0
   weaponHum: {fileID: 0}
-  weaponPickupSound: {fileID: 0}
-  weaponReloadSound: {fileID: 0}
-  weaponSpinSound: {fileID: 0}
-  weaponShootingSounds: []
+  weaponPickupSound: {fileID: 8300000, guid: d5569ed4a10935d46be5ad4b9f4da396, type: 3}
+  weaponSpinSound: {fileID: 8300000, guid: 2bcd552318991af4f91eac08804a20a4, type: 3}
+  weaponReloadSound: {fileID: 8300000, guid: d3e77d5d17a857c409a0bdda6fd9cf06, type: 3}
+  weaponShootingSounds:
+  - {fileID: 8300000, guid: f010bba1f7e484ccc9b2798c81555020, type: 3}
   tracerType: 0
   tracerLasts: 0.1
   canAim: 0

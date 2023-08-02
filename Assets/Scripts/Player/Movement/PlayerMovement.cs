@@ -59,7 +59,7 @@ public class PlayerMovement : MonoBehaviour
     private RaycastHit rightWallHit;
 
     // Lag Compensation
-    public SimulationState[] playerSimulationState = new SimulationState[GameManager.lagCompensationCacheSize];
+    public SimulationState[] playerSimulationState = new SimulationState[NetworkManager.lagCompensationCacheSize];
     private Vector3 savedPlayerPos;
 
     private void Awake()
@@ -77,9 +77,9 @@ public class PlayerMovement : MonoBehaviour
         GetInput();
 
         timer += Time.deltaTime;
-        while (timer >= GameManager.Singleton.minTimeBetweenTicks)
+        while (timer >= NetworkManager.Singleton.minTimeBetweenTicks)
         {
-            timer -= GameManager.Singleton.minTimeBetweenTicks;
+            timer -= NetworkManager.Singleton.minTimeBetweenTicks;
 
             if (movementFreeze) return;
             SpeedCap();
@@ -140,15 +140,15 @@ public class PlayerMovement : MonoBehaviour
         {
             position = rb.position,
             rotation = orientation.forward,
-            currentTick = GameManager.Singleton.serverTick
+            currentTick = NetworkManager.Singleton.serverTick
         };
     }
 
     public void SetPlayerPositionToTick(ushort tick)
     {
-        print($"Before SetPlayerPos call character was at {playerCharacter.position} on tick {GameManager.Singleton.serverTick}");
+        // print($"Before SetPlayerPos call character was at {playerCharacter.position} on tick {NetworkManager.Singleton.serverTick}");
         savedPlayerPos = playerCharacter.position;
-        int cacheIndex = tick % GameManager.lagCompensationCacheSize;
+        int cacheIndex = tick % NetworkManager.lagCompensationCacheSize;
 
         if (playerSimulationState[cacheIndex].currentTick != tick) return;
 
@@ -157,7 +157,7 @@ public class PlayerMovement : MonoBehaviour
 
     public void ResetPlayerPosition()
     {
-        print($"Reset Character pos to {playerCharacter.position} on tick {GameManager.Singleton.serverTick}");
+        // print($"Reset Character pos to {playerCharacter.position} on tick {NetworkManager.Singleton.serverTick}");
         playerCharacter.position = savedPlayerPos;
     }
 

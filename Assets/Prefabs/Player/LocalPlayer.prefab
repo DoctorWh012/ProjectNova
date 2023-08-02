@@ -4964,7 +4964,7 @@ AudioSource:
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
-  m_PlayOnAwake: 1
+  m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1
   Loop: 0
@@ -5009,7 +5009,7 @@ AudioSource:
     m_Curve:
     - serializedVersion: 3
       time: 0
-      value: 0
+      value: 1
       inSlope: 0
       outSlope: 0
       tangentMode: 0
@@ -5122,7 +5122,7 @@ AudioSource:
   serializedVersion: 4
   OutputAudioMixerGroup: {fileID: 0}
   m_audioClip: {fileID: 0}
-  m_PlayOnAwake: 1
+  m_PlayOnAwake: 0
   m_Volume: 1
   m_Pitch: 1
   Loop: 1
@@ -5167,7 +5167,7 @@ AudioSource:
     m_Curve:
     - serializedVersion: 3
       time: 0
-      value: 0
+      value: 1
       inSlope: 0
       outSlope: 0
       tangentMode: 0
@@ -10673,7 +10673,6 @@ GameObject:
   - component: {fileID: 8618157828869544815}
   - component: {fileID: 8518563724374079886}
   - component: {fileID: 1283521944957988}
-  - component: {fileID: 6710085608534752756}
   - component: {fileID: 2072621626698893412}
   - component: {fileID: 1504468562842230107}
   - component: {fileID: 6099368438867923500}
@@ -10778,25 +10777,6 @@ MonoBehaviour:
   speedLineStartAtSpeed: 13
   speedLineMultiplier: 5
   speedLineSpoolTime: 3
---- !u!114 &6710085608534752756
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 8238085930288991305}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f1f374686da406549a18e23151baf9f5, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  gunShoot: {fileID: 2072621626698893412}
-  shootBTN: 323
-  aimBTN: 324
-  reloadKey: 114
-  primaryGun: 49
-  secondaryGun: 50
-  meleeWeapon: 51
 --- !u!114 &2072621626698893412
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10809,7 +10789,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 01f3815e3a673c4418796a043a0efc0d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  currentWeaponState: 0
   player: {fileID: 8618157828869544815}
   scriptablePlayer: {fileID: 11400000, guid: a8d9f6c64247f04478896be452c269cc, type: 2}
   bodyColliders:
@@ -10832,8 +10811,6 @@ MonoBehaviour:
   playerCam: {fileID: 5428018071057322716}
   headBobController: {fileID: 6099368438867923500}
   scopeCam: {fileID: 5379384302733877574}
-  currentPlayerGuns: []
-  currentPlayerGunsIndexes: 
   gunsComponents:
   - {fileID: 3503887481916180104}
   - {fileID: 8432123479632157058}
@@ -10854,7 +10831,12 @@ MonoBehaviour:
   rightArmMesh: {fileID: 1258530792757738903}
   leftArmIk: {fileID: 3011067708121174794}
   rightArmIk: {fileID: 2916692368251718361}
+  currentWeaponState: 0
+  currentShootingState: 0
+  currentPlayerGuns: []
+  currentPlayerGunsIndexes: 
   activeGun: {fileID: 0}
+  _ammunition: 0
 --- !u!114 &1504468562842230107
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10869,7 +10851,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   player: {fileID: 8618157828869544815}
   hurtEffect: {fileID: 211187170729216422}
-  multiplayerGunShoot: {fileID: 6710085608534752756}
   gunShoot: {fileID: 2072621626698893412}
   playerMovement: {fileID: 8518563724374079886}
   playerScore: {fileID: 9070208217927140071}
@@ -12364,7 +12345,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 884309070275094215, guid: 59cceba5e9f02084cbcd9174c33329f9, type: 3}
       propertyPath: m_LocalPosition.y
-      value: -0.49
+      value: -0.63
       objectReference: {fileID: 0}
     - target: {fileID: 884309070275094215, guid: 59cceba5e9f02084cbcd9174c33329f9, type: 3}
       propertyPath: m_LocalPosition.z

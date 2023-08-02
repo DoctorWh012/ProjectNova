@@ -11,31 +11,38 @@ public enum ServerToClientId : ushort
     serverTick = 1,
     playerMovement,
     playerSpawned,
+
+    playerFired,
+    gunChanged,
+    gunReloading,
+    pickedGun,
+    weaponSync,
+
+    healthChanged,
     playerDied,
     playerScore,
-    gunChanged,
-    healthChanged,
-    pickedGun,
+
     gunSpawned,
     gunDespawned,
+
     matchStart,
     matchOver,
-    weaponSync,
 }
 
 public enum ClientToServerId : ushort
 {
     name = 1,
     playerMovement,
-    gunInput,
+
+    fireInput,
     slotChange,
     gunReload,
 }
 
 public class NetworkManager : MonoBehaviour
+
 {
     private static NetworkManager _singleton;
-
     public static NetworkManager Singleton
     {
         get => _singleton;
@@ -55,11 +62,22 @@ public class NetworkManager : MonoBehaviour
         }
     }
 
-    public Client Client { get; private set; }
+    public const float ServerTickRate = 64f;
 
+    public float minTimeBetweenTicks { get; private set; }
+    public ushort serverTick { get; private set; }
+    public static int lagCompensationCacheSize { get; private set; } = 20; //64 ticks every 1000ms
+
+    public Client Client { get; private set; }
     public Server Server { get; private set; }
 
-    public const float ServerTickRate = 64f;
+
+    [Header("Prefabs")]
+    [SerializeField] public GameObject localPlayerPrefab;
+    [SerializeField] public GameObject netPlayerPrefab;
+    [SerializeField] public ParticleSystem playerHitPrefab;
+
+    [Header("Settings")]
     [SerializeField] public ushort maxClientCount;
 
     private float timer;
@@ -67,19 +85,26 @@ public class NetworkManager : MonoBehaviour
     private void Awake()
     {
         Singleton = this;
+        minTimeBetweenTicks = 1f / ServerTickRate;
         DontDestroyOnLoad(gameObject);
     }
 
     private void Start()
     {
-        if (!SteamManager.Initialized) { Debug.LogError("Steam is not initialized!"); Application.Quit(); return; }
+        if (!SteamManager.Initialized)
+        {
+            Debug.LogError("Steam is not initialized!");
+            Application.Quit(); return;
+        }
 
         SceneManager.sceneLoaded += SceneChangeDebug;
+
+        RiptideLogger.Initialize(Debug.Log, Debug.Log, Debug.LogWarning, Debug.LogError, false);
+
         SteamServer steamServer = new SteamServer();
         Server = new Server(steamServer);
         Server.ClientDisconnected += PlayerLeft;
 
-        RiptideLogger.Initialize(Debug.Log, Debug.Log, Debug.LogWarning, Debug.LogError, false);
         Client = new Client(new SteamClient(steamServer));
         Client.Connected += DidConnect;
         Client.ConnectionFailed += FailedToConnect;
@@ -90,11 +115,41 @@ public class NetworkManager : MonoBehaviour
     private void Update()
     {
         timer += Time.deltaTime;
-        while (timer >= GameManager.Singleton.minTimeBetweenTicks)
+        while (timer >= minTimeBetweenTicks)
         {
-            timer -= GameManager.Singleton.minTimeBetweenTicks;
-            if (Server.IsRunning) Server.Update();
+            timer -= minTimeBetweenTicks;
+            if (Server.IsRunning)
+            {
+                Server.Update();
+                serverTick++;
+                SendTick();
+
+                int cacheIndex = NetworkManager.Singleton.serverTick % lagCompensationCacheSize;
+
+                for (int i = 0; i < Player.list.Count; i++)
+                {
+                    foreach (Player player in Player.list.Values) player.playerMovement.playerSimulationState[cacheIndex] = player.playerMovement.CurrentSimulationState();
+                }
+            }
             Client.Update();
+        }
+    }
+
+    public void SetAllPlayersPositionsTo(ushort tick, ushort excludedPlayerId)
+    {
+        foreach (Player player in Player.list.Values)
+        {
+            if (player.Id == excludedPlayerId || player.playerHealth.isDead) continue;
+            player.playerMovement.SetPlayerPositionToTick(tick);
+        }
+    }
+
+    public void ResetPlayersPositions(ushort excludedPlayerId)
+    {
+        foreach (Player player in Player.list.Values)
+        {
+            if (player.Id == excludedPlayerId || player.playerHealth.isDead) continue;
+            player.playerMovement.ResetPlayerPosition();
         }
     }
 
@@ -132,7 +187,6 @@ public class NetworkManager : MonoBehaviour
 
     private void DidConnect(object sender, EventArgs e)
     {
-        GameManager.Singleton.networking = true;
         StartCoroutine(LobbyManager.Singleton.SendName());
     }
 
@@ -145,6 +199,7 @@ public class NetworkManager : MonoBehaviour
     {
         Destroy(Player.list[e.Id].gameObject);
     }
+
     private void PlayerLeft(object sender, ServerDisconnectedEventArgs e)
     {
         Destroy(Player.list[e.Client.Id].gameObject);
@@ -161,5 +216,21 @@ public class NetworkManager : MonoBehaviour
     private void SceneChangeDebug(Scene loaded, LoadSceneMode i)
     {
         Debug.LogWarning($"Switched scene To {loaded.name}");
+    }
+
+    private void SendTick()
+    {
+        Message message = Message.Create(MessageSendMode.Unreliable, (ushort)ServerToClientId.serverTick);
+        message.AddUShort(serverTick);
+        NetworkManager.Singleton.Server.SendToAll(message);
+    }
+
+    [MessageHandler((ushort)ServerToClientId.serverTick)]
+    private static void SyncTick(Message message)
+    {
+        if (NetworkManager.Singleton.Server.IsRunning) return;
+
+        ushort tick = message.GetUShort();
+        if (tick > NetworkManager.Singleton.serverTick) NetworkManager.Singleton.serverTick = tick;
     }
 }

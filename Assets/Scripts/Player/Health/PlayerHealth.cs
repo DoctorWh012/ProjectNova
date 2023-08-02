@@ -8,7 +8,6 @@ public class PlayerHealth : MonoBehaviour
     [Header("Components")]
     [SerializeField] private Player player;
     [SerializeField] private ParticleSystem hurtEffect;
-    [SerializeField] private MultiplayerGunShoot multiplayerGunShoot;
     [SerializeField] private GunShoot gunShoot;
     [SerializeField] private PlayerMovement playerMovement;
     [SerializeField] private PlayerScore playerScore;
@@ -79,7 +78,6 @@ public class PlayerHealth : MonoBehaviour
         DisableEnableModels(!state);
         if (!player.IsLocal) return;
         playerMovement.FreezePlayerMovement(state);
-        multiplayerGunShoot.enabled = !state;
         headBob.enabled = !state;
     }
 

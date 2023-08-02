@@ -32,9 +32,7 @@ public class GameCanvas : MonoBehaviour
 
     void Update()
     {
-        if (!GameManager.Singleton.networking) return;
-        else if (NetworkManager.Singleton.Client.IsConnected)
-            pingText.SetText($"Ping = {NetworkManager.Singleton.Client.RTT}Ms");
+        if (NetworkManager.Singleton.Client.IsConnected) pingText.SetText($"Ping = {NetworkManager.Singleton.Client.RTT}Ms");
     }
 
     public void SetUiPopUpText(string text)
