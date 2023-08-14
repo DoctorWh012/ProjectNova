@@ -65,7 +65,7 @@ public class GunSpawn : MonoBehaviour
         if (!gunAvailable) return;
         if (NetworkManager.Singleton.Server.IsRunning)
         {
-            player.gunShoot.PickUpGun(((int)pickableGunsSettings[gunIndex].slot), gunIndex, NetworkManager.Singleton.serverTick);
+            player.playerShooting.PickUpGun(((int)pickableGunsSettings[gunIndex].slot), gunIndex, NetworkManager.Singleton.serverTick);
             DespawnGun();
         }
     }

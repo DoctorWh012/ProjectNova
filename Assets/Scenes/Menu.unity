@@ -178,7 +178,8 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
-    m_RemovedComponents: []
+    m_RemovedComponents:
+    - {fileID: 4503255296567243419, guid: 8fdd1abff8c6e1f489175ab86ea5c9c6, type: 3}
   m_SourcePrefab: {fileID: 100100000, guid: 8fdd1abff8c6e1f489175ab86ea5c9c6, type: 3}
 --- !u!1001 &30904811
 PrefabInstance:
@@ -452,7 +453,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 171916340}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: AudioPlayer, Assembly-CSharp
         m_MethodName: PlayAudioOneShot
         m_Mode: 2
@@ -901,7 +902,7 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-      - m_Target: {fileID: 171916340}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: AudioPlayer, Assembly-CSharp
         m_MethodName: PlayAudioOneShot
         m_Mode: 2
@@ -1330,7 +1331,6 @@ GameObject:
   - component: {fileID: 171916337}
   - component: {fileID: 171916336}
   - component: {fileID: 171916335}
-  - component: {fileID: 171916340}
   - component: {fileID: 171916341}
   m_Layer: 5
   m_Name: Menu
@@ -1445,18 +1445,6 @@ RectTransform:
   m_AnchoredPosition: {x: 0, y: 0}
   m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0, y: 0}
---- !u!114 &171916340
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 171916334}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: baaca723bdd29a04eb4aa40af6cfbdcf, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
 --- !u!82 &171916341
 AudioSource:
   m_ObjectHideFlags: 0
@@ -3801,7 +3789,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 171916340}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: AudioPlayer, Assembly-CSharp
         m_MethodName: PlayAudioOneShot
         m_Mode: 2
@@ -4439,7 +4427,7 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 171916340}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: AudioPlayer, Assembly-CSharp
         m_MethodName: PlayAudioOneShot
         m_Mode: 2
@@ -6684,7 +6672,7 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 1
         m_CallState: 2
-      - m_Target: {fileID: 171916340}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: AudioPlayer, Assembly-CSharp
         m_MethodName: PlayAudioOneShot
         m_Mode: 2
@@ -7630,7 +7618,7 @@ PrefabInstance:
     - target: {fileID: 686700904520457017, guid: d8f5c5efe7ef3d0419a4c886f301e8e9, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[2].m_Target
       value: 
-      objectReference: {fileID: 171916340}
+      objectReference: {fileID: 0}
     - target: {fileID: 686700904520457017, guid: d8f5c5efe7ef3d0419a4c886f301e8e9, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
       value: 2
@@ -7822,7 +7810,7 @@ PrefabInstance:
     - target: {fileID: 686700905447054530, guid: d8f5c5efe7ef3d0419a4c886f301e8e9, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[1].m_Target
       value: 
-      objectReference: {fileID: 171916340}
+      objectReference: {fileID: 0}
     - target: {fileID: 686700905447054530, guid: d8f5c5efe7ef3d0419a4c886f301e8e9, type: 3}
       propertyPath: m_OnClick.m_PersistentCalls.m_Calls.Array.data[1].m_CallState
       value: 2
@@ -9036,7 +9024,7 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 1
         m_CallState: 2
-      - m_Target: {fileID: 171916340}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: AudioPlayer, Assembly-CSharp
         m_MethodName: PlayAudioOneShot
         m_Mode: 2
@@ -9205,7 +9193,7 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-      - m_Target: {fileID: 171916340}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: AudioPlayer, Assembly-CSharp
         m_MethodName: PlayAudioOneShot
         m_Mode: 2
@@ -16073,7 +16061,7 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 1
         m_CallState: 2
-      - m_Target: {fileID: 171916340}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: AudioPlayer, Assembly-CSharp
         m_MethodName: PlayAudioOneShot
         m_Mode: 2
@@ -16666,7 +16654,7 @@ MonoBehaviour:
           m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
-      - m_Target: {fileID: 171916340}
+      - m_Target: {fileID: 0}
         m_TargetAssemblyTypeName: AudioPlayer, Assembly-CSharp
         m_MethodName: PlayAudioOneShot
         m_Mode: 2

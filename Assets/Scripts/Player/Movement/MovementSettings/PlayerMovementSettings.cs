@@ -7,9 +7,12 @@ public class PlayerMovementSettings : ScriptableObject
     [Space]
     [Header("Movement Settings")]
     [SerializeField] public float moveSpeed = 13;
+    [SerializeField] public AnimationCurve accelerationCurve;
+    [SerializeField] public AnimationCurve decelerationCurve;
     [SerializeField] public float crouchedSpeedMultiplier = 1.2f;
-    [SerializeField] public float groundDrag = 5;
-    [SerializeField] public float airDrag = 0;
+    [SerializeField] public float drag = 0;
+    [SerializeField] public float airDecelerationMultiplier = 0.07f;
+    [SerializeField] public float airAccelerationMultiplier = 0;
     [SerializeField] public float jumpForce = 15;
     [SerializeField] public float wallJumpUpForce = 10;
     [SerializeField] public float wallJumpSideForce = 10;
@@ -26,7 +29,6 @@ public class PlayerMovementSettings : ScriptableObject
     [Header("Other Settings")]
     [SerializeField] public float groundCheckHeight = 0.2f;
     [SerializeField] public float jumpCooldown = 0.3f;
-    [SerializeField] public float airMultiplier = 4;
     [SerializeField] public float wallDistance = 1;
 
 }

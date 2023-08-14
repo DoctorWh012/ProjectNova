@@ -128,7 +128,7 @@ public class NetworkManager : MonoBehaviour
 
                 for (int i = 0; i < Player.list.Count; i++)
                 {
-                    foreach (Player player in Player.list.Values) player.playerMovement.playerSimulationState[cacheIndex] = player.playerMovement.CurrentSimulationState();
+                    // foreach (Player player in Player.list.Values) player.playerMovement.playerSimulationState[cacheIndex] = player.playerMovement.CurrentSimulationState();
                 }
             }
             Client.Update();
@@ -140,7 +140,7 @@ public class NetworkManager : MonoBehaviour
         foreach (Player player in Player.list.Values)
         {
             if (player.Id == excludedPlayerId || player.playerHealth.isDead) continue;
-            player.playerMovement.SetPlayerPositionToTick(tick);
+            // player.playerMovement.SetPlayerPositionToTick(tick);
         }
     }
 
@@ -149,7 +149,7 @@ public class NetworkManager : MonoBehaviour
         foreach (Player player in Player.list.Values)
         {
             if (player.Id == excludedPlayerId || player.playerHealth.isDead) continue;
-            player.playerMovement.ResetPlayerPosition();
+            // player.playerMovement.ResetPlayerPosition();
         }
     }
 

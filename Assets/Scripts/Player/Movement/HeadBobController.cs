@@ -50,7 +50,7 @@ public class HeadBobController : MonoBehaviour
     {
         if (!UIManager.Instance.focused) return;
         if (Input.GetAxisRaw("Vertical") == 0 && Input.GetAxisRaw("Horizontal") == 0) return;
-        if (!playerMovement.grounded || playerMovement.isCrouching) return;
+        // if (!playerMovement.grounded || playerMovement.isCrouching) return;
 
         if (envCamBob)
             PlayMotion(FootStepMotion(stepAmplitude));

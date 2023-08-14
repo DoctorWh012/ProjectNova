@@ -8,7 +8,7 @@ public class PlayerHealth : MonoBehaviour
     [Header("Components")]
     [SerializeField] private Player player;
     [SerializeField] private ParticleSystem hurtEffect;
-    [SerializeField] private GunShoot gunShoot;
+    [SerializeField] private PlayerShooting playerShooting;
     [SerializeField] private PlayerMovement playerMovement;
     [SerializeField] private PlayerScore playerScore;
     [SerializeField] private HeadBobController headBob;
@@ -49,7 +49,7 @@ public class PlayerHealth : MonoBehaviour
     private void DieRespawnServer(bool state)
     {
         isDead = state;
-        playerMovement.FreezePlayerMovement(state);
+        // playerMovement.FreezePlayerMovement(state);
         EnableDisablePlayerColliders(!state);
         DisableEnableModels(!state);
         if (state)
@@ -60,7 +60,7 @@ public class PlayerHealth : MonoBehaviour
         else
         {
             playerMovement.rb.position = SpawnHandler.Instance.GetSpawnLocation();
-            gunShoot.ReplenishAllAmmo();
+            playerShooting.ReplenishAllAmmo();
             currentHealth = scriptablePlayer.maxHealth;
         }
 
@@ -77,7 +77,7 @@ public class PlayerHealth : MonoBehaviour
     {
         DisableEnableModels(!state);
         if (!player.IsLocal) return;
-        playerMovement.FreezePlayerMovement(state);
+        // playerMovement.FreezePlayerMovement(state);
         headBob.enabled = !state;
     }
 
@@ -90,8 +90,8 @@ public class PlayerHealth : MonoBehaviour
 
         if (!state)
         {
-            gunShoot.DisableAllGuns();
-            gunShoot.DisableAllMelees();
+            playerShooting.DisableAllGuns();
+            playerShooting.DisableAllMelees();
             return;
         }
     }

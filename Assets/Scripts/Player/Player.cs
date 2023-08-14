@@ -16,7 +16,7 @@ public class Player : MonoBehaviour
     [SerializeField] public PlayerHealth playerHealth;
     [SerializeField] public PlayerEffects playerEffects;
     [SerializeField] public PlayerMovement playerMovement;
-    [SerializeField] public GunShoot gunShoot;
+    [SerializeField] public PlayerShooting playerShooting;
     [SerializeField] public Rigidbody rb;
 
     private void Awake()

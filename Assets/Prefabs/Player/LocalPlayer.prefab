@@ -10717,7 +10717,7 @@ MonoBehaviour:
   playerHealth: {fileID: 1504468562842230107}
   playerEffects: {fileID: 1283521944957988}
   playerMovement: {fileID: 8518563724374079886}
-  gunShoot: {fileID: 2072621626698893412}
+  playerShooting: {fileID: 0}
   rb: {fileID: 1826342366524124384}
 --- !u!114 &8518563724374079886
 MonoBehaviour:
@@ -10731,27 +10731,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 647374989711a224eac125985d0422a8, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  crouchKey: 306
-  interact: 101
-  pause: 27
   player: {fileID: 8618157828869544815}
-  gunShoot: {fileID: 2072621626698893412}
-  playerEffects: {fileID: 1283521944957988}
+  movementSettings: {fileID: 11400000, guid: c32ef0ca8aacfc346932ad788e41b38d, type: 2}
   rb: {fileID: 1826342366524124384}
-  groundingCol: {fileID: 6551907275247480537}
   orientation: {fileID: 5508337895294359433}
-  playerCharacter: {fileID: 5895446737807447369}
-  cam: {fileID: 5428018071057322716}
-  ground:
+  groundLayer:
     serializedVersion: 2
     m_Bits: 8
   groundCheck: {fileID: 5508337895847652612}
-  wallLayer:
-    serializedVersion: 2
-    m_Bits: 8
-  movementSettings: {fileID: 11400000, guid: c32ef0ca8aacfc346932ad788e41b38d, type: 2}
-  movementFreeze: 0
-  wallRunning: 0
+  currentMovementState: 0
 --- !u!114 &1283521944957988
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -10851,7 +10839,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   player: {fileID: 8618157828869544815}
   hurtEffect: {fileID: 211187170729216422}
-  gunShoot: {fileID: 2072621626698893412}
+  playerShooting: {fileID: 0}
   playerMovement: {fileID: 8518563724374079886}
   playerScore: {fileID: 9070208217927140071}
   headBob: {fileID: 6099368438867923500}

@@ -69,7 +69,7 @@ public class MatchManager : MonoBehaviour
     {
         foreach (Player player in Player.list.Values)
         {
-            player.playerMovement.FreezePlayerMovement(state);
+            // player.playerMovement.FreezePlayerMovement(state);
         }
     }
 

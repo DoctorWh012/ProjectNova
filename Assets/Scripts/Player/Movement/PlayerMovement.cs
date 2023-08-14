@@ -10,317 +10,166 @@ public class SimulationState
 
 public class PlayerMovement : MonoBehaviour
 {
-    //----READONLY VARIABLES----
-    public bool interacting { get; private set; }
-    public bool grounded { get; private set; }
-    public bool isCrouching { get; private set; } = false;
+    private enum MovementStates { Idle, Moving }
 
-    [Header("Keybinds")]
-    [SerializeField] private KeyCode crouchKey;
-    [SerializeField] private KeyCode interact;
-    [SerializeField] private KeyCode pause;
-
-    //----COMPONENTS----
     [Header("Components")]
+    [Space(5)]
     [SerializeField] private Player player;
-    [SerializeField] private GunShoot gunShoot;
-    [SerializeField] private PlayerEffects playerEffects;
-    [SerializeField] public Rigidbody rb;
-    [SerializeField] private CapsuleCollider groundingCol;
-    [SerializeField] private Transform orientation;
-    [SerializeField] private Transform playerCharacter;
-    [SerializeField] public Transform cam;
-    [SerializeField] private LayerMask ground;
-    [SerializeField] private Transform groundCheck;
-    [SerializeField] private LayerMask wallLayer;
     [SerializeField] private PlayerMovementSettings movementSettings;
+    [SerializeField] public Rigidbody rb;
+    [SerializeField] private Transform orientation;
+    [SerializeField] private LayerMask groundLayer;
+    [SerializeField] private Transform groundCheck;
 
-    private float interactBufferCounter;
+
+    [Header("Debugging Serialized")]
+    [SerializeField] private MovementStates currentMovementState = MovementStates.Idle;
+
     private float timer;
 
-    //----Movement related stuff----
-    public bool movementFreeze = false;
-    private float horizontalInput;
-    private float verticalInput;
-    public bool wallRunning;
+    // Movement Variables
+    [SerializeField] private float verticalInput;
+    [SerializeField] private float horizontalInput;
+    [SerializeField] private float verticalMultiplier;
+    [SerializeField] private float horizontalMultiplier;
+    [SerializeField] private float verticalTimer;
+    [SerializeField] private float horizontalTimer;
+    [SerializeField] private float decelerationTimer;
 
-    private Vector3 moveDirection;
-    private RaycastHit slopeHit;
-
-    // Jump Related
     private float coyoteTimeCounter;
     private float jumpBufferCounter;
     private bool readyToJump = true;
-
-    // Wallruning
-    private bool onWallLeft;
-    private bool onWallRight;
-    private RaycastHit leftWallHit;
-    private RaycastHit rightWallHit;
-
-    // Lag Compensation
-    public SimulationState[] playerSimulationState = new SimulationState[NetworkManager.lagCompensationCacheSize];
-    private Vector3 savedPlayerPos;
+    private bool grounded;
+    private Vector3 moveDir;
+    private Vector3 trueForward;
+    private RaycastHit slopeHit;
 
     private void Awake()
     {
-        rb.freezeRotation = true;
+        rb.drag = movementSettings.drag;
     }
 
-    //----MOVEMENT STUFF----
     private void Update()
     {
         CheckIfGrounded();
-        if (!player.IsLocal) return;
-        CheckSlideGrind(isCrouching, rb.velocity);
-        CheckCameraTilt();
-        GetInput();
+        if (player.IsLocal) GetInput();
 
         timer += Time.deltaTime;
         while (timer >= NetworkManager.Singleton.minTimeBetweenTicks)
         {
             timer -= NetworkManager.Singleton.minTimeBetweenTicks;
-
-            if (movementFreeze) return;
-            SpeedCap();
-            ApplyDrag();
-            VerifyWallRun();
-
-            if (jumpBufferCounter > 0 && coyoteTimeCounter > 0 && readyToJump)
-            {
-                readyToJump = false;
-                Jump();
-                Invoke("ResetJump", movementSettings.jumpCooldown);
-            }
-
-            if (wallRunning) WallRunMovement();
-
-            else if (OnSlope()) ApplyMovement(GetSlopeMoveDirection());
-            else
-            {
-                ApplyMovement(orientation.forward);
-                IncreaseFallGravity(movementSettings.gravity);
-            }
-            if (!wallRunning) rb.useGravity = !OnSlope();
-
-            if (NetworkManager.Singleton.Server.IsRunning) SendServerPlayerMovement();
-            else SendClientPlayerMovement();
+            MovementTick();
         }
     }
 
-    public void GetInput()
+    private void MovementTick()
     {
-        // Pausing
-        if (Input.GetKeyDown(pause)) UIManager.Instance.InGameFocusUnfocus();
-        if (!UIManager.Instance.focused) return;
+        switch (currentMovementState)
+        {
+            case MovementStates.Moving:
+                ApplyMovement(orientation.forward);
+                break;
+            case MovementStates.Idle:
+                ApplyCounterMovement();
+                break;
 
-        // Forwards Sideways movement
-        horizontalInput = Input.GetAxisRaw("Horizontal");
-        verticalInput = Input.GetAxisRaw("Vertical");
+        }
 
-        // Crouching
-        if (Input.GetKeyDown(crouchKey)) Crouch(true);
-        if (Input.GetKeyUp(crouchKey)) Crouch(false);
+        if (jumpBufferCounter > 0 && coyoteTimeCounter > 0 && readyToJump) Jump();
+
+        SpeedCap();
+        IncreaseFallGravity(movementSettings.gravity);
+    }
+
+    private void GetInput()
+    {
+        // Movement
+        verticalInput = Input.GetKey(Keybinds.forwardKey) ? 1 : (Input.GetKey(Keybinds.backwardsKey) ? -1 : 0);
+        horizontalInput = Input.GetKey(Keybinds.rightKey) ? 1 : (Input.GetKey(Keybinds.leftKey) ? -1 : 0);
+
+        // Counter movement keys
+        if (Input.GetKey(Keybinds.forwardKey) && Input.GetKey(Keybinds.backwardsKey)) verticalInput = 0;
+        if (Input.GetKey(Keybinds.rightKey) && Input.GetKey(Keybinds.leftKey)) horizontalInput = 0;
+
+        // Timer
+        if (Input.GetKeyDown(Keybinds.forwardKey) || Input.GetKeyDown(Keybinds.backwardsKey)) verticalTimer = 0;
+        else verticalTimer += Time.deltaTime;
+
+        if (Input.GetKeyDown(Keybinds.rightKey) || Input.GetKeyDown(Keybinds.leftKey)) horizontalTimer = 0;
+        else horizontalTimer += Time.deltaTime;
+
+        // Multiplier
+        if (grounded) verticalMultiplier = GetMovementMultiplier(verticalMultiplier, verticalInput, verticalTimer);
+        else verticalMultiplier = GetMovementMultiplier(verticalMultiplier, verticalInput, verticalTimer * movementSettings.airAccelerationMultiplier);
+
+        if (grounded) horizontalMultiplier = GetMovementMultiplier(horizontalMultiplier, horizontalInput, horizontalTimer);
+        else horizontalMultiplier = GetMovementMultiplier(horizontalMultiplier, horizontalInput, horizontalTimer * movementSettings.airAccelerationMultiplier);
+
+        // State
+        if (verticalInput != 0 || horizontalInput != 0)
+        {
+            decelerationTimer = 0;
+            currentMovementState = MovementStates.Moving;
+        }
+        else
+        {
+            decelerationTimer += Time.deltaTime;
+            currentMovementState = MovementStates.Idle;
+        }
 
         // Jumping
-        if (Input.GetAxisRaw("Jump") > 0) { jumpBufferCounter = movementSettings.jumpBufferTime; }
-        else jumpBufferCounter -= Time.deltaTime;
-
-        // Interacting
-        if (Input.GetKeyDown(interact)) interactBufferCounter = movementSettings.interactBufferTime;
-        else interactBufferCounter -= Time.deltaTime;
-
-        interacting = interactBufferCounter > 0;
+        jumpBufferCounter = Input.GetKey(Keybinds.jumpKey) ? movementSettings.jumpBufferTime : jumpBufferCounter > 0 ? jumpBufferCounter - Time.deltaTime : 0;
     }
 
-    // Lag Compensation 
-    public SimulationState CurrentSimulationState()
+    private float GetMovementMultiplier(float multiplier, float input, float timer)
     {
-        return new SimulationState
-        {
-            position = rb.position,
-            rotation = orientation.forward,
-            currentTick = NetworkManager.Singleton.serverTick
-        };
+        return Mathf.Lerp(multiplier, input, movementSettings.accelerationCurve.Evaluate(timer));
     }
 
-    public void SetPlayerPositionToTick(ushort tick)
-    {
-        // print($"Before SetPlayerPos call character was at {playerCharacter.position} on tick {NetworkManager.Singleton.serverTick}");
-        savedPlayerPos = playerCharacter.position;
-        int cacheIndex = tick % NetworkManager.lagCompensationCacheSize;
-
-        if (playerSimulationState[cacheIndex].currentTick != tick) return;
-
-        playerCharacter.position = playerSimulationState[cacheIndex].position;
-    }
-
-    public void ResetPlayerPosition()
-    {
-        // print($"Reset Character pos to {playerCharacter.position} on tick {NetworkManager.Singleton.serverTick}");
-        playerCharacter.position = savedPlayerPos;
-    }
-
-    // Movement
-
+    #region Moving
     private void ApplyMovement(Vector3 trueForward)
     {
-        moveDirection = trueForward * verticalInput + orientation.right * horizontalInput;
-
-        if (grounded) rb.AddForce(moveDirection.normalized * movementSettings.moveSpeed * 10, ForceMode.Force);
-        else rb.AddForce(moveDirection.normalized * movementSettings.airMultiplier * 10, ForceMode.Force);
+        moveDir = trueForward * verticalMultiplier + orientation.right * horizontalMultiplier;
+        moveDir *= movementSettings.moveSpeed;
+        rb.velocity = new Vector3(moveDir.x, rb.velocity.y, moveDir.z);
     }
 
-    private void WallRunMovement()
+    private void ApplyCounterMovement()
     {
-        rb.useGravity = false;
-        IncreaseFallGravity(movementSettings.wallRunGravity);
+        
+        if (grounded) moveDir = rb.velocity * movementSettings.decelerationCurve.Evaluate(decelerationTimer);
+        else moveDir = rb.velocity * movementSettings.decelerationCurve.Evaluate(decelerationTimer * movementSettings.airDecelerationMultiplier);
 
-        Vector3 wallNormal = onWallRight ? rightWallHit.normal : leftWallHit.normal;
-        Vector3 wallForward = Vector3.Cross(wallNormal, transform.up);
-
-        if ((orientation.forward - wallForward).magnitude > (orientation.forward - -wallForward).magnitude) wallForward = -wallForward;
-
-        ApplyMovement(wallForward);
-
-        //STICKS PLAYER TO THE WALL
-        if (!(onWallLeft && horizontalInput > 0) && !(onWallRight && horizontalInput < 0))
-            rb.AddForce(-wallNormal * 100, ForceMode.Force);
-
-        if (jumpBufferCounter > 0 && readyToJump)
-        {
-            readyToJump = false;
-            WallJump();
-            Invoke("ResetJump", movementSettings.jumpCooldown);
-        }
-    }
-
-    private void WallJump()
-    {
-        Vector3 wallNormal = onWallRight ? rightWallHit.normal : leftWallHit.normal;
-        Vector3 forceToApply = transform.up * movementSettings.wallJumpUpForce + wallNormal * movementSettings.wallJumpSideForce;
-
-        rb.velocity = new Vector3(rb.velocity.x, 0f, rb.velocity.z);
-        rb.AddForce(forceToApply, ForceMode.Impulse);
-
-        playerEffects.PlayJumpEffects();
-    }
-
-    private void ApplyDrag()
-    {
-        if (grounded) rb.drag = movementSettings.groundDrag;
-        else rb.drag = movementSettings.airDrag;
-    }
-
-    public void FreezePlayerMovement(bool state)
-    {
-        movementFreeze = state;
-        rb.useGravity = !state;
-        rb.velocity = Vector3.zero;
+        rb.velocity = new Vector3(moveDir.x, rb.velocity.y, moveDir.z);
     }
 
     private void Jump()
     {
+        readyToJump = false;
+        Invoke("RestoreJump", movementSettings.jumpCooldown);
         rb.velocity = new Vector3(rb.velocity.x, 0, rb.velocity.z);
         rb.AddForce(transform.up * movementSettings.jumpForce, ForceMode.Impulse);
-    }
-    private void ResetJump()
-    {
-        readyToJump = true;
-    }
-
-    //----CHECKS----
-    private void CheckForWall()
-    {
-        onWallLeft = Physics.Raycast(orientation.position, -orientation.right, out leftWallHit, movementSettings.wallDistance, wallLayer);
-        onWallRight = Physics.Raycast(orientation.position, orientation.right, out rightWallHit, movementSettings.wallDistance, wallLayer);
-    }
-
-    private void VerifyWallRun()
-    {
-        CheckForWall();
-        if ((onWallLeft || onWallRight) && !grounded)
-        {
-            if (!wallRunning)
-            {
-                wallRunning = true;
-                rb.velocity = new Vector3(rb.velocity.x, rb.velocity.y / 1.5f, rb.velocity.z);
-            }
-        }
-
-        else if (wallRunning) wallRunning = false;
-    }
-
-    public void CheckIfGrounded()
-    {
-        bool onGround = Physics.Raycast(groundCheck.position, Vector3.down, movementSettings.groundCheckHeight, ground);
-        if (!grounded && onGround) playerEffects.PlayJumpEffects();
-        else if (grounded && !onGround) playerEffects.PlayJumpEffects();
-        grounded = onGround;
-        if (grounded) coyoteTimeCounter = movementSettings.coyoteTime;
-        else coyoteTimeCounter -= Time.deltaTime;
-    }
-
-    private void CheckSlideGrind(bool sliding, Vector3 velocity)
-    {
-        if (sliding && velocity.magnitude > 5f)
-        {
-            if (grounded) playerEffects.PlaySlideEffects(true);
-            if (player.IsLocal && !gunShoot.isWeaponTilted) gunShoot.TiltGun(30, 0.2f);
-        }
-        else
-        {
-            playerEffects.PlaySlideEffects(false);
-            if (player.IsLocal && gunShoot.isWeaponTilted) gunShoot.TiltGun(0, 0.2f);
-        }
-        if (!grounded) playerEffects.PlaySlideEffects(false);
-    }
-
-    private void CheckCameraTilt()
-    {
-        if (!player.IsLocal) return;
-        if (grounded)
-        {
-            switch (horizontalInput)
-            {
-                case 1:
-                    PlayerCam.Instance.TiltCamera(true, 0, 2, 0.3f);
-                    break;
-                case -1:
-                    PlayerCam.Instance.TiltCamera(true, 1, 2, 0.3f);
-                    break;
-                case 0:
-                    PlayerCam.Instance.TiltCamera(false, 0, 2, 0.2f);
-                    break;
-            }
-        }
-        else
-        {
-            int i = onWallLeft ? 0 : 1;
-            if (wallRunning) { PlayerCam.Instance.TiltCamera(true, i, 15, 0.2f); }
-            else { PlayerCam.Instance.TiltCamera(false, i, 15, 0.2f); }
-        }
     }
 
     private void SpeedCap()
     {
         Vector3 flatVel = new Vector3(rb.velocity.x, 0, rb.velocity.z);
-        if (!isCrouching)
+        // if (currentMovementState != MovementStates.Sliding)
+        // {
+        if (flatVel.magnitude > movementSettings.moveSpeed)
         {
-            if (flatVel.magnitude > movementSettings.moveSpeed)
-            {
-                Vector3 limitedVel = flatVel.normalized * movementSettings.moveSpeed;
-                rb.velocity = new Vector3(limitedVel.x, rb.velocity.y, limitedVel.z);
-            }
+            Vector3 limitedVel = flatVel.normalized * movementSettings.moveSpeed;
+            rb.velocity = new Vector3(limitedVel.x, rb.velocity.y, limitedVel.z);
         }
-        else
-        {
-            if (flatVel.magnitude > movementSettings.moveSpeed)
-            {
-                Vector3 limitedVel = flatVel.normalized * (movementSettings.moveSpeed * movementSettings.crouchedSpeedMultiplier);
-                rb.velocity = new Vector3(limitedVel.x, rb.velocity.y, limitedVel.z);
-            }
-        }
+        // }
+        // else
+        // {
+        // if (flatVel.magnitude > movementSettings.moveSpeed)
+        // {
+        //     Vector3 limitedVel = flatVel.normalized * (movementSettings.moveSpeed * movementSettings.crouchedSpeedMultiplier);
+        //     rb.velocity = new Vector3(limitedVel.x, rb.velocity.y, limitedVel.z);
+        // }
+        // }
     }
 
     private void IncreaseFallGravity(float force)
@@ -328,26 +177,24 @@ public class PlayerMovement : MonoBehaviour
         rb.AddForce(Vector3.down * force);
     }
 
-    private void Crouch(bool state)
+    private void RestoreJump()
     {
-        isCrouching = state;
-        if (state)
-        {
-            groundingCol.height = groundingCol.height / 2;
-            groundCheck.localPosition = new Vector3(0, groundCheck.localPosition.y / 2, 0);
-        }
-        else
-        {
-            groundingCol.height = groundingCol.height * 2;
-            groundCheck.localPosition = new Vector3(0, groundCheck.localPosition.y * 2, 0);
-            if (!player.IsLocal) return;
-            if (gunShoot.isWeaponTilted) gunShoot.TiltGun(0, 0.2f);
-        }
+        readyToJump = true;
+    }
+
+    #endregion
+
+    #region Checks
+    private void CheckIfGrounded()
+    {
+        grounded = Physics.Raycast(groundCheck.position, Vector3.down, movementSettings.groundCheckHeight, groundLayer);
+        coyoteTimeCounter = grounded ? movementSettings.coyoteTime : coyoteTimeCounter > 0 ? coyoteTimeCounter - Time.deltaTime : 0;
+
     }
 
     private bool OnSlope()
     {
-        if (Physics.Raycast(groundCheck.position, Vector3.down, out slopeHit, movementSettings.groundCheckHeight))
+        if (Physics.Raycast(groundCheck.position, Vector3.down, out slopeHit, movementSettings.groundCheckHeight, groundLayer))
         {
             float angle = Vector3.Angle(Vector3.up, slopeHit.normal);
             return angle < movementSettings.maxSlopeAngle && angle != 0;
@@ -359,71 +206,5 @@ public class PlayerMovement : MonoBehaviour
     {
         return Vector3.ProjectOnPlane(orientation.forward, slopeHit.normal).normalized;
     }
-
-    private void SetNetPlayerOrientation(Vector3 orient, Quaternion camRot)
-    {
-        orientation.forward = orient;
-        cam.rotation = camRot;
-    }
-
-    private void SendServerPlayerMovement()
-    {
-        Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.playerMovement);
-
-        message.AddUShort(player.Id);
-        message.AddBool(isCrouching);
-        message.AddVector3(rb.position);
-        message.AddVector3(rb.velocity);
-        message.AddVector3(orientation.forward);
-        message.AddQuaternion(cam.rotation);
-        message.AddSByte((sbyte)horizontalInput);
-        message.AddSByte((sbyte)verticalInput);
-
-        NetworkManager.Singleton.Server.SendToAll(message);
-    }
-
-    private void SendClientPlayerMovement()
-    {
-        Message message = Message.Create(MessageSendMode.Unreliable, ClientToServerId.playerMovement);
-
-        message.AddBool(isCrouching);
-        message.AddBool(interacting);
-        message.AddVector3(rb.position);
-        message.AddVector3(rb.velocity);
-        message.AddVector3(orientation.forward);
-        message.AddQuaternion(cam.rotation);
-        message.AddSByte((sbyte)horizontalInput);
-        message.AddSByte((sbyte)verticalInput);
-
-        NetworkManager.Singleton.Client.Send(message);
-    }
-
-    [MessageHandler((ushort)ServerToClientId.playerMovement)]
-    private static void MoveOnClient(Message message)
-    {
-        if (Player.list.TryGetValue(message.GetUShort(), out Player player))
-        {
-            if (player.IsLocal || NetworkManager.Singleton.Server.IsRunning) return;
-            bool crouch = message.GetBool();
-            player.rb.position = message.GetVector3();
-            player.playerMovement.CheckSlideGrind(crouch, message.GetVector3());
-            player.playerMovement.SetNetPlayerOrientation(message.GetVector3(), message.GetQuaternion());
-            player.playerEffects.PlayerAnimator(message.GetSByte(), message.GetSByte(), crouch);
-        }
-    }
-
-    [MessageHandler((ushort)ClientToServerId.playerMovement)]
-    private static void MoveOnServer(ushort fromClientId, Message message)
-    {
-        if (Player.list.TryGetValue(fromClientId, out Player player))
-        {
-            bool crouch = message.GetBool();
-            player.playerMovement.interacting = message.GetBool();
-            player.rb.position = message.GetVector3();
-            player.playerMovement.CheckSlideGrind(crouch, message.GetVector3());
-            player.playerMovement.SetNetPlayerOrientation(message.GetVector3(), message.GetQuaternion());
-            player.playerEffects.PlayerAnimator(message.GetSByte(), message.GetSByte(), crouch);
-            player.playerMovement.SendServerPlayerMovement();
-        }
-    }
+    #endregion
 }
