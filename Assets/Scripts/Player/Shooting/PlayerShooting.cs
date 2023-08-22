@@ -55,12 +55,13 @@ public class PlayerShooting : MonoBehaviour
 {
     private enum ShootingState { Active, OnCooldown }
     public enum WeaponState { Idle, Shooting, Reloading, Switching }
-    public bool isWeaponTilted { get; private set; } = false;
+    private bool isTilting = false;
 
     [Header("Components")]
     [Space(5)]
     [SerializeField] private Player player;
     [SerializeField] private ScriptablePlayer scriptablePlayer;
+    [SerializeField] private PlayerMovement playerMovement;
     [SerializeField] private BoxCollider[] bodyColliders;
     [SerializeField] private LayerMask layersToIgnoreShootRaycast;
     [SerializeField] private Rigidbody rb;
@@ -155,6 +156,7 @@ public class PlayerShooting : MonoBehaviour
     private void Update()
     {
         if (player.IsLocal) GetInput();
+        CheckWeaponTilt();
     }
 
     private void GetInput()
@@ -705,6 +707,21 @@ public class PlayerShooting : MonoBehaviour
         }
     }
 
+    private void CheckWeaponTilt()
+    {
+        if (playerMovement.currentMovementState == PlayerMovement.MovementStates.Crouched && rb.velocity.magnitude > 2f)
+        {
+            TiltGun(35, 0.25f);
+            print("TILT");
+        }
+
+        else
+        {
+            TiltGun(0, 0.15f);
+            print("UNTILT");
+        }
+    }
+
 
     #region ServerSenders
     private void SendPlayerFire()
@@ -870,7 +887,7 @@ public class PlayerShooting : MonoBehaviour
 
     public void TiltGun(float angle, float duration)
     {
-        if (tiltWeaponCoroutine != null) StopCoroutine(tiltWeaponCoroutine);
+        if (isTilting) return;
         tiltWeaponCoroutine = TiltWeapon(angle, duration);
         StartCoroutine(tiltWeaponCoroutine);
     }
@@ -921,17 +938,18 @@ public class PlayerShooting : MonoBehaviour
 
     private IEnumerator TiltWeapon(float tiltAngle, float duration)
     {
+        isTilting = true;
         Transform weaponTransform = activeGunComponents.transform;
         Quaternion startingAngle = weaponTransform.localRotation;
         Quaternion toAngle = Quaternion.Euler(new Vector3(0, 0, tiltAngle));
         float rotationDuration = 0;
 
-        isWeaponTilted = !isWeaponTilted;
         while (weaponTransform.localRotation != toAngle)
         {
             weaponTransform.localRotation = Quaternion.Lerp(startingAngle, toAngle, rotationDuration / duration);
             rotationDuration += Time.deltaTime;
             yield return null;
         }
+        isTilting = false;
     }
 }

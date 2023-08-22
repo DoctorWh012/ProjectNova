@@ -4,7 +4,7 @@ using UnityEngine;
 
 public static class Utilities
 {
-    public static float GetRandomPitch(float minShift, float maxShift)
+    public static float GetRandomPitch(float minShift = -0.1f, float maxShift = 0.02f)
     {
         return 1 + Random.Range(minShift, maxShift);
     }

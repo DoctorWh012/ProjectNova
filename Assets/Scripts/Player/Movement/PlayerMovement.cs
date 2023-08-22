@@ -18,7 +18,7 @@ public class SimulationState
 
 public class PlayerMovement : MonoBehaviour
 {
-    public enum MovementStates { Active, Inactive, Crouched, Wallrunning, GroundSlamming }
+    public enum MovementStates { Active, Inactive, Crouched, Wallrunning, GroundSlamming, Dashing }
 
     [Header("Components")]
     [Space(5)]
@@ -45,9 +45,8 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private AudioSource slideAudioSouce;
 
     [Header("Debugging Serialized")]
-    [SerializeField] private MovementStates currentMovementState = MovementStates.Active;
+    [SerializeField] public MovementStates currentMovementState = MovementStates.Active;
     [SerializeField] private float coyoteTimeCounter;
-    [SerializeField] private bool grounded;
 
     private float timer;
 
@@ -83,6 +82,7 @@ public class PlayerMovement : MonoBehaviour
     {
         ApplyMass();
         GetMultipliers();
+        SetupSlideAudioSource();
     }
 
     private void Update()
@@ -118,14 +118,12 @@ public class PlayerMovement : MonoBehaviour
         jumpBufferCounter = Input.GetKey(Keybinds.jumpKey) ? movementSettings.jumpBufferTime : jumpBufferCounter > 0 ? jumpBufferCounter - Time.deltaTime : 0;
 
         // Crouching / GroundSlam
-
-        if (Input.GetKeyDown(Keybinds.crouchKey))
-        {
-            if (coyoteTimeCounter > 0) StartCrouch();
-            else GroundSlam();
-        }
+        if (Input.GetKey(Keybinds.crouchKey) && (coyoteTimeCounter > 0)) StartCrouch();
+        if (Input.GetKeyDown(Keybinds.crouchKey) && coyoteTimeCounter == 0) GroundSlam();
         if (Input.GetKeyUp(Keybinds.crouchKey)) EndCrouch();
 
+        // Dashing
+        if (Input.GetKeyDown(Keybinds.dashKey)) Dash();
     }
 
     private void SwitchMovementState(MovementStates state)
@@ -147,7 +145,7 @@ public class PlayerMovement : MonoBehaviour
     #region Moving
     private void ApplyMovement(Vector3 trueForward)
     {
-        if (currentMovementState == MovementStates.GroundSlamming) return;
+        if (currentMovementState == MovementStates.GroundSlamming || currentMovementState == MovementStates.Dashing) return;
         moveDir = trueForward * verticalInput + orientation.right * horizontalInput;
 
         if (coyoteTimeCounter > 0) rb.AddForce(moveDir * groundedMovementMultiplier, ForceMode.Force);
@@ -185,13 +183,13 @@ public class PlayerMovement : MonoBehaviour
         {
             rb.AddForce(transform.up * movementSettings.wallJumpUpForce * movementSettings.mass + wallNormal * movementSettings.wallJumpSideForce * movementSettings.mass, ForceMode.Impulse);
             playerAudioSource.pitch = Utilities.GetRandomPitch(-0.1f, 0.02f);
-            playerAudioSource.PlayOneShot(movementSettings.wallrunJumpAudioClip, 0.4f);
+            playerAudioSource.PlayOneShot(movementSettings.wallrunJumpAudioClip, movementSettings.jumpSoundVolume);
         }
         else
         {
             rb.AddForce(transform.up * movementSettings.jumpForce * movementSettings.mass, ForceMode.Impulse);
             playerAudioSource.pitch = Utilities.GetRandomPitch(-0.1f, 0.2f);
-            playerAudioSource.PlayOneShot(movementSettings.jumpAudioClip, 0.4f);
+            playerAudioSource.PlayOneShot(movementSettings.jumpAudioClip, movementSettings.wallJumpSoundVolume);
         }
     }
 
@@ -261,11 +259,12 @@ public class PlayerMovement : MonoBehaviour
     #region Actions
     private void StartCrouch()
     {
-        if (currentMovementState == MovementStates.Crouched) return;
+        if (currentMovementState == MovementStates.Crouched || currentMovementState == MovementStates.Dashing) return;
 
         SwitchMovementState(MovementStates.Crouched);
         col.height = scriptablePlayer.crouchedHeight;
-        groundCheck.localPosition = new Vector3(0, groundCheck.localPosition.y / scriptablePlayer.crouchedHeight, 0);
+        groundCheck.localPosition = movementSettings.crouchedGroundCheckPos;
+        rb.AddForce(Vector3.down * movementSettings.crouchForce * movementSettings.mass, ForceMode.Impulse);
     }
 
     private void EndCrouch()
@@ -273,14 +272,14 @@ public class PlayerMovement : MonoBehaviour
         if (currentMovementState != MovementStates.Crouched) return;
 
         SwitchMovementState(MovementStates.Active);
+        rb.position = new Vector3(rb.position.x, rb.position.y + 0.5f, rb.position.z);
         col.height = scriptablePlayer.playerHeight;
-        groundCheck.localPosition = new Vector3(0, groundCheck.localPosition.y * scriptablePlayer.crouchedHeight, 0);
-        rb.AddForce(Vector3.down * movementSettings.crouchForce * movementSettings.mass, ForceMode.Impulse);
+        groundCheck.localPosition = movementSettings.groundCheckPos;
     }
 
     private void GroundSlam()
     {
-        if (currentMovementState != MovementStates.Active || currentMovementState == MovementStates.GroundSlamming) return;
+        if (currentMovementState != MovementStates.Active) return;
 
         SwitchMovementState(MovementStates.GroundSlamming);
         rb.velocity = Vector3.zero;
@@ -289,16 +288,33 @@ public class PlayerMovement : MonoBehaviour
 
     private void Dash()
     {
+        if (currentMovementState == MovementStates.Inactive || currentMovementState == MovementStates.GroundSlamming) return;
+        if (currentMovementState == MovementStates.Crouched) return;
+        SwitchMovementState(MovementStates.Dashing);
+        Invoke("FinishDashing", movementSettings.dashDuration);
 
+        rb.velocity = new Vector3(0, rb.velocity.y, 0);
+        rb.AddForce(orientation.forward * movementSettings.dashForce * movementSettings.mass, ForceMode.Impulse);
+
+        if (movementSettings.dashAudioClip)
+        {
+            playerAudioSource.pitch = Utilities.GetRandomPitch();
+            playerAudioSource.PlayOneShot(movementSettings.dashAudioClip, movementSettings.dashAudioVolume);
+        }
+    }
+
+    private void FinishDashing()
+    {
+        SwitchMovementState(MovementStates.Active);
     }
     #endregion
 
     #region Checks
     private void CheckIfGrounded()
     {
-        grounded = Physics.Raycast(groundCheck.position, Vector3.down, movementSettings.groundCheckHeight, groundLayer);
+        coyoteTimeCounter = Physics.Raycast(groundCheck.position, Vector3.down, movementSettings.groundCheckHeight, groundLayer)
+        ? movementSettings.coyoteTime : coyoteTimeCounter > 0 ? coyoteTimeCounter - Time.deltaTime : 0;
 
-        coyoteTimeCounter = grounded ? movementSettings.coyoteTime : coyoteTimeCounter > 0 ? coyoteTimeCounter - Time.deltaTime : 0;
         if (coyoteTimeCounter == 0 && !readyToJump && currentMovementState == MovementStates.Crouched) EndCrouch();
         if (coyoteTimeCounter > 0 && currentMovementState == MovementStates.GroundSlamming)
         {
@@ -306,7 +322,7 @@ public class PlayerMovement : MonoBehaviour
             if (movementSettings.groundSlamAudioClip)
             {
                 playerAudioSource.pitch = Utilities.GetRandomPitch(-0.1f, 0.05f);
-                playerAudioSource.PlayOneShot(movementSettings.groundSlamAudioClip);
+                playerAudioSource.PlayOneShot(movementSettings.groundSlamAudioClip, movementSettings.groundSlamAudioVolume);
             }
             groundSlamParticles.Play();
         }
@@ -352,6 +368,7 @@ public class PlayerMovement : MonoBehaviour
     private void PlayerAnimator()
     {
         PlayFootStepSound();
+        CheckCameraTilt();
         SlideEffects();
     }
 
@@ -362,18 +379,22 @@ public class PlayerMovement : MonoBehaviour
             if (!slideParticles.isEmitting)
             {
                 slideParticles.Play();
-                playerAudioSource.clip = movementSettings.slideAudioClip;
-                playerAudioSource.pitch = Utilities.GetRandomPitch(-0.1f, 0.02f);
-                playerAudioSource.loop = true;
-                playerAudioSource.Play();
+                slideAudioSouce.pitch = Utilities.GetRandomPitch(-0.1f, 0.02f);
+                slideAudioSouce.Play();
             }
         }
         else if (slideParticles.isEmitting)
         {
             slideParticles.Stop();
-            playerAudioSource.loop = false;
-            playerAudioSource.Stop();
+            slideAudioSouce.Stop();
         }
+    }
+
+    private void SetupSlideAudioSource()
+    {
+        slideAudioSouce.loop = true;
+        slideAudioSouce.clip = movementSettings.slideAudioClip;
+        slideAudioSouce.volume = movementSettings.slideSoundVolume;
     }
 
     public void PlayFootStepSound()
@@ -385,8 +406,33 @@ public class PlayerMovement : MonoBehaviour
 
 
         playerAudioSource.pitch = Utilities.GetRandomPitch(-0.15f, 0.15f);
-        playerAudioSource.PlayOneShot(movementSettings.footStepSounds, 0.1f);
+        playerAudioSource.PlayOneShot(movementSettings.footStepSounds, movementSettings.footStepSoundVolume);
         footStepTimer = 1f / movementSettings.footStepRate;
+    }
+
+    private void CheckCameraTilt()
+    {
+        if (coyoteTimeCounter > 0)
+        {
+            switch (horizontalInput)
+            {
+                case 1:
+                    PlayerCam.Instance.TiltCamera(true, 0, 2, 0.3f);
+                    break;
+                case -1:
+                    PlayerCam.Instance.TiltCamera(true, 1, 2, 0.3f);
+                    break;
+                case 0:
+                    PlayerCam.Instance.TiltCamera(false, 0, 2, 0.2f);
+                    break;
+            }
+        }
+        else
+        {
+            int i = onWallLeft ? 0 : 1;
+            if (currentMovementState == MovementStates.Wallrunning) { PlayerCam.Instance.TiltCamera(true, i, 15, 0.2f); }
+            else { PlayerCam.Instance.TiltCamera(false, i, 15, 0.2f); }
+        }
     }
     #endregion
 }
