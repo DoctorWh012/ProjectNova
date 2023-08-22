@@ -14,6 +14,7 @@ public class Player : MonoBehaviour
     public static event PlayerJoinedServer playerJoinedServer;
 
     [SerializeField] public PlayerHealth playerHealth;
+    [SerializeField] public PlayerInteractions playerInteractions;
     [SerializeField] public PlayerEffects playerEffects;
     [SerializeField] public PlayerMovement playerMovement;
     [SerializeField] public PlayerShooting playerShooting;

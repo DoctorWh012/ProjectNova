@@ -363,6 +363,11 @@ public class PlayerShooting : MonoBehaviour
     private void MeleeEffects(bool didHit)
     {
         animator.Play("Attack");
+        if (activeGun.weaponShootingSounds.Length != 0)
+        {
+            weaponAudioSource.pitch = Utilities.GetRandomPitch(-0.1f, 0.02f);
+            weaponAudioSource.PlayOneShot(activeGun.weaponShootingSounds[Random.Range(0, activeGun.weaponShootingSounds.Length)], activeGun.weaponShootingSoundVolume);
+        }
         if (didHit) HitParticle();
     }
 
@@ -426,7 +431,7 @@ public class PlayerShooting : MonoBehaviour
 
     private void ApplyKnockback()
     {
-        if (FilteredRaycast(playerCam.forward).collider) rb.AddForce(-playerCam.forward * activeGun.knockbackForce, ForceMode.Impulse);
+        if (FilteredRaycast(playerCam.forward).collider) rb.AddForce(-playerCam.forward * activeGun.knockbackForce * rb.mass, ForceMode.Impulse);
     }
 
     private void GetHitPlayer(GameObject playerHit, float damage)

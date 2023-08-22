@@ -51,15 +51,13 @@ public class Interactable : MonoBehaviour
         Player player = other.GetComponentInParent<Player>();
         VerifyUIText(player);
 
-        waitCoroutine = StartCoroutine(WaitForInteract(player));
+        // waitCoroutine = StartCoroutine(WaitForInteract(player));
     }
 
     private void OnTriggerExit(Collider other)
     {
         if (!other.CompareTag("Player")) return;
         if (waitCoroutine == null) return;
-
-        // if (other.GetComponentInParent<Player>().Movement.rb.isKinematic) return;
 
         GameCanvas.Instance.SetUiPopUpText("");
         if (waitCoroutine != null) StopCoroutine(waitCoroutine);
@@ -68,7 +66,7 @@ public class Interactable : MonoBehaviour
 
     private IEnumerator WaitForInteract(Player player)
     {
-        // while (!player.playerMovement.interacting)
+        while (!player.playerInteractions.interacting) 
         {
             yield return null;
         }

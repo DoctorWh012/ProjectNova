@@ -101,7 +101,6 @@ public class PlayerEffects : MonoBehaviour
 
     public void PlaySlideEffects(bool state)
     {
-
         if (state && !isGrinding)
         {
             slideGrindParticle.Play();

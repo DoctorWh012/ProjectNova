@@ -11,15 +11,19 @@ public struct BodyPartHitTagMultiplier
 [CreateAssetMenu(fileName = "ScriptablePlayer", menuName = "RUSP/ScriptablePlayer", order = 0)]
 public class ScriptablePlayer : ScriptableObject
 {
+    [Header("Body")]
+    [SerializeField] public float playerHeight = 2f;
+    [SerializeField] public float crouchedHeight = 1.5f;
+
     [Header("Health")]
-    public float maxHealth;
-    public BodyPartHitTagMultiplier[] bodyPartHitTagMultipliers;
+    [SerializeField] public float maxHealth;
+    [SerializeField] public BodyPartHitTagMultiplier[] bodyPartHitTagMultipliers;
 
     [Header("Weapons")]
-    public Guns[] startingGuns =  new Guns[3];
-    public int[] startingWeaponsIndex = new int[3];
+    [SerializeField] public Guns[] startingGuns = new Guns[3];
+    [SerializeField] public int[] startingWeaponsIndex = new int[3];
 
     [Header("Game")]
-    public float respawnTime;
+    [SerializeField] public float respawnTime;
 }
 
