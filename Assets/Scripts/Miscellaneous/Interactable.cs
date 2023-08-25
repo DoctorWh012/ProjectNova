@@ -22,11 +22,11 @@ public class Interactable : MonoBehaviour
             switch (desiredAction)
             {
                 case Action.PickUpGun:
-                    GameCanvas.Instance.SetUiPopUpText($"Press [E] to PickUp the gun!");
+                    // GameCanvas.Instance.SetUiPopUpText($"Press [E] to PickUp the gun!");
                     break;
 
                 case Action.StartMatch:
-                    GameCanvas.Instance.SetUiPopUpText($"Press [E] to Start the match!");
+                    // GameCanvas.Instance.SetUiPopUpText($"Press [E] to Start the match!");
                     break;
             }
 
@@ -59,7 +59,7 @@ public class Interactable : MonoBehaviour
         if (!other.CompareTag("Player")) return;
         if (waitCoroutine == null) return;
 
-        GameCanvas.Instance.SetUiPopUpText("");
+        // GameCanvas.Instance.SetUiPopUpText("");
         if (waitCoroutine != null) StopCoroutine(waitCoroutine);
         waitCoroutine = null;
     }
@@ -75,7 +75,7 @@ public class Interactable : MonoBehaviour
         {
             case Action.PickUpGun:
                 GetComponent<GunSpawn>().PickUpTheGun(player);
-                GameCanvas.Instance.SetUiPopUpText("");
+                // GameCanvas.Instance.SetUiPopUpText("");
                 break;
 
             case Action.StartMatch:

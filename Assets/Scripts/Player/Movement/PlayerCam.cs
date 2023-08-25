@@ -32,7 +32,6 @@ public class PlayerCam : MonoBehaviour
 
     private void Update()
     {
-        if (!UIManager.Instance.focused) return;
         GetInput();
         MoveCam();
     }

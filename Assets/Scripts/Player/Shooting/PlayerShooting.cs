@@ -129,7 +129,7 @@ public class PlayerShooting : MonoBehaviour
         set
         {
             _ammunition = value;
-            if (player.IsLocal) GameCanvas.Instance.UpdateAmmunition(ammunition, activeGun.maxAmmo);
+            // if (player.IsLocal) GameCanvas.Instance.UpdateAmmunition(ammunition, activeGun.maxAmmo);
         }
     }
 
@@ -508,7 +508,7 @@ public class PlayerShooting : MonoBehaviour
         {
             currentPlayerGuns[i] = scriptablePlayer.startingGuns[i];
             currentPlayerGunsIndexes[i] = scriptablePlayer.startingWeaponsIndex[i];
-            if (currentPlayerGuns[i]) GameCanvas.Instance.ChangeGunSlotIcon(((int)currentPlayerGuns[i].slot), currentPlayerGuns[i].gunIcon, currentPlayerGuns[i].gunName);
+            // if (currentPlayerGuns[i]) GameCanvas.Instance.ChangeGunSlotIcon(((int)currentPlayerGuns[i].slot), currentPlayerGuns[i].gunIcon, currentPlayerGuns[i].gunName);
         }
 
         StartSlotSwitch(0, NetworkManager.Singleton.serverTick);
@@ -577,7 +577,7 @@ public class PlayerShooting : MonoBehaviour
         barrelTip = gunsComponents[index].barrelTip;
         animator = gunsComponents[index].animator;
 
-        if (player.IsLocal) GameCanvas.Instance.ChangeGunSlotIcon(((int)activeGun.slot), activeGun.gunIcon, activeGun.gunName);
+        // if (player.IsLocal) GameCanvas.Instance.ChangeGunSlotIcon(((int)activeGun.slot), activeGun.gunIcon, activeGun.gunName);
 
         EnableActiveWeapon(activeGunComponents.gunSettings.weaponType);
     }
@@ -586,7 +586,7 @@ public class PlayerShooting : MonoBehaviour
     {
         activeMeleeComponents = meleesComponents[index];
         animator = meleesComponents[index].animator;
-        if (player.IsLocal) GameCanvas.Instance.ChangeGunSlotIcon(((int)meleesComponents[index].meleeSettings.slot), meleesComponents[index].meleeSettings.gunIcon, activeGun.name);
+        // if (player.IsLocal) GameCanvas.Instance.ChangeGunSlotIcon(((int)meleesComponents[index].meleeSettings.slot), meleesComponents[index].meleeSettings.gunIcon, activeGun.name);
         EnableActiveWeapon(WeaponType.melee);
     }
 
@@ -707,18 +707,16 @@ public class PlayerShooting : MonoBehaviour
         }
     }
 
-    private void CheckWeaponTilt()
+    public void CheckWeaponTilt()
     {
-        if (playerMovement.currentMovementState == PlayerMovement.MovementStates.Crouched && rb.velocity.magnitude > 2f)
+        if (playerMovement.currentMovementState == PlayerMovement.MovementStates.Crouched && rb.velocity.magnitude > 8f)
         {
             TiltGun(35, 0.25f);
-            print("TILT");
         }
 
         else
         {
             TiltGun(0, 0.15f);
-            print("UNTILT");
         }
     }
 

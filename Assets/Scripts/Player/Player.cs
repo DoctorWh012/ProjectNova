@@ -28,7 +28,6 @@ public class Player : MonoBehaviour
     // --------CLIENT--------
     private void OnDestroy()
     {
-        if (ScoreBoard.Instance != null) ScoreBoard.Instance.RemoveScoreBoardItem(list[Id]);
         list.Remove(Id);
     }
 
@@ -55,8 +54,6 @@ public class Player : MonoBehaviour
         player.Id = id;
         player.username = username;
         list.Add(id, player);
-
-        ScoreBoard.Instance.AddScoreBoarditem(list[id]);
     }
 
     //--------SERVER Only Runs On The Host!--------
@@ -88,7 +85,6 @@ public class Player : MonoBehaviour
         player.Id = id;
         player.username = string.IsNullOrEmpty(username) ? $"Guest {id}" : username;
         list.Add(id, player);
-        ScoreBoard.Instance.AddScoreBoarditem(list[id]);
         player.SendSpawned();
     }
 

@@ -35,7 +35,7 @@ public class PlayerHealth : MonoBehaviour
             _currentHealth = value;
             SendUpdatedHealth((sbyte)_currentHealth);
 
-            GameCanvas.Instance.UpdateHealthAmmount(currentHealth.ToString("0"));
+            // GameCanvas.Instance.UpdateHealthAmmount(currentHealth.ToString("0"));
         }
     }
 

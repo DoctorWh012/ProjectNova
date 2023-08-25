@@ -90,7 +90,6 @@ public class SettingsController : MonoBehaviour
     {
         SaveToJson();
         LoadFromJson();
-        if (UIManager.Instance == null) return;
         PlayerCam.Instance.GetSensitivity();
     }
 

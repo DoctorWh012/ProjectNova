@@ -51,13 +51,13 @@ public class MatchManager : MonoBehaviour
 
     private void StartMatch()
     {
-        matchCoroutine = StartCoroutine(MatchCountDownTimer(lobbyWaitTime, GameCanvas.Instance.timerText, TimerAction.StartMatch));
+        // matchCoroutine = StartCoroutine(MatchCountDownTimer(lobbyWaitTime, GameCanvas.Instance.timerText, TimerAction.StartMatch));
     }
 
     private void CancelMatch()
     {
         StopCoroutine(matchCoroutine);
-        GameCanvas.Instance.timerText.SetText($"");
+        // GameCanvas.Instance.timerText.SetText($"");
     }
 
     public void ExitMatch()
@@ -125,14 +125,14 @@ public class MatchManager : MonoBehaviour
         switch (action)
         {
             case TimerAction.StartMatch:
-                StartCoroutine(MatchCountDownTimer(matchStartWaitTime, GameCanvas.Instance.bigPopUpText, TimerAction.PrepareForMatch));
+                // StartCoroutine(MatchCountDownTimer(matchStartWaitTime, GameCanvas.Instance.bigPopUpText, TimerAction.PrepareForMatch));
                 if (!NetworkManager.Singleton.Server.IsRunning) yield break;
                 RespawnEveryone();
                 break;
 
             case TimerAction.EndMatch:
                 DisableEnableALLPlayers(false);
-                GameCanvas.Instance.gameObject.SetActive(false);
+                // GameCanvas.Instance.gameObject.SetActive(false);
                 StartCoroutine(MatchCountDownTimer(matchRestartTime, null, TimerAction.RestartMatch));
                 break;
 
@@ -162,15 +162,15 @@ public class MatchManager : MonoBehaviour
         switch (action)
         {
             case TimerAction.StartMatch:
-                GameCanvas.Instance.timerText.SetText($"");
+                // GameCanvas.Instance.timerText.SetText($"");
                 StartCoroutine(SwitchMatchScene("Facility", TimerAction.StartMatch));
                 break;
 
             case TimerAction.PrepareForMatch:
-                GameCanvas.Instance.bigPopUpText.SetText("GO!");
+                // GameCanvas.Instance.bigPopUpText.SetText("GO!");
                 yield return new WaitForSeconds(1);
-                GameCanvas.Instance.bigPopUpText.SetText("");
-                StartCoroutine(MatchCountDownTimer(matchDurationTime, GameCanvas.Instance.timerText, TimerAction.EndMatch));
+                // GameCanvas.Instance.bigPopUpText.SetText("");
+                // StartCoroutine(MatchCountDownTimer(matchDurationTime, GameCanvas.Instance.timerText, TimerAction.EndMatch));
 
                 if (!NetworkManager.Singleton.Server.IsRunning) break;
                 FreezeAllPlayerMovement(false);
@@ -183,7 +183,7 @@ public class MatchManager : MonoBehaviour
                 break;
 
             case TimerAction.RestartMatch:
-                Destroy(UIManager.Instance.gameObject);
+                // Destroy(UIManager.Instance.gameObject);
                 StartCoroutine(SwitchMatchScene("RiptideLobby", TimerAction.RestartMatch));
                 break;
         }

@@ -64,6 +64,11 @@ public class PlayerMovementSettings : ScriptableObject
     [SerializeField] public AudioClip groundSlamAudioClip;
     [Range(0, 1)]
     [SerializeField] public float groundSlamAudioVolume = 0.4f;
+    [SerializeField] public AudioClip groundSlamRefilAudioClip;
+    [Range(0, 1)]
+    [SerializeField] public float groundSlamRefilAudioVolume = 0.4f;
+    [SerializeField] public int groundSlamQuantity = 1;
+    [SerializeField] public float groundSlamRefilTime = 3f;
     [SerializeField] public float groundSlamImpulse = 65;
     [SerializeField] public float groundSlamGravity = 50f;
 
@@ -72,6 +77,9 @@ public class PlayerMovementSettings : ScriptableObject
     [SerializeField] public AudioClip dashAudioClip;
     [Range(0, 1)]
     [SerializeField] public float dashAudioVolume = 0.4f;
+    [SerializeField] public AudioClip dashRefilAudioClip;
+    [Range(0, 1)]
+    [SerializeField] public float dashRefilAudioVolume = 0.4f;
     [SerializeField] public int dashQuantity = 2;
     [SerializeField] public float dashDuration = 1f;
     [SerializeField] public float dashForce = 30f;

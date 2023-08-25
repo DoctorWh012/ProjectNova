@@ -16,7 +16,6 @@ public class GunSway : MonoBehaviour
 
     private void Update()
     {
-        if (!UIManager.Instance.focused) return;
         // get mouse input
         float mouseX = Input.GetAxisRaw("Mouse X") * multiplier;
         float mouseY = Input.GetAxisRaw("Mouse Y") * multiplier;
