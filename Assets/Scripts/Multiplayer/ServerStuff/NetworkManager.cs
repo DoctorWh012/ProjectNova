@@ -9,7 +9,12 @@ using System.Collections.Generic;
 public enum ServerToClientId : ushort
 {
     serverTick = 1,
+    
     playerMovement,
+    playerCrouch,
+    playerDash,
+    playerGroundSlam,
+    
     playerSpawned,
 
     playerFired,
@@ -33,6 +38,9 @@ public enum ClientToServerId : ushort
 {
     name = 1,
     playerMovement,
+    playerCrouch,
+    playerDash,
+    playerGroundSlam,
 
     fireInput,
     slotChange,

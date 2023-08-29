@@ -67,7 +67,6 @@ public class PlayerShooting : MonoBehaviour
     [SerializeField] private Rigidbody rb;
     [SerializeField] private PlayerScore playerScore;
     [SerializeField] private Transform playerCam;
-    [SerializeField] private HeadBobController headBobController;
     [SerializeField] private Camera scopeCam;
 
     [Header("Weapons")]
@@ -614,17 +613,6 @@ public class PlayerShooting : MonoBehaviour
         CheckIfReloadIsNeeded();
     }
     #endregion
-
-    public void AimDownSight(bool aim)
-    {
-        if (!activeGun.canAim) return;
-
-        activeGunComponents.gunSway.ResetGunPosition();
-        activeGunComponents.gunSway.enabled = !aim;
-        headBobController.InstantlyResetGunPos();
-        headBobController.gunCambob = !aim;
-        animator.SetBool("Aiming", aim);
-    }
 
     public void EnableActiveWeapon(WeaponType weaponType)
     {

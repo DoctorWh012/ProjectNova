@@ -66,7 +66,7 @@ public class Interactable : MonoBehaviour
 
     private IEnumerator WaitForInteract(Player player)
     {
-        while (!player.playerInteractions.interacting) 
+        while (!player.playerInteractions.Interacting)
         {
             yield return null;
         }

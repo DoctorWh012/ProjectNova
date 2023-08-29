@@ -932,9 +932,10 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   player: {fileID: 7605542914481611937}
-  playerShooting: {fileID: 1269596351038479994}
+  playerAnimator: {fileID: 3434575118971619437}
   col: {fileID: 7317658726173477}
   rb: {fileID: 3438257051445201537}
+  playerCam: {fileID: 5508337894908285433}
   playerCharacter: {fileID: 802808662680006837}
   orientation: {fileID: 5508337895294359433}
   groundCheck: {fileID: 5508337895847652612}
@@ -944,15 +945,19 @@ MonoBehaviour:
   wallLayer:
     serializedVersion: 2
     m_Bits: 8
+  interpolationThreshold: 0
+  timeToReachPos: 0
   movementSettings: {fileID: 11400000, guid: c32ef0ca8aacfc346932ad788e41b38d, type: 2}
   scriptablePlayer: {fileID: 11400000, guid: a8d9f6c64247f04478896be452c269cc, type: 2}
   slideParticles: {fileID: 6066837413145089290}
   jumpParticles: {fileID: 6455869634148945668}
   groundSlamParticles: {fileID: 6398090303076542268}
+  groundSlamAirParticles: {fileID: 6405522406832262946}
   playerAudioSource: {fileID: 3000012825842851187}
   slideAudioSouce: {fileID: 3129344359122224821}
   currentMovementState: 0
   coyoteTimeCounter: 0
+  timeSinceReceivedMovement: 0
 --- !u!114 &1269596351038479994
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -986,7 +991,6 @@ MonoBehaviour:
   rb: {fileID: 3438257051445201537}
   playerScore: {fileID: 8632789589864481747}
   playerCam: {fileID: 5508337894908285433}
-  headBobController: {fileID: 0}
   scopeCam: {fileID: 0}
   gunsComponents:
   - {fileID: 1876876383094168471}
@@ -1435,6 +1439,11 @@ ParticleSystem:
 --- !u!4 &6507079813531514996 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 6442620848070841401, guid: 9ea29f357aab7464d89e3f45a10a4cf2, type: 3}
+  m_PrefabInstance: {fileID: 226590773257235533}
+  m_PrefabAsset: {fileID: 0}
+--- !u!198 &6405522406832262946 stripped
+ParticleSystem:
+  m_CorrespondingSourceObject: {fileID: 6611846839898088303, guid: 9ea29f357aab7464d89e3f45a10a4cf2, type: 3}
   m_PrefabInstance: {fileID: 226590773257235533}
   m_PrefabAsset: {fileID: 0}
 --- !u!198 &6398090303076542268 stripped
@@ -3249,11 +3258,6 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 7479cf985e22936448b6bf3084ab4b37, type: 3}
---- !u!4 &4759898026818955916 stripped
-Transform:
-  m_CorrespondingSourceObject: {fileID: 2059423483182957042, guid: 7479cf985e22936448b6bf3084ab4b37, type: 3}
-  m_PrefabInstance: {fileID: 6816766167497550718}
-  m_PrefabAsset: {fileID: 0}
 --- !u!114 &6414544358794453992 stripped
 MonoBehaviour:
   m_CorrespondingSourceObject: {fileID: 549173818564429974, guid: 7479cf985e22936448b6bf3084ab4b37, type: 3}
@@ -3265,6 +3269,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 069583dfc611e6c4f990a22048ce4c07, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!4 &4759898026818955916 stripped
+Transform:
+  m_CorrespondingSourceObject: {fileID: 2059423483182957042, guid: 7479cf985e22936448b6bf3084ab4b37, type: 3}
+  m_PrefabInstance: {fileID: 6816766167497550718}
+  m_PrefabAsset: {fileID: 0}
 --- !u!1001 &7184005261182699190
 PrefabInstance:
   m_ObjectHideFlags: 0
