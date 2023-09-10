@@ -1,6 +1,3 @@
-using System;
-using System.Net.Http.Headers;
-using System.Runtime.CompilerServices;
 using Riptide;
 using UnityEditor;
 using UnityEngine;
@@ -9,9 +6,8 @@ using UnityEngine;
 /* WORK REMINDER
 
     Weapon Tilting is inefficient
-    Interpolation
-    Network Movement
-    Ground Slam going down particles & sound
+    Network FootstepSound
+    Dash Rotation Is Fucked
 
 */
 
@@ -32,6 +28,7 @@ public class PlayerMovement : MonoBehaviour
     [Header("Components")]
     [Space(5)]
     [SerializeField] private Player player;
+    [SerializeField] private PlayerHealth playerHealth;
     [SerializeField] private Animator playerAnimator;
     [SerializeField] private CapsuleCollider col;
     [SerializeField] public Rigidbody rb;
@@ -59,6 +56,7 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private float speedLineStartAtSpeed;
     [SerializeField] private float speedLineMultiplier;
     [SerializeField] private float speedLineSpoolTime;
+    [SerializeField] private ParticleSystem dashParticles;
 
     [Header("Audio")]
     [SerializeField] private AudioSource playerAudioSource;
@@ -68,8 +66,6 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] public MovementStates currentMovementState = MovementStates.Active;
     [SerializeField] private AnimationId currentAnimationId = AnimationId.Idle;
     [SerializeField] private float coyoteTimeCounter;
-
-    private float timer;
 
     // Movement Variables
     private float verticalInput;
@@ -105,6 +101,10 @@ public class PlayerMovement : MonoBehaviour
     private ParticleSystem.EmissionModule emission;
     private float lerpDuration = 0;
 
+    private ushort lastReceivedCrouchTick;
+    private ushort lastReceivedGroundSlamTick;
+    private ushort lastReceivedDashTick;
+
     // Lag Compensation
     public SimulationState[] playerSimulationState = new SimulationState[NetworkManager.lagCompensationCacheSize];
     private Vector3 savedPlayerPos;
@@ -129,12 +129,13 @@ public class PlayerMovement : MonoBehaviour
 
     private void Update()
     {
+        if (playerHealth.currentPlayerState == PlayerState.Dead) return;
+        CheckIfGrounded();
         if (!player.IsLocal)
         {
             Interpolate();
             return;
         }
-        CheckIfGrounded();
         PlayerAnimator();
 
         GetInput();
@@ -142,14 +143,14 @@ public class PlayerMovement : MonoBehaviour
 
     private void FixedUpdate()
     {
-        if (!player.IsLocal) return;
+        if (!player.IsLocal || playerHealth.currentPlayerState == PlayerState.Dead) return;
 
         CheckWallRun();
         ApplyMovement(GetTrueForward());
         if (CanJump()) Jump();
         IncreaseGravity();
         ApplyDrag();
-        if (NetworkManager.Singleton.Server.IsRunning) SendServerMovement(rb.position, orientation.forward, playerCam.forward, (byte)currentAnimationId);
+        if (NetworkManager.Singleton.Server.IsRunning) SendServerMovement(rb.position, rb.velocity, orientation.forward, playerCam.forward, (byte)currentAnimationId);
         else SendClientMovement();
     }
 
@@ -168,7 +169,7 @@ public class PlayerMovement : MonoBehaviour
         jumpBufferCounter = Input.GetKey(Keybinds.jumpKey) ? movementSettings.jumpBufferTime : jumpBufferCounter > 0 ? jumpBufferCounter - Time.deltaTime : 0;
 
         // Crouching / GroundSlam
-        if (Input.GetKey(Keybinds.crouchKey) && (coyoteTimeCounter > 0)) StartCrouch();
+        if (Input.GetKey(Keybinds.crouchKey) && (coyoteTimeCounter > 0) && jumpBufferCounter == 0) StartCrouch();
         if (Input.GetKeyDown(Keybinds.crouchKey) && coyoteTimeCounter == 0) GroundSlam();
         if (Input.GetKeyUp(Keybinds.crouchKey)) EndCrouch();
 
@@ -179,6 +180,26 @@ public class PlayerMovement : MonoBehaviour
     private void SwitchMovementState(MovementStates state)
     {
         currentMovementState = state;
+    }
+
+    public void FreezePlayerMovement()
+    {
+        if (currentMovementState == MovementStates.Inactive) return;
+        currentMovementState = MovementStates.Inactive;
+
+        readyToJump = false;
+        CancelInvoke("RestoreJump");
+        rb.useGravity = false;
+        rb.velocity = Vector3.zero;
+    }
+
+    public void FreePlayerMovement()
+    {
+        if (currentMovementState != MovementStates.Inactive) return;
+        currentMovementState = MovementStates.Active;
+
+        Invoke("RestoreJump", movementSettings.jumpCooldown);
+        rb.useGravity = true;
     }
 
     private void ApplyMass()
@@ -322,9 +343,10 @@ public class PlayerMovement : MonoBehaviour
         SwitchMovementState(MovementStates.Crouched);
         col.height = scriptablePlayer.crouchedHeight;
         groundCheck.localPosition = movementSettings.crouchedGroundCheckPos;
-        rb.AddForce(Vector3.down * movementSettings.crouchForce * movementSettings.mass, ForceMode.Impulse);
 
-        if (!NetworkManager.Singleton.Server.IsRunning) SendClientCrouch();
+        rb.AddForce(Vector3.down * movementSettings.crouchForce * movementSettings.mass, ForceMode.Impulse);
+        if (NetworkManager.Singleton.Server.IsRunning) SendServerCrouch();
+        else SendClientCrouch();
     }
 
     private void EndCrouch()
@@ -332,23 +354,49 @@ public class PlayerMovement : MonoBehaviour
         if (currentMovementState != MovementStates.Crouched) return;
 
         SwitchMovementState(MovementStates.Active);
-        rb.position = new Vector3(rb.position.x, rb.position.y + 0.5f, rb.position.z);
         col.height = scriptablePlayer.playerHeight;
         groundCheck.localPosition = movementSettings.groundCheckPos;
 
-        if (!NetworkManager.Singleton.Server.IsRunning) SendClientCrouch();
+        if (NetworkManager.Singleton.Server.IsRunning) SendServerCrouch();
+        else SendClientCrouch();
+    }
+
+    private void HandleClientCrouch(bool state, ushort tick)
+    {
+        if (tick <= lastReceivedCrouchTick) return;
+        lastReceivedCrouchTick = tick;
+
+        if (state)
+        {
+            SwitchMovementState(MovementStates.Crouched);
+            col.height = scriptablePlayer.crouchedHeight;
+            groundCheck.localPosition = movementSettings.crouchedGroundCheckPos;
+        }
+        else
+        {
+            SwitchMovementState(MovementStates.Active);
+            col.height = scriptablePlayer.playerHeight;
+            groundCheck.localPosition = movementSettings.groundCheckPos;
+        }
+
+        if (NetworkManager.Singleton.Server.IsRunning) SendServerCrouch();
     }
 
     private void GroundSlam()
     {
         if (currentMovementState != MovementStates.Active) return;
+
         if (availableGroundSlams <= 0) return;
         availableGroundSlams--;
 
-        SwitchMovementState(MovementStates.GroundSlamming);
-        groundSlamAirParticles.Play();
         rb.velocity = Vector3.zero;
         rb.AddForce(Vector3.down * movementSettings.groundSlamImpulse * movementSettings.mass, ForceMode.Impulse);
+
+        SwitchMovementState(MovementStates.GroundSlamming);
+        groundSlamAirParticles.Play();
+
+        if (NetworkManager.Singleton.Server.IsRunning && player.IsLocal) SendServerGroundSlam();
+        else SendClientGroundSlam();
     }
 
     private void FinishGroundSlam()
@@ -363,6 +411,34 @@ public class PlayerMovement : MonoBehaviour
         }
         groundSlamAirParticles.Stop();
         groundSlamParticles.Play();
+
+        if (NetworkManager.Singleton.Server.IsRunning && player.IsLocal) SendServerGroundSlam();
+        else SendClientGroundSlam();
+    }
+
+    private void HandleClientGroundSlam(bool state, ushort tick)
+    {
+        if (tick <= lastReceivedGroundSlamTick) return;
+        lastReceivedGroundSlamTick = tick;
+
+        if (state)
+        {
+            SwitchMovementState(MovementStates.GroundSlamming);
+            groundSlamAirParticles.Play();
+        }
+        else
+        {
+            SwitchMovementState(MovementStates.Active);
+            if (movementSettings.groundSlamAudioClip)
+            {
+                playerAudioSource.pitch = Utilities.GetRandomPitch(-0.1f, 0.05f);
+                playerAudioSource.PlayOneShot(movementSettings.groundSlamAudioClip, movementSettings.groundSlamAudioVolume);
+            }
+            groundSlamAirParticles.Stop();
+            groundSlamParticles.Play();
+        }
+
+        if (NetworkManager.Singleton.Server.IsRunning) SendServerGroundSlam();
     }
 
     private void RefilGroundSlam()
@@ -384,6 +460,7 @@ public class PlayerMovement : MonoBehaviour
 
         if (availableDashes <= 0) return;
         availableDashes--;
+
         SwitchMovementState(MovementStates.Dashing);
         CancelInvoke("FinishDashing");
         Invoke("FinishDashing", movementSettings.dashDuration);
@@ -391,11 +468,48 @@ public class PlayerMovement : MonoBehaviour
         rb.velocity = new Vector3(0, rb.velocity.y, 0);
         rb.AddForce(orientation.forward * movementSettings.dashForce * movementSettings.mass, ForceMode.Impulse);
 
+        dashParticles.Play();
+
         if (movementSettings.dashAudioClip)
         {
             playerAudioSource.pitch = Utilities.GetRandomPitch();
             playerAudioSource.PlayOneShot(movementSettings.dashAudioClip, movementSettings.dashAudioVolume);
         }
+
+        if (NetworkManager.Singleton.Server.IsRunning) SendServerDash();
+        else SendClientDash();
+    }
+
+    private void FinishDashing()
+    {
+        SwitchMovementState(MovementStates.Active);
+        dashParticles.Stop();
+        if (NetworkManager.Singleton.Server.IsRunning) SendServerDash();
+        else SendClientDash();
+    }
+
+    private void HandleClientDash(bool state, ushort tick)
+    {
+        if (tick <= lastReceivedDashTick) return;
+        lastReceivedDashTick = tick;
+
+        if (state)
+        {
+            dashParticles.Play();
+
+            if (movementSettings.dashAudioClip)
+            {
+                playerAudioSource.pitch = Utilities.GetRandomPitch();
+                playerAudioSource.PlayOneShot(movementSettings.dashAudioClip, movementSettings.dashAudioVolume);
+            }
+        }
+        else
+        {
+            SwitchMovementState(MovementStates.Active);
+            dashParticles.Stop();
+        }
+
+        if (NetworkManager.Singleton.Server.IsRunning) SendServerDash();
     }
 
     private void RefilDash()
@@ -410,11 +524,6 @@ public class PlayerMovement : MonoBehaviour
             playerAudioSource.pitch = Utilities.GetRandomPitch(-0.05f, 0.1f);
             playerAudioSource.PlayOneShot(movementSettings.dashRefilAudioClip, movementSettings.dashRefilAudioVolume);
         }
-    }
-
-    private void FinishDashing()
-    {
-        SwitchMovementState(MovementStates.Active);
     }
     #endregion
 
@@ -443,20 +552,29 @@ public class PlayerMovement : MonoBehaviour
 
     private void OnEnterGrounded()
     {
-        FinishGroundSlam();
+        if (player.IsLocal)
+        {
+            FinishGroundSlam();
+        }
     }
 
     private void OnStayGrounded()
     {
-        RefilDash();
-        RefilGroundSlam();
+        if (player.IsLocal)
+        {
+            RefilDash();
+            RefilGroundSlam();
+        }
     }
 
     private void OnLeaveGrounded()
     {
-        EndCrouch();
-        dashTimer = movementSettings.dashRefilTime;
-        groundSlamTimer = movementSettings.groundSlamRefilTime;
+        if (player.IsLocal)
+        {
+            EndCrouch();
+            dashTimer = movementSettings.dashRefilTime;
+            groundSlamTimer = movementSettings.groundSlamRefilTime;
+        }
     }
 
     private bool CanJump()
@@ -501,13 +619,13 @@ public class PlayerMovement : MonoBehaviour
         AnimatePlayer();
         PlayFootStepSound();
         CheckCameraTilt();
-        SlideEffects();
+        SlideEffects(rb.velocity);
         UpdateSpeedLinesEmission();
     }
 
-    private void SlideEffects()
+    private void SlideEffects(Vector3 velocity)
     {
-        if (currentMovementState == MovementStates.Crouched && rb.velocity.magnitude > movementSettings.slideParticlesThreshold && coyoteTimeCounter > 0f)
+        if (currentMovementState == MovementStates.Crouched && velocity.magnitude > movementSettings.slideParticlesThreshold && coyoteTimeCounter > 0f)
         {
             if (!slideParticles.isEmitting)
             {
@@ -629,9 +747,10 @@ public class PlayerMovement : MonoBehaviour
     #endregion
 
     #region Interpolation
-    private void HandleMovementData(Vector3 receivedPosition, Vector3 receivedOrientation, Vector3 receivedCamForward, byte animationId, ushort tick)
+    private void HandleMovementData(Vector3 receivedPosition, Vector3 receivedVelocity, Vector3 receivedOrientation, Vector3 receivedCamForward, byte animationId, ushort tick)
     {
         if (tick <= interpolationGoal.currentTick) return;
+        if (currentMovementState == MovementStates.Inactive) return;
 
         timeSinceReceivedMovement = 0;
 
@@ -643,14 +762,17 @@ public class PlayerMovement : MonoBehaviour
             camRotation = receivedCamForward,
             currentTick = tick
         };
-        PlayAnimationFromId((AnimationId)animationId);
 
-        if (NetworkManager.Singleton.Server.IsRunning) SendServerMovement(receivedPosition, receivedOrientation, receivedCamForward, animationId);
+        PlayAnimationFromId((AnimationId)animationId);
+        SlideEffects(receivedVelocity);
+
+        if (NetworkManager.Singleton.Server.IsRunning) SendServerMovement(receivedPosition, receivedVelocity, receivedOrientation, receivedCamForward, animationId);
     }
 
     private void Interpolate()
     {
         if (interpolationGoal.currentTick == 0) return;
+        if (currentMovementState == MovementStates.Inactive) return;
 
         timeSinceReceivedMovement += Time.deltaTime;
         float interpolationAmount = timeSinceReceivedMovement / timeToReachPos;
@@ -674,14 +796,42 @@ public class PlayerMovement : MonoBehaviour
     #endregion
 
     #region ServerSenders
-    private void SendServerMovement(Vector3 position, Vector3 orientation, Vector3 camForward, byte animationId)
+    private void SendServerMovement(Vector3 position, Vector3 velocity, Vector3 orientation, Vector3 camForward, byte animationId)
     {
         Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.playerMovement);
         message.AddUShort(player.Id);
         message.AddVector3(position);
+        message.AddVector3(velocity);
         message.AddVector3(orientation);
         message.AddVector3(camForward);
         message.AddByte(animationId);
+        message.AddUShort(NetworkManager.Singleton.serverTick);
+        NetworkManager.Singleton.Server.SendToAll(message);
+    }
+
+    private void SendServerCrouch()
+    {
+        Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.playerCrouch);
+        message.AddUShort(player.Id);
+        message.AddBool(currentMovementState == MovementStates.Crouched);
+        message.AddUShort(NetworkManager.Singleton.serverTick);
+        NetworkManager.Singleton.Server.SendToAll(message);
+    }
+
+    private void SendServerDash()
+    {
+        Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.playerDash);
+        message.AddUShort(player.Id);
+        message.AddBool(currentMovementState == MovementStates.Dashing);
+        message.AddUShort(NetworkManager.Singleton.serverTick);
+        NetworkManager.Singleton.Server.SendToAll(message);
+    }
+
+    private void SendServerGroundSlam()
+    {
+        Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.playerGroundSlam);
+        message.AddUShort(player.Id);
+        message.AddBool(currentMovementState == MovementStates.GroundSlamming);
         message.AddUShort(NetworkManager.Singleton.serverTick);
         NetworkManager.Singleton.Server.SendToAll(message);
     }
@@ -692,6 +842,7 @@ public class PlayerMovement : MonoBehaviour
     {
         Message message = Message.Create(MessageSendMode.Unreliable, ClientToServerId.playerMovement);
         message.AddVector3(rb.position);
+        message.AddVector3(rb.velocity);
         message.AddVector3(orientation.forward);
         message.AddVector3(playerCam.forward);
         message.AddByte((byte)currentAnimationId);
@@ -709,12 +860,18 @@ public class PlayerMovement : MonoBehaviour
 
     private void SendClientDash()
     {
-
+        Message message = Message.Create(MessageSendMode.Unreliable, ClientToServerId.playerDash);
+        message.AddBool(currentMovementState == MovementStates.Dashing);
+        message.AddUShort(NetworkManager.Singleton.serverTick);
+        NetworkManager.Singleton.Client.Send(message);
     }
 
     private void SendClientGroundSlam()
     {
-
+        Message message = Message.Create(MessageSendMode.Unreliable, ClientToServerId.playerGroundSlam);
+        message.AddBool(currentMovementState == MovementStates.GroundSlamming);
+        message.AddUShort(NetworkManager.Singleton.serverTick);
+        NetworkManager.Singleton.Client.Send(message);
     }
     #endregion
 
@@ -722,10 +879,44 @@ public class PlayerMovement : MonoBehaviour
     [MessageHandler((ushort)ServerToClientId.playerMovement)]
     private static void GetServerMovement(Message message)
     {
+        if (NetworkManager.Singleton.Server.IsRunning) return;
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
-            if (player.IsLocal || NetworkManager.Singleton.Server.IsRunning) return;
-            player.playerMovement.HandleMovementData(message.GetVector3(), message.GetVector3(), message.GetVector3(), message.GetByte(), message.GetUShort());
+            if (player.IsLocal) return;
+            player.playerMovement.HandleMovementData(message.GetVector3(), message.GetVector3(), message.GetVector3(), message.GetVector3(), message.GetByte(), message.GetUShort());
+        }
+    }
+
+    [MessageHandler((ushort)ServerToClientId.playerCrouch)]
+    private static void GetServerCrouch(Message message)
+    {
+        if (NetworkManager.Singleton.Server.IsRunning) return;
+        if (Player.list.TryGetValue(message.GetUShort(), out Player player))
+        {
+            if (player.IsLocal) return;
+            player.playerMovement.HandleClientCrouch(message.GetBool(), message.GetUShort());
+        }
+    }
+
+    [MessageHandler((ushort)ServerToClientId.playerDash)]
+    private static void GetServerDash(Message message)
+    {
+        if (NetworkManager.Singleton.Server.IsRunning) return;
+        if (Player.list.TryGetValue(message.GetUShort(), out Player player))
+        {
+            if (player.IsLocal) return;
+            player.playerMovement.HandleClientDash(message.GetBool(), message.GetUShort());
+        }
+    }
+
+    [MessageHandler((ushort)ServerToClientId.playerGroundSlam)]
+    private static void GetServerGroundSlam(Message message)
+    {
+        if (NetworkManager.Singleton.Server.IsRunning) return;
+        if (Player.list.TryGetValue(message.GetUShort(), out Player player))
+        {
+            if (player.IsLocal) return;
+            player.playerMovement.HandleClientGroundSlam(message.GetBool(), message.GetUShort());
         }
     }
     #endregion
@@ -736,7 +927,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if (Player.list.TryGetValue(fromClientId, out Player player))
         {
-            player.playerMovement.HandleMovementData(message.GetVector3(), message.GetVector3(), message.GetVector3(), message.GetByte(), message.GetUShort());
+            player.playerMovement.HandleMovementData(message.GetVector3(), message.GetVector3(), message.GetVector3(), message.GetVector3(), message.GetByte(), message.GetUShort());
         }
     }
 
@@ -745,7 +936,25 @@ public class PlayerMovement : MonoBehaviour
     {
         if (Player.list.TryGetValue(fromClientId, out Player player))
         {
-            // Create a Handler Method
+            player.playerMovement.HandleClientCrouch(message.GetBool(), message.GetUShort());
+        }
+    }
+
+    [MessageHandler((ushort)ClientToServerId.playerGroundSlam)]
+    private static void GetClientGroundSlam(ushort fromClientId, Message message)
+    {
+        if (Player.list.TryGetValue(fromClientId, out Player player))
+        {
+            player.playerMovement.HandleClientGroundSlam(message.GetBool(), message.GetUShort());
+        }
+    }
+
+    [MessageHandler((ushort)ClientToServerId.playerDash)]
+    private static void GetClientDash(ushort fromClientId, Message message)
+    {
+        if (Player.list.TryGetValue(fromClientId, out Player player))
+        {
+            player.playerMovement.HandleClientDash(message.GetBool(), message.GetUShort());
         }
     }
     #endregion

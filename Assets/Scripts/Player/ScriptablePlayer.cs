@@ -25,5 +25,6 @@ public class ScriptablePlayer : ScriptableObject
 
     [Header("Game")]
     [SerializeField] public float respawnTime;
+    [SerializeField] public float interactBufferTime = 0.1f;
 }
 

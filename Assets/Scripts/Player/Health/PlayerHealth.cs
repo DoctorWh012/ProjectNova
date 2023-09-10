@@ -1,22 +1,32 @@
 using Riptide;
 using UnityEngine;
 
+public enum PlayerState
+{
+    Alive,
+    Stunned,
+    Dead
+}
+
 public class PlayerHealth : MonoBehaviour
 {
-    public bool isDead { get; private set; }
-
     [Header("Components")]
     [SerializeField] private Player player;
     [SerializeField] private ParticleSystem hurtEffect;
+    [SerializeField] private PlayerHud playerHud;
     [SerializeField] private PlayerShooting playerShooting;
     [SerializeField] private PlayerMovement playerMovement;
-    [SerializeField] private PlayerScore playerScore;
-    [SerializeField] private HeadBobController headBob;
     [SerializeField] private GameObject[] playerModels;
     [SerializeField] private Collider[] colliders;
 
     [Header("Settings")]
     [SerializeField] ScriptablePlayer scriptablePlayer;
+
+    [Header("Debugging Serialized")]
+    [SerializeField] public PlayerState currentPlayerState = PlayerState.Alive;
+
+    private ushort lastReceivedStatusTick;
+    private ushort lastReceivedHealthTick;
 
     private float _currentHealth;
     private float currentHealth
@@ -29,66 +39,121 @@ public class PlayerHealth : MonoBehaviour
             if (value > scriptablePlayer.maxHealth)
             {
                 _currentHealth = scriptablePlayer.maxHealth;
-                SendUpdatedHealth((sbyte)_currentHealth);
+                if (player.IsLocal) playerHud.UpdateHealthDisplay(_currentHealth);
+                else SendUpdatedHealth();
                 return;
             }
             _currentHealth = value;
-            SendUpdatedHealth((sbyte)_currentHealth);
-
-            // GameCanvas.Instance.UpdateHealthAmmount(currentHealth.ToString("0"));
+            if (player.IsLocal) playerHud.UpdateHealthDisplay(_currentHealth);
+            else SendUpdatedHealth();
         }
     }
 
-    private void Awake()
+    private void Start()
     {
         if (NetworkManager.Singleton.Server.IsRunning) currentHealth = scriptablePlayer.maxHealth;
     }
 
-
-    // True = Die | False = Respawn
-    private void DieRespawnServer(bool state)
+    private void Die()
     {
-        isDead = state;
-        // playerMovement.FreezePlayerMovement(state);
-        EnableDisablePlayerColliders(!state);
-        DisableEnableModels(!state);
-        if (state)
+        if (currentPlayerState == PlayerState.Dead) return;
+        currentPlayerState = PlayerState.Dead;
+
+        playerMovement.FreezePlayerMovement();
+
+        EnableDisablePlayerColliders(false);
+        EnableDisableModels(false);
+
+        if (NetworkManager.Singleton.Server.IsRunning)
         {
-            playerScore.deaths++;
-            Invoke("ServerRespawn", scriptablePlayer.respawnTime);
+            SendStatusMessage();
+            Invoke("Respawn", scriptablePlayer.respawnTime);
         }
-        else
+    }
+
+    private void Respawn()
+    {
+        if (currentPlayerState != PlayerState.Dead) return;
+        currentPlayerState = PlayerState.Alive;
+
+        playerMovement.rb.position = SpawnHandler.Instance.GetSpawnLocation();
+        playerShooting.PickStartingWeapons();
+        playerShooting.ReplenishAllAmmo();
+        currentHealth = scriptablePlayer.maxHealth;
+
+        EnableDisablePlayerColliders(true);
+        EnableDisableModels(true);
+
+        playerMovement.FreePlayerMovement();
+
+        if (NetworkManager.Singleton.Server.IsRunning) SendStatusMessage();
+    }
+
+    private void HandleServerPlayerStatus(bool status, Vector3 position, ushort tick)
+    {
+        if (tick <= lastReceivedStatusTick) return;
+        lastReceivedStatusTick = tick;
+
+        if (status)
         {
-            playerMovement.rb.position = SpawnHandler.Instance.GetSpawnLocation();
-            playerShooting.ReplenishAllAmmo();
-            currentHealth = scriptablePlayer.maxHealth;
+            Respawn();
+            playerMovement.transform.position = position;
         }
 
-        SendStatusMessage(isDead);
+        else Die();
     }
 
-    private void ServerRespawn()
+    public bool ReceiveDamage(float damage)
     {
-        DieRespawnServer(false);
+        if (currentPlayerState == PlayerState.Dead) return false;
+        currentHealth -= damage;
+
+        if (currentHealth <= 0)
+        {
+            Die();
+            return true;
+        }
+        return false;
     }
 
-    // True = Die | False = Respawn
-    private void DieRespawnClient(bool state)
+    public void InstaKill()
     {
-        DisableEnableModels(!state);
-        if (!player.IsLocal) return;
-        // playerMovement.FreezePlayerMovement(state);
-        headBob.enabled = !state;
+        if (currentPlayerState == PlayerState.Dead) return;
+
+        currentHealth -= currentHealth;
+        Die();
     }
 
-    private void DisableEnableModels(bool state)
+    private void RecoverHealth(float healAmount)
     {
+        if (currentPlayerState == PlayerState.Dead) return;
+
+        currentHealth += healAmount;
+    }
+
+    private void HandleServerHealth(float health, ushort tick)
+    {
+        if (tick <= lastReceivedHealthTick) return;
+        lastReceivedHealthTick = tick;
+
+        currentHealth = health;
+    }
+
+    private void EnableDisableModels(bool state)
+    {
+        if (player.IsLocal) playerShooting.EnableDisableHandsMeshes(state);
+
         for (int i = 0; i < playerModels.Length; i++)
         {
             playerModels[i].SetActive(state);
         }
 
-        if (!state)
+        if (state)
+        {
+            playerShooting.EnableActiveWeapon(playerShooting.activeGun.weaponType);
+        }
+
+        else
         {
             playerShooting.DisableAllGuns();
             playerShooting.DisableAllMelees();
@@ -104,40 +169,35 @@ public class PlayerHealth : MonoBehaviour
         }
     }
 
-    public bool ReceiveDamage(float damage)
-    {
-        currentHealth -= damage;
-        if (currentHealth <= 0)
-        {
-            DieRespawnServer(true);
-            return true;
-        }
-        return false;
-    }
-
-    private void SendStatusMessage(bool isDead)
+    #region  ServerSenders
+    private void SendStatusMessage()
     {
         Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.playerDied);
         message.AddUShort(player.Id);
-        message.AddBool(isDead);
+        message.AddBool(currentPlayerState == PlayerState.Alive);
+        message.AddVector3(playerMovement.rb.position);
+        message.AddUShort(NetworkManager.Singleton.serverTick);
         NetworkManager.Singleton.Server.SendToAll(message);
     }
 
-    private void SendUpdatedHealth(sbyte health)
+    private void SendUpdatedHealth()
     {
-        if (player.IsLocal || !NetworkManager.Singleton.Server.IsRunning) return;
         Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.healthChanged);
         message.AddUShort(player.Id);
-        message.AddSByte(health);
+        message.AddSByte((sbyte)currentHealth);
+        message.AddUShort(NetworkManager.Singleton.serverTick);
         NetworkManager.Singleton.Server.Send(message, player.Id);
     }
+    #endregion
 
+    #region ServerToClientHandlers
     [MessageHandler((ushort)ServerToClientId.playerDied)]
     private static void PlayerDied(Message message)
     {
+        if (NetworkManager.Singleton.Server.IsRunning) return;
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
-            player.playerHealth.DieRespawnClient(message.GetBool());
+            player.playerHealth.HandleServerPlayerStatus(message.GetBool(), message.GetVector3(), message.GetUShort());
         }
     }
 
@@ -146,7 +206,8 @@ public class PlayerHealth : MonoBehaviour
     {
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
-            player.playerHealth.currentHealth = (float)message.GetSByte();
+            player.playerHealth.HandleServerHealth((float)message.GetSByte(), message.GetUShort());
         }
     }
+    #endregion
 }

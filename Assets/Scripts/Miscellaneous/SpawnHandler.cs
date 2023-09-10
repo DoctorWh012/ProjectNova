@@ -5,6 +5,8 @@ using UnityEngine;
 public class SpawnHandler : MonoBehaviour
 {
     public static SpawnHandler Instance;
+
+    [Header("Components")]
     [SerializeField] private Transform[] spawns;
 
     private void Awake() => Instance = this;
@@ -12,7 +14,7 @@ public class SpawnHandler : MonoBehaviour
     public Vector3 GetSpawnLocation()
     {
         int spawnLoc = Random.Range(0, spawns.Length);
-        Vector3 finalSpawn = new Vector3(spawns[spawnLoc].position.x, spawns[spawnLoc].position.y + 2, spawns[spawnLoc].position.z);
+        Vector3 finalSpawn = new Vector3(spawns[spawnLoc].position.x, spawns[spawnLoc].position.y + 2f, spawns[spawnLoc].position.z);
         return finalSpawn;
     }
 

@@ -9,12 +9,12 @@ using System.Collections.Generic;
 public enum ServerToClientId : ushort
 {
     serverTick = 1,
-    
+
     playerMovement,
     playerCrouch,
     playerDash,
     playerGroundSlam,
-    
+
     playerSpawned,
 
     playerFired,
@@ -41,6 +41,7 @@ public enum ClientToServerId : ushort
     playerCrouch,
     playerDash,
     playerGroundSlam,
+    playerInteract,
 
     fireInput,
     slotChange,
@@ -146,7 +147,7 @@ public class NetworkManager : MonoBehaviour
     {
         foreach (Player player in Player.list.Values)
         {
-            if (player.Id == excludedPlayerId || player.playerHealth.isDead) continue;
+            if (player.Id == excludedPlayerId || player.playerHealth.currentPlayerState == PlayerState.Dead) continue;
             player.playerMovement.SetPlayerPositionToTick(tick);
         }
     }
@@ -155,7 +156,7 @@ public class NetworkManager : MonoBehaviour
     {
         foreach (Player player in Player.list.Values)
         {
-            if (player.Id == excludedPlayerId || player.playerHealth.isDead) continue;
+            if (player.Id == excludedPlayerId || player.playerHealth.currentPlayerState == PlayerState.Dead) continue;
             player.playerMovement.ResetPlayerPosition();
         }
     }

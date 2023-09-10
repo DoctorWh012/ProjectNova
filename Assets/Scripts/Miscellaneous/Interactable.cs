@@ -51,7 +51,7 @@ public class Interactable : MonoBehaviour
         Player player = other.GetComponentInParent<Player>();
         VerifyUIText(player);
 
-        // waitCoroutine = StartCoroutine(WaitForInteract(player));
+        waitCoroutine = StartCoroutine(WaitForInteract(player));
     }
 
     private void OnTriggerExit(Collider other)
@@ -66,7 +66,7 @@ public class Interactable : MonoBehaviour
 
     private IEnumerator WaitForInteract(Player player)
     {
-        while (!player.playerInteractions.Interacting)
+        while (player.playerInteractions.interactTimeCounter == 0)
         {
             yield return null;
         }

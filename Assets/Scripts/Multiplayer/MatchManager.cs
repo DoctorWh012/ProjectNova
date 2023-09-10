@@ -51,7 +51,7 @@ public class MatchManager : MonoBehaviour
 
     private void StartMatch()
     {
-        // matchCoroutine = StartCoroutine(MatchCountDownTimer(lobbyWaitTime, GameCanvas.Instance.timerText, TimerAction.StartMatch));
+        matchCoroutine = StartCoroutine(MatchCountDownTimer(lobbyWaitTime, TimerAction.StartMatch));
     }
 
     private void CancelMatch()
@@ -133,7 +133,7 @@ public class MatchManager : MonoBehaviour
             case TimerAction.EndMatch:
                 DisableEnableALLPlayers(false);
                 // GameCanvas.Instance.gameObject.SetActive(false);
-                StartCoroutine(MatchCountDownTimer(matchRestartTime, null, TimerAction.RestartMatch));
+                StartCoroutine(MatchCountDownTimer(matchRestartTime, TimerAction.RestartMatch));
                 break;
 
             case TimerAction.RestartMatch:
@@ -144,7 +144,7 @@ public class MatchManager : MonoBehaviour
         }
     }
 
-    public IEnumerator MatchCountDownTimer(float countDownLength, TextMeshProUGUI timerDisplay, TimerAction action)
+    public IEnumerator MatchCountDownTimer(float countDownLength, TimerAction action)
     {
         float finishTime = Time.time + countDownLength;
         string timerText;
@@ -153,8 +153,6 @@ public class MatchManager : MonoBehaviour
         {
             if (action == TimerAction.StartMatch) timerText = $"Starting in {Mathf.Abs(Time.time - finishTime).ToString("0")}";
             else timerText = $"{Mathf.Abs(Time.time - finishTime).ToString("0")}";
-
-            if (timerDisplay != null) { timerDisplay.SetText(timerText); }
 
             yield return null;
         }
@@ -170,7 +168,7 @@ public class MatchManager : MonoBehaviour
                 // GameCanvas.Instance.bigPopUpText.SetText("GO!");
                 yield return new WaitForSeconds(1);
                 // GameCanvas.Instance.bigPopUpText.SetText("");
-                // StartCoroutine(MatchCountDownTimer(matchDurationTime, GameCanvas.Instance.timerText, TimerAction.EndMatch));
+                StartCoroutine(MatchCountDownTimer(matchDurationTime, TimerAction.EndMatch));
 
                 if (!NetworkManager.Singleton.Server.IsRunning) break;
                 FreezeAllPlayerMovement(false);

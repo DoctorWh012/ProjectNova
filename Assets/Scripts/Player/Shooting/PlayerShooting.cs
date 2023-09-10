@@ -61,13 +61,12 @@ public class PlayerShooting : MonoBehaviour
     [Space(5)]
     [SerializeField] private Player player;
     [SerializeField] private ScriptablePlayer scriptablePlayer;
+    [SerializeField] private PlayerHealth playerHealth;
     [SerializeField] private PlayerMovement playerMovement;
     [SerializeField] private BoxCollider[] bodyColliders;
     [SerializeField] private LayerMask layersToIgnoreShootRaycast;
     [SerializeField] private Rigidbody rb;
-    [SerializeField] private PlayerScore playerScore;
     [SerializeField] private Transform playerCam;
-    [SerializeField] private Camera scopeCam;
 
     [Header("Weapons")]
     [Space(5)]
@@ -92,7 +91,7 @@ public class PlayerShooting : MonoBehaviour
     [SerializeField] private ShootingState currentShootingState = ShootingState.Active; // Serialized for Debugging
     [SerializeField] private Guns[] currentPlayerGuns; // Serialized for Debugging
     [SerializeField] private int[] currentPlayerGunsIndexes; // Serialized for Debugging
-    [SerializeField] private Guns activeGun; // Serialized for Debugging
+    [SerializeField] public Guns activeGun; // Serialized for Debugging
     [SerializeField] private int _ammunition; // Serialized For Debugging
 
     // Shooting Cache
@@ -154,6 +153,8 @@ public class PlayerShooting : MonoBehaviour
 
     private void Update()
     {
+        if (playerHealth.currentPlayerState == PlayerState.Dead) return;
+
         if (player.IsLocal) GetInput();
         CheckWeaponTilt();
     }
@@ -182,6 +183,8 @@ public class PlayerShooting : MonoBehaviour
 
     private bool GetShootingState(ushort tick, bool compensatingForSwitch)
     {
+        if (playerHealth.currentPlayerState == PlayerState.Dead) return false;
+
         if (ammunition <= 0 && activeGun.weaponType != WeaponType.melee) return false;
 
         if (tick - activeGun.tickFireRate < lastShotTick) return false;
@@ -441,7 +444,7 @@ public class PlayerShooting : MonoBehaviour
 
         Player player = playerHit.GetComponentInParent<Player>();
 
-        if (player.playerHealth.ReceiveDamage(damage * damageMultiplier)) playerScore.kills++;
+        if (player.playerHealth.ReceiveDamage(damage * damageMultiplier)) ;
     }
 
     public void FinishPlayerShooting()
@@ -654,9 +657,9 @@ public class PlayerShooting : MonoBehaviour
             else leftArmIk.enabled = false;
 
             // Enables The Scope If The Weapon Has One And The Player Is Local
-            if (!activeGunComponents.gunSettings.canAim || !player.IsLocal) return;
-            scopeCam.enabled = true;
-            scopeCam.fieldOfView = activeGun.scopeFov;
+            // if (!activeGunComponents.gunSettings.canAim || !player.IsLocal) return;
+            // scopeCam.enabled = true;
+            // scopeCam.fieldOfView = activeGun.scopeFov;
             return;
         }
 
@@ -681,9 +684,9 @@ public class PlayerShooting : MonoBehaviour
         {
             gunsComponents[i].gameObject.SetActive(false);
 
-            if (!gunsComponents[i].gunSettings.canAim || !player.IsLocal) continue;
+            // if (!gunsComponents[i].gunSettings.canAim || !player.IsLocal) continue;
 
-            scopeCam.enabled = false;
+            // scopeCam.enabled = false;
         }
     }
 
@@ -708,6 +711,11 @@ public class PlayerShooting : MonoBehaviour
         }
     }
 
+    public void EnableDisableHandsMeshes(bool state)
+    {
+        leftArmMesh.enabled = state;
+        rightArmMesh.enabled = state;
+    }
 
     #region ServerSenders
     private void SendPlayerFire()
