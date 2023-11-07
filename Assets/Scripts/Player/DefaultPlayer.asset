@@ -14,6 +14,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerHeight: 2.5
   crouchedHeight: 1.5
+  playerHurtAudioVolume: 0.4
+  playerHurtAudio: {fileID: 8300000, guid: a62a5fb54d8d1294c9087b15a351530a, type: 3}
+  invincibilityTime: 2.5
+  playerDieAudioVolume: 0.5
+  playerDieAudio: {fileID: 8300000, guid: 9bb3520d99a0f3d4ab94ee542c7106fa, type: 3}
   maxHealth: 100
   bodyPartHitTagMultipliers:
   - bodyPartTag: PlayerTorso
@@ -24,7 +29,10 @@ MonoBehaviour:
     bodyPartMultiplier: 0.75
   startingGuns:
   - {fileID: 11400000, guid: ef249bba8043f8940bd8854336fdbd6c, type: 2}
-  - {fileID: 0}
+  - {fileID: 11400000, guid: 6ed8d7d21ad9c954fb143eb8f4088148, type: 2}
   - {fileID: 11400000, guid: d428ac6b8568888419d5d4a28ceea6f9, type: 2}
-  startingWeaponsIndex: 000000000000000000000000
+  startingWeaponsIndex: 000000000300000000000000
+  playerHitAudioVolume: 0
+  playerHitAudio: 0
   respawnTime: 2
+  interactBufferTime: 0.1

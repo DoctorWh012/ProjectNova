@@ -9,6 +9,7 @@ public class StandardBot : MonoBehaviour
     [SerializeField] private Rigidbody head;
     [SerializeField] private Rigidbody upperArm;
     [SerializeField] private Rigidbody lowerArm;
+    [SerializeField] private StandardBot standardBot;
 
     [Header("Settings")]
     [SerializeField] private float bulletForce;
@@ -20,6 +21,9 @@ public class StandardBot : MonoBehaviour
     [SerializeField] private float sightCheckTime;
     [SerializeField] private float chaseRange;
     [SerializeField] private float movementSpeed;
+
+    [Header("Particles")]
+    [SerializeField] private ParticleSystem dieParticles;
 
     [SerializeField] private Transform target;
     private RigidBot rigidBot;

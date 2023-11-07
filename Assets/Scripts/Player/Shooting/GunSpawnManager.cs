@@ -1,71 +1,51 @@
-using System;
-using Riptide;
 using UnityEngine;
-using System.Collections.Generic;
+using Riptide;
 
 public class GunSpawnManager : MonoBehaviour
 {
-    public static GunSpawnManager Instance;
+    private static GunSpawnManager Instance;
 
-    public List<GunSpawn> gunSpawns = new List<GunSpawn>();
+    [Header("Components")]
+    [SerializeField] GunSpawn[] weaponSpawners;
 
     private void Awake()
     {
         Instance = this;
-        SetGunSpawnerIndex();
+        AssignIdToSpawners();
     }
 
-    private void Start()
+    private void AssignIdToSpawners()
     {
-        if (!NetworkManager.Singleton.Server.IsRunning) return;
-        StartGunSpawnTimers();
-        NetworkManager.Singleton.Client.ClientConnected += SendGunsSpawners;
+        for (int i = 0; i < weaponSpawners.Length; i++) weaponSpawners[i].weaponSpawnerId = i;
     }
 
-    private void SetGunSpawnerIndex()
+    private void HandleServerWeaponSpawn(int spawnerId, int weaponId, ushort tick)
     {
-        for (int i = 0; i < gunSpawns.Count; i++) gunSpawns[i].gunSpawnerIndex = i;
+        if (weaponSpawners[spawnerId].lastReceivedWeaponSpawnTick >= tick) return;
+        weaponSpawners[spawnerId].lastReceivedWeaponSpawnTick = tick;
+
+        weaponSpawners[spawnerId].SpawnSpecificWeapon(weaponId);
     }
 
-    private void StartGunSpawnTimers()
+    private void HandleServerWeaponDespawn(int spawnerId, ushort tick)
     {
-        for (int i = 0; i < gunSpawns.Count; i++) gunSpawns[i].StartGunSpawnTimer(gunSpawns[i].gunSpawnDelay);
+        if (weaponSpawners[spawnerId].lastReceivedWeaponDespawnTick >= tick) return;
+        weaponSpawners[spawnerId].lastReceivedWeaponDespawnTick = tick;
+
+        weaponSpawners[spawnerId].DespawnWeapon();
     }
 
-    public void SendGunSpawnMessage(int gunSpawnerIndex, int gunIndex)
-    {
-        Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.gunSpawned);
-        message.AddInt(gunSpawnerIndex);
-        message.AddInt(gunIndex);
-        NetworkManager.Singleton.Server.SendToAll(message);
-    }
-
-    public void SendGunDespawnMessage(int gunSpawnerIndex)
-    {
-        Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.gunDespawned);
-        message.AddInt(gunSpawnerIndex);
-        NetworkManager.Singleton.Server.SendToAll(message);
-    }
-
-    public void SendGunsSpawners(object sender, EventArgs e)
-    {
-        for (int i = 0; i < gunSpawns.Count; i++)
-        {
-            SendGunSpawnMessage(i, gunSpawns[i].gunIndex);
-        }
-    }
-
-    [MessageHandler((ushort)ServerToClientId.gunSpawned)]
-    private static void SpawnGun(Message message)
+    [MessageHandler((ushort)ServerToClientId.weaponSpawned)]
+    private static void GetSpawnedWeapon(Message message)
     {
         if (NetworkManager.Singleton.Server.IsRunning) return;
-        GunSpawnManager.Instance.gunSpawns[message.GetInt()].SpawnNewGun(message.GetInt());
+        GunSpawnManager.Instance.HandleServerWeaponSpawn((int)message.GetByte(), (int)message.GetByte(), message.GetUShort());
     }
 
-    [MessageHandler((ushort)ServerToClientId.gunDespawned)]
-    private static void DespawnGun(Message message)
+    [MessageHandler((ushort)ServerToClientId.weaponDespawned)]
+    private static void GetWeaponDespawn(Message message)
     {
         if (NetworkManager.Singleton.Server.IsRunning) return;
-        GunSpawnManager.Instance.gunSpawns[message.GetInt()].DespawnGun();
+        GunSpawnManager.Instance.HandleServerWeaponDespawn((int)message.GetByte(), message.GetUShort());
     }
 }

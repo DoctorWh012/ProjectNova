@@ -10,6 +10,7 @@ public class PlayerCam : MonoBehaviour
     public bool isTilted { get; private set; }
 
     [Header("Components")]
+    [SerializeField] private Camera cam;
     [SerializeField] private Transform orientation;
     [SerializeField] private Transform mainCamera;
 
@@ -21,26 +22,39 @@ public class PlayerCam : MonoBehaviour
     private void Awake()
     {
         Instance = this;
+
+        SettingsManager.updatedPlayerPrefs += GetPreferences;
+
         Cursor.lockState = CursorLockMode.Locked;
         Cursor.visible = false;
     }
 
+    private void OnDestroy()
+    {
+        SettingsManager.updatedPlayerPrefs -= GetPreferences;
+    }
+
+    private void OnApplicationQuit()
+    {
+        SettingsManager.updatedPlayerPrefs -= GetPreferences;
+    }
+
     void Start()
     {
-        GetSensitivity();
+        GetPreferences();
     }
 
     private void Update()
     {
+        if (!PlayerHud.Focused) return;
         GetInput();
         MoveCam();
     }
 
-    public void GetSensitivity()
+    public void GetPreferences()
     {
-        string json = File.ReadAllText($"{Application.dataPath}/PlayerPrefs.json");
-        PlayerPreferences playerPrefs = JsonUtility.FromJson<PlayerPreferences>(json);
-        sensitivity = playerPrefs.sensitivity / 10;
+        sensitivity = SettingsManager.playerPreferences.sensitivity / 10;
+        cam.fieldOfView = SettingsManager.playerPreferences.cameraFov;
     }
 
     private void GetInput()

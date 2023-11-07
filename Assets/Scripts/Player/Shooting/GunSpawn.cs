@@ -1,72 +1,128 @@
-using TMPro;
+using System;
 using UnityEngine;
+using TMPro;
+using Riptide;
 
-public class GunSpawn : MonoBehaviour
+[Serializable]
+public struct PickableWeapons
 {
-    public int gunIndex { get; private set; }
+    public GameObject weaponObject;
+    public Guns weaponSettings;
+}
+
+public class GunSpawn : Interactable
+{
+    public int spawnedWeaponId { get; private set; }
 
     [Header("Components")]
-    [SerializeField] GameObject[] pickableGuns;
-    [SerializeField] Guns[] pickableGunsSettings;
-    [SerializeField] Transform gunHolder;
+    [SerializeField] PickableWeapons[] weapons;
     [SerializeField] TextMeshProUGUI idText;
 
     [Header("Settings")]
-    [SerializeField] public int gunSpawnDelay;
-    [SerializeField] private int gunSpawnDelayAfterPickUp;
+    [SerializeField] private float weaponChangeDelay;
+    [SerializeField] private float weaponRespawnDelay;
 
-    private bool gunAvailable;
-    public int gunSpawnerIndex;
+    private Guns spawnedWeaponSettings;
+    public int weaponSpawnerId;
+
+    [HideInInspector] public ushort lastReceivedWeaponSpawnTick;
+    [HideInInspector] public ushort lastReceivedWeaponDespawnTick;
 
     void Start()
     {
-        idText.SetText($"#{gunSpawnerIndex}");
+        idText.SetText($"#{weaponSpawnerId}");
+
+        NetworkManager.Singleton.Server.ClientConnected += SendWeaponSpawnerDataToPlayer;
+
+        HideAllWeapons();
+        if (NetworkManager.Singleton.Server.IsRunning) InvokeRepeating("SpawnWeapon", weaponChangeDelay, weaponChangeDelay);
     }
 
-    public void StartGunSpawnTimer(int inWait)
+    private void OnApplicationQuit()
     {
-        InvokeRepeating("SpawnNewGun", inWait, gunSpawnDelay);
+        NetworkManager.Singleton.Server.ClientConnected -= SendWeaponSpawnerDataToPlayer;
     }
 
-    public void DespawnGun()
+    private void Update()
     {
-        pickableGuns[gunIndex].SetActive(false);
+        if (!NetworkManager.Singleton.Server.IsRunning) return;
+        if (players.Count == 0) return;
+
+        for (int i = 0; i < players.Count; i++)
+        {
+            if (players[i].playerInteractions.interactTimeCounter > 0 && spawnedWeaponSettings)
+            {
+                if (spawnedWeaponSettings.weaponType != WeaponType.melee) players[i].playerShooting.PickUpGun((int)spawnedWeaponSettings.slot, spawnedWeaponId, NetworkManager.Singleton.serverTick);
+                else players[i].playerShooting.PickUpMelee(spawnedWeaponId, NetworkManager.Singleton.serverTick);
+
+                DespawnWeapon();
+            }
+        }
+    }
+
+    private void HideAllWeapons()
+    {
+        for (int i = 0; i < weapons.Length; i++) weapons[i].weaponObject.SetActive(false);
+    }
+
+    public void SpawnSpecificWeapon(int weaponId)
+    {
+        weapons[spawnedWeaponId].weaponObject.SetActive(false);
+
+        spawnedWeaponId = weaponId;
+        weapons[spawnedWeaponId].weaponObject.SetActive(true);
+        spawnedWeaponSettings = weapons[spawnedWeaponId].weaponSettings;
+
+        if (NetworkManager.Singleton.Server.IsRunning) SendWeaponSpawned();
+
+    }
+
+    public void SpawnWeapon()
+    {
+        weapons[spawnedWeaponId].weaponObject.SetActive(false);
+
+        spawnedWeaponId = UnityEngine.Random.Range(0, weapons.Length);
+        weapons[spawnedWeaponId].weaponObject.SetActive(true);
+        spawnedWeaponSettings = weapons[spawnedWeaponId].weaponSettings;
+
+        SendWeaponSpawned();
+    }
+
+    public void DespawnWeapon()
+    {
+        weapons[spawnedWeaponId].weaponObject.SetActive(false);
+        spawnedWeaponSettings = null;
 
         if (!NetworkManager.Singleton.Server.IsRunning) return;
-        gunAvailable = false;
-        CancelInvoke("SpawnNewGun");
-        StartGunSpawnTimer(gunSpawnDelayAfterPickUp);
-
-        GunSpawnManager.Instance.SendGunDespawnMessage(gunSpawnerIndex);
+        CancelInvoke("SpawnWeapon");
+        InvokeRepeating("SpawnWeapon", weaponRespawnDelay, weaponChangeDelay);
+        SendWeaponDespawned();
     }
 
-    //Server Gun Spawn
-    private void SpawnNewGun()
+    private void SendWeaponSpawned()
     {
-        pickableGuns[gunIndex].SetActive(false);
-
-        gunIndex = UnityEngine.Random.Range(0, pickableGuns.Length);
-        pickableGuns[gunIndex].SetActive(true);
-        gunAvailable = true;
-        GunSpawnManager.Instance.SendGunSpawnMessage(gunSpawnerIndex, gunIndex);
+        Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.weaponSpawned);
+        message.AddByte((byte)weaponSpawnerId);
+        message.AddByte((byte)spawnedWeaponId);
+        message.AddUShort(NetworkManager.Singleton.serverTick);
+        NetworkManager.Singleton.Server.SendToAll(message);
     }
 
-    //Client Gun Spawn
-    public void SpawnNewGun(int index)
+    private void SendWeaponSpawnerDataToPlayer(object sender, ServerConnectedEventArgs e)
     {
-        pickableGuns[gunIndex].SetActive(false);
-
-        gunIndex = index;
-        pickableGuns[gunIndex].SetActive(true);
+        if (!spawnedWeaponSettings) return;
+        Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.weaponSpawned);
+        message.AddByte((byte)weaponSpawnerId);
+        message.AddByte((byte)spawnedWeaponId);
+        message.AddUShort(NetworkManager.Singleton.serverTick);
+        NetworkManager.Singleton.Server.Send(message, e.Client.Id);
     }
 
-    public void PickUpTheGun(Player player)
+    private void SendWeaponDespawned()
     {
-        if (!gunAvailable) return;
-        if (NetworkManager.Singleton.Server.IsRunning)
-        {
-            player.playerShooting.PickUpGun(((int)pickableGunsSettings[gunIndex].slot), gunIndex, NetworkManager.Singleton.serverTick);
-            DespawnGun();
-        }
+        Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.weaponDespawned);
+        message.AddByte((byte)weaponSpawnerId);
+        message.AddUShort(NetworkManager.Singleton.serverTick);
+        NetworkManager.Singleton.Server.SendToAll(message);
     }
 }

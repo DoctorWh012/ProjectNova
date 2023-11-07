@@ -61,6 +61,7 @@ public class PlayerShooting : MonoBehaviour
     [Space(5)]
     [SerializeField] private Player player;
     [SerializeField] private ScriptablePlayer scriptablePlayer;
+    [SerializeField] private PlayerHud playerHud;
     [SerializeField] private PlayerHealth playerHealth;
     [SerializeField] private PlayerMovement playerMovement;
     [SerializeField] private BoxCollider[] bodyColliders;
@@ -77,6 +78,7 @@ public class PlayerShooting : MonoBehaviour
     [Space(5)]
     [SerializeField] private AudioSource weaponAudioSource;
     [SerializeField] private AudioSource weaponHumAudioSource;
+    [SerializeField] private AudioSource weaponReloadSpinAudioSource;
 
     [Header("Arms")]
     [Space(5)]
@@ -84,6 +86,7 @@ public class PlayerShooting : MonoBehaviour
     [SerializeField] private SkinnedMeshRenderer rightArmMesh;
     [SerializeField] private FastIKFabric leftArmIk;
     [SerializeField] private FastIKFabric rightArmIk;
+    private bool renderArms;
 
     [Header("Debugging Serialized")]
     [Space(5)]
@@ -93,6 +96,8 @@ public class PlayerShooting : MonoBehaviour
     [SerializeField] private int[] currentPlayerGunsIndexes; // Serialized for Debugging
     [SerializeField] public Guns activeGun; // Serialized for Debugging
     [SerializeField] private int _ammunition; // Serialized For Debugging
+
+    private bool isWaitingForReload = false;
 
     // Shooting Cache
     Vector3 dirSpread;
@@ -127,12 +132,13 @@ public class PlayerShooting : MonoBehaviour
         set
         {
             _ammunition = value;
-            // if (player.IsLocal) GameCanvas.Instance.UpdateAmmunition(ammunition, activeGun.maxAmmo);
+            if (player.IsLocal) playerHud.UpdateAmmoDisplay(ammunition, activeGun.maxAmmo);
         }
     }
 
     private void Awake()
     {
+        if (player.IsLocal) SettingsManager.updatedPlayerPrefs += GetPreferences;
         currentPlayerGuns = new Guns[3];
         currentPlayerGunsIndexes = new int[3];
 
@@ -140,40 +146,61 @@ public class PlayerShooting : MonoBehaviour
         NetPlayerLayer = LayerMask.NameToLayer("NetPlayer");
     }
 
+    private void GetPreferences()
+    {
+        renderArms = SettingsManager.playerPreferences.renderArms;
+    }
+
     private void Start()
     {
-        if (!NetworkManager.Singleton.Server.IsRunning)
+        if (player.IsLocal)
         {
-            if (player.IsLocal) PickStartingWeapons();
-            return;
+            if (!NetworkManager.Singleton.Server.IsRunning)
+            {
+                PickStartingWeapons();
+                return;
+            }
+            else GetPreferences();
         }
+
         PickStartingWeapons();
-        Player.playerJoinedServer += SendWeaponSync;
+        Player.clientSpawned += SendWeaponSync;
+    }
+
+    private void OnDestroy()
+    {
+        Player.clientSpawned -= SendWeaponSync;
+        SettingsManager.updatedPlayerPrefs -= GetPreferences;
+    }
+
+    private void OnApplicationQuit()
+    {
+        Player.clientSpawned -= SendWeaponSync;
+        SettingsManager.updatedPlayerPrefs -= GetPreferences;
     }
 
     private void Update()
     {
-        if (playerHealth.currentPlayerState == PlayerState.Dead) return;
+        if (playerHealth.currentPlayerState == PlayerState.Dead || !player.IsLocal || !PlayerHud.Focused) return;
 
-        if (player.IsLocal) GetInput();
+        GetInput();
         CheckWeaponTilt();
     }
 
     private void GetInput()
     {
-        if (Input.GetKey(Keybinds.fireBtn)) FireTick(NetworkManager.Singleton.serverTick);
+        if (Input.GetKey(SettingsManager.playerPreferences.fireBtn)) FireTick(NetworkManager.Singleton.serverTick);
 
-        GunSwitchInput(Keybinds.primarySlotKey, 0);
-        GunSwitchInput(Keybinds.secondarySlotKey, 1);
-        GunSwitchInput(Keybinds.tertiarySlotKey, 2);
+        GunSwitchInput(SettingsManager.playerPreferences.primarySlotKey, 0);
+        GunSwitchInput(SettingsManager.playerPreferences.secondarySlotKey, 1);
+        GunSwitchInput(SettingsManager.playerPreferences.tertiarySlotKey, 2);
 
-        if (Input.GetKeyDown(Keybinds.reloadKey)) StartGunReload(NetworkManager.Singleton.serverTick);
+        if (Input.GetKeyDown(SettingsManager.playerPreferences.reloadKey)) StartGunReload();
     }
 
     private void GunSwitchInput(KeyCode keybind, int index)
     {
         if (Input.GetKeyDown(keybind)) StartSlotSwitch(index, NetworkManager.Singleton.serverTick);
-
     }
 
     public void SwitchWeaponState(WeaponState desiredState)
@@ -189,8 +216,7 @@ public class PlayerShooting : MonoBehaviour
 
         if (tick - activeGun.tickFireRate < lastShotTick) return false;
 
-        if (!compensatingForSwitch && currentWeaponState == WeaponState.Switching) { print("<color=red> Unable to shoot cause it's switching </color>"); return false; }
-        else if (compensatingForSwitch) { print("<color=green> Passed because of compensation </color>"); }
+        if (!compensatingForSwitch && currentWeaponState == WeaponState.Switching) return false;
 
         if (currentWeaponState == WeaponState.Reloading) return false;
 
@@ -248,7 +274,6 @@ public class PlayerShooting : MonoBehaviour
     private void VerifyMeleeAttack()
     {
         if (currentShootingState != ShootingState.Active) return;
-
         SwitchWeaponState(WeaponState.Shooting);
 
         if (!player.IsLocal && NetworkManager.Singleton.Server.IsRunning) NetworkManager.Singleton.SetAllPlayersPositionsTo(lastShotTick, player.Id);
@@ -273,9 +298,13 @@ public class PlayerShooting : MonoBehaviour
         }
 
         // If it's a player damages it
-        if (CheckPlayerHit(shootingRayHit.collider)) GetHitPlayer(shootingRayHit.collider.gameObject, activeGun.damage);
+        if (CheckPlayerHit(shootingRayHit.collider))
+        {
+            GetHitPlayer(shootingRayHit.collider.gameObject, activeGun.damage);
+            ShootingEffects(true, true, true);
+        }
 
-        ShootingEffects(true, false);
+        else ShootingEffects(true, false);
         ApplyKnockback();
 
     }
@@ -310,9 +339,13 @@ public class PlayerShooting : MonoBehaviour
         }
 
         // If it's a player damages it 
-        if (CheckPlayerHit(shootingRayHit.collider)) GetHitPlayer(shootingRayHit.collider.gameObject, individualPelletDamage);
+        if (CheckPlayerHit(shootingRayHit.collider))
+        {
+            GetHitPlayer(shootingRayHit.collider.gameObject, individualPelletDamage);
+            ShootingEffects(true, true, true);
+        }
+        else ShootingEffects(true, true);
 
-        ShootingEffects(true, true);
         ApplyKnockback();
     }
 
@@ -350,7 +383,7 @@ public class PlayerShooting : MonoBehaviour
         return new RaycastHit();
     }
 
-    private void ShootingEffects(bool didHit, bool hasSpread)
+    private void ShootingEffects(bool didHit, bool hasSpread, bool hitPlayer = false)
     {
         animator.Play("Recoil");
         if (activeGun.weaponShootingSounds.Length != 0)
@@ -361,10 +394,10 @@ public class PlayerShooting : MonoBehaviour
         activeGunComponents.muzzleFlash.Play();
         ShootingTracer(didHit, hasSpread);
 
-        if (didHit) HitParticle();
+        if (didHit && !hitPlayer) HitParticle();
     }
 
-    private void MeleeEffects(bool didHit)
+    private void MeleeEffects(bool didHit, bool hitPlayer = false)
     {
         animator.Play("Attack");
         if (activeGun.weaponShootingSounds.Length != 0)
@@ -372,7 +405,7 @@ public class PlayerShooting : MonoBehaviour
             weaponAudioSource.pitch = Utilities.GetRandomPitch(-0.1f, 0.02f);
             weaponAudioSource.PlayOneShot(activeGun.weaponShootingSounds[Random.Range(0, activeGun.weaponShootingSounds.Length)], activeGun.weaponShootingSoundVolume);
         }
-        if (didHit) HitParticle();
+        if (didHit && !hitPlayer) HitParticle();
     }
 
     private void ShootingTracer(bool didHit, bool hasSpread)
@@ -435,6 +468,7 @@ public class PlayerShooting : MonoBehaviour
 
     private void ApplyKnockback()
     {
+        if (!player.IsLocal) return;
         if (FilteredRaycast(playerCam.forward).collider) rb.AddForce(-playerCam.forward * activeGun.knockbackForce * rb.mass, ForceMode.Impulse);
     }
 
@@ -457,7 +491,7 @@ public class PlayerShooting : MonoBehaviour
     #region Reloading
     public void CheckIfReloadIsNeeded()
     {
-        if (ammunition <= 0 && activeGun.weaponType != WeaponType.melee) StartGunReload(NetworkManager.Singleton.serverTick);
+        if (ammunition <= 0 && activeGun.weaponType != WeaponType.melee) StartGunReload();
     }
 
     public void ReplenishAmmo()
@@ -477,17 +511,15 @@ public class PlayerShooting : MonoBehaviour
 
     private void HandleClientReload(int slot, ushort tick)
     {
-        if (tick < lastReloadTick || activeGunSlot != slot) { print("<color=red> Unable to reload cause Reload Message is too old or was trying to reload a different Gun"); return; }
-        StartGunReload(tick);
+        if (tick < lastReloadTick || activeGunSlot != slot) return;
+        lastReloadTick = tick;
+
+        StartGunReload();
     }
 
-    public void StartGunReload(ushort tick)
+    public void StartGunReload()
     {
-        if (ammunition == activeGun.maxAmmo || currentWeaponState == WeaponState.Reloading) return;
-
-        lastReloadTick = tick;
-        if (NetworkManager.Singleton.Server.IsRunning) SendReloading();
-        else if (player.IsLocal) SendReload();
+        if (ammunition == activeGun.maxAmmo || currentWeaponState == WeaponState.Reloading || isWaitingForReload) return;
 
         reloadCoroutine = RotateReloadGun(activeGun.reloadSpins, activeGun.reloadTime);
         StartCoroutine(reloadCoroutine);
@@ -496,9 +528,10 @@ public class PlayerShooting : MonoBehaviour
     private void StopReload()
     {
         StopCoroutine(reloadCoroutine);
+        isWaitingForReload = false;
         animator.enabled = true;
-        weaponAudioSource.loop = false;
-        weaponAudioSource.Stop();
+        weaponReloadSpinAudioSource.loop = false;
+        weaponReloadSpinAudioSource.Stop();
         SwitchWeaponState(WeaponState.Idle);
     }
     #endregion
@@ -506,11 +539,14 @@ public class PlayerShooting : MonoBehaviour
     #region GunSwitching
     public void PickStartingWeapons()
     {
+        if (player.IsLocal) playerHud.ResetWeaponsOnSlots();
+
         for (int i = 0; i < currentPlayerGuns.Length; i++)
         {
             currentPlayerGuns[i] = scriptablePlayer.startingGuns[i];
             currentPlayerGunsIndexes[i] = scriptablePlayer.startingWeaponsIndex[i];
-            // if (currentPlayerGuns[i]) GameCanvas.Instance.ChangeGunSlotIcon(((int)currentPlayerGuns[i].slot), currentPlayerGuns[i].gunIcon, currentPlayerGuns[i].gunName);
+
+            if (currentPlayerGuns[i] && player.IsLocal) playerHud.UpdateWeaponOnSlot(i, currentPlayerGuns[i].gunName, currentPlayerGuns[i].gunIcon, false);
         }
 
         StartSlotSwitch(0, NetworkManager.Singleton.serverTick);
@@ -530,27 +566,33 @@ public class PlayerShooting : MonoBehaviour
 
     private void HandleServerWeaponSwitch(ushort tick, int ammo, int slot)
     {
-        if (tick < lastSlotChangeTick) { print("<color=red> Returned From Switch Cause Message Is Too Old </color>"); return; }
-        StartSlotSwitch(slot, tick);
+        if (tick < lastSlotChangeTick) return;
+        print($"Server is telling me to switch to slot {slot}");
+        StartSlotSwitch(slot, tick, true);
         ammunition = ammo;
+
     }
 
     private void HandleClientWeaponSwitch(ushort tick, int slot)
     {
-        if (tick < lastSlotChangeTick) { print("<color=red> Returned From Switch Cause Message Is Too Old </color>"); return; }
+        if (tick < lastSlotChangeTick) return;
+        print($"Client is telling me to switch to slot {slot}");
         StartSlotSwitch(slot, tick);
     }
 
-    public void StartSlotSwitch(int slotIndex, ushort tick)
+    public void StartSlotSwitch(int slotIndex, ushort tick, bool askedByServer = false)
     {
         if (!currentPlayerGuns[slotIndex] || currentPlayerGuns[slotIndex] == activeGun) return;
-        if (currentWeaponState == WeaponState.Reloading) StopReload();
+        if (currentWeaponState == WeaponState.Reloading || isWaitingForReload) StopReload();
+        print($"Passed checks Switching to slot {slotIndex} currently on slot {activeGunSlot}");
 
         SlotSwitch(slotIndex);
 
         lastSlotChangeTick = tick;
+        print($"Was asked to switch to {slotIndex} currently on slot {activeGunSlot}");
+
         if (NetworkManager.Singleton.Server.IsRunning) SendGunSwitch(slotIndex);
-        else if (player.IsLocal) SendSlotSwitch(slotIndex);
+        else if (player.IsLocal && !askedByServer) SendSlotSwitch(slotIndex);
 
     }
 
@@ -566,8 +608,11 @@ public class PlayerShooting : MonoBehaviour
         activeGun = currentPlayerGuns[slotIndex];
         ammunition = activeGun.currentAmmo;
 
+        if (player.IsLocal) playerHud.UpdateWeaponOnSlot(slotIndex, activeGun.gunName, activeGun.gunIcon, true);
+
         if (activeGun.weaponType != WeaponType.melee) SwitchGun(currentPlayerGunsIndexes[slotIndex]);
         else SwitchMelee(currentPlayerGunsIndexes[slotIndex]);
+
         animator.Play("Raise");
     }
 
@@ -599,6 +644,7 @@ public class PlayerShooting : MonoBehaviour
         currentPlayerGunsIndexes[slot] = pickedGunIndex;
         StartSlotSwitch(slot, tick);
         ReplenishAmmo();
+
         if (NetworkManager.Singleton.Server.IsRunning) SendPickedUpGun(slot, pickedGunIndex);
     }
 
@@ -647,8 +693,8 @@ public class PlayerShooting : MonoBehaviour
             // Places The Arms Targets On The Active Weapon
             if (player.IsLocal)
             {
-                rightArmMesh.enabled = activeGunComponents.rightArmTarget;
-                leftArmMesh.enabled = activeGunComponents.leftArmTarget;
+                rightArmMesh.enabled = !renderArms ? false : activeGunComponents.rightArmTarget;
+                leftArmMesh.enabled = !renderArms ? false : activeGunComponents.leftArmTarget;
             }
 
             if (activeGunComponents.rightArmTarget) rightArmIk.Target = activeGunComponents.rightArmTarget;
@@ -669,8 +715,8 @@ public class PlayerShooting : MonoBehaviour
         // Places The Arms Targets On The Active Weapon
         if (player.IsLocal)
         {
-            rightArmMesh.enabled = activeMeleeComponents.rightArmTarget;
-            leftArmMesh.enabled = activeMeleeComponents.leftArmTarget;
+            rightArmMesh.enabled = !renderArms ? false : activeMeleeComponents.rightArmTarget;
+            leftArmMesh.enabled = !renderArms ? false : activeMeleeComponents.leftArmTarget;
         }
         if (activeMeleeComponents.rightArmTarget) rightArmIk.Target = activeMeleeComponents.rightArmTarget;
         else rightArmIk.enabled = false;
@@ -874,6 +920,7 @@ public class PlayerShooting : MonoBehaviour
         if (NetworkManager.Singleton.Server.IsRunning) return;
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
+            if (!player.playerShooting.activeGun) return;
             player.playerShooting.HandleServerWeaponSwitch(message.GetUShort(), (int)message.GetUShort(), (int)message.GetByte());
         }
     }
@@ -889,14 +936,20 @@ public class PlayerShooting : MonoBehaviour
     // FUCK QUATERNIONS
     public IEnumerator RotateReloadGun(int times, float duration)
     {
+        isWaitingForReload = true;
         while (currentWeaponState != WeaponState.Idle) yield return null;
         SwitchWeaponState(WeaponState.Reloading);
 
+        if (player.IsLocal) lastReloadTick = NetworkManager.Singleton.serverTick;
+
+        if (NetworkManager.Singleton.Server.IsRunning) SendReloading();
+        else if (player.IsLocal) SendReload();
+
         if (activeGun.weaponSpinSound)
         {
-            weaponAudioSource.clip = activeGun.weaponSpinSound;
-            weaponAudioSource.loop = true;
-            weaponAudioSource.Play();
+            weaponReloadSpinAudioSource.clip = activeGun.weaponSpinSound;
+            weaponReloadSpinAudioSource.loop = true;
+            weaponReloadSpinAudioSource.Play();
         }
 
         animator.enabled = false;
@@ -919,8 +972,9 @@ public class PlayerShooting : MonoBehaviour
 
         if (activeGun.weaponSpinSound)
         {
-            weaponAudioSource.Stop();
-            weaponAudioSource.loop = false;
+            weaponReloadSpinAudioSource.Stop();
+            weaponReloadSpinAudioSource.loop = false;
+
             if (activeGun.weaponReloadSound)
             {
                 weaponAudioSource.pitch = Utilities.GetRandomPitch(0.1f, 0.05f);
@@ -928,6 +982,7 @@ public class PlayerShooting : MonoBehaviour
             }
         }
         SwitchWeaponState(WeaponState.Idle);
+        isWaitingForReload = false;
     }
 
     private IEnumerator TiltWeapon(float tiltAngle, float duration)

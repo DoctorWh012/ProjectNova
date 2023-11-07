@@ -1,10 +1,12 @@
-using Riptide;
+using System.Collections;
 using UnityEngine;
+using Riptide;
 
 public enum PlayerState
 {
     Alive,
     Stunned,
+    Invincible,
     Dead
 }
 
@@ -12,12 +14,19 @@ public class PlayerHealth : MonoBehaviour
 {
     [Header("Components")]
     [SerializeField] private Player player;
-    [SerializeField] private ParticleSystem hurtEffect;
+    [SerializeField] private AudioSource playerAudioSource;
     [SerializeField] private PlayerHud playerHud;
     [SerializeField] private PlayerShooting playerShooting;
     [SerializeField] private PlayerMovement playerMovement;
     [SerializeField] private GameObject[] playerModels;
     [SerializeField] private Collider[] colliders;
+
+    [Header("Particles/Effects")]
+    [SerializeField] private ParticleSystem hurtEffect;
+    [SerializeField] private ParticleSystem hurtParticles;
+    [SerializeField] private ParticleSystem deathParticles;
+    [SerializeField] private GameObject shieldsHolder;
+    [SerializeField] private Animator shieldAnimator;
 
     [Header("Settings")]
     [SerializeField] ScriptablePlayer scriptablePlayer;
@@ -25,33 +34,46 @@ public class PlayerHealth : MonoBehaviour
     [Header("Debugging Serialized")]
     [SerializeField] public PlayerState currentPlayerState = PlayerState.Alive;
 
-    private ushort lastReceivedStatusTick;
+    private ushort lastReceivedDiedTick;
+    private ushort lastReceivedRespawnTick;
     private ushort lastReceivedHealthTick;
 
-    private float _currentHealth;
+    [SerializeField] private float _currentHealth;
     private float currentHealth
     {
         get { return _currentHealth; }
         set
         {
-            if (value < currentHealth && player.IsLocal) hurtEffect.Play();
+            // Taking Damage
+            if (value < _currentHealth)
+            {
+                if (player.IsLocal) hurtEffect.Play();
+                else hurtParticles.Play();
 
+                playerAudioSource.pitch = Utilities.GetRandomPitch();
+                playerAudioSource.PlayOneShot(scriptablePlayer.playerHurtAudio, scriptablePlayer.playerHurtAudioVolume);
+            }
+
+            // Healing
             if (value > scriptablePlayer.maxHealth)
             {
                 _currentHealth = scriptablePlayer.maxHealth;
+
                 if (player.IsLocal) playerHud.UpdateHealthDisplay(_currentHealth);
-                else SendUpdatedHealth();
+                if (NetworkManager.Singleton.Server.IsRunning) SendUpdatedHealth();
                 return;
             }
-            _currentHealth = value;
+
+            _currentHealth = value > 0 ? value : 0;
+
             if (player.IsLocal) playerHud.UpdateHealthDisplay(_currentHealth);
-            else SendUpdatedHealth();
+            if (NetworkManager.Singleton.Server.IsRunning) SendUpdatedHealth();
         }
     }
 
     private void Start()
     {
-        if (NetworkManager.Singleton.Server.IsRunning) currentHealth = scriptablePlayer.maxHealth;
+        currentHealth = scriptablePlayer.maxHealth;
     }
 
     private void Die()
@@ -59,53 +81,52 @@ public class PlayerHealth : MonoBehaviour
         if (currentPlayerState == PlayerState.Dead) return;
         currentPlayerState = PlayerState.Dead;
 
-        playerMovement.FreezePlayerMovement();
+        shieldsHolder.SetActive(false);
+        StopAllCoroutines();
+
+        playerAudioSource.pitch = Utilities.GetRandomPitch();
+        playerAudioSource.PlayOneShot(scriptablePlayer.playerDieAudio, scriptablePlayer.playerDieAudioVolume);
+
+        if (player.IsLocal) playerMovement.FreezePlayerMovement();
+        else playerMovement.FreezeNetPlayerMovement();
 
         EnableDisablePlayerColliders(false);
         EnableDisableModels(false);
 
+        deathParticles.Play();
+
         if (NetworkManager.Singleton.Server.IsRunning)
         {
-            SendStatusMessage();
-            Invoke("Respawn", scriptablePlayer.respawnTime);
+            Invoke("StartRespawn", scriptablePlayer.respawnTime);
+            SendPlayerDied();
         }
     }
 
-    private void Respawn()
+    private void StartRespawn()
     {
-        if (currentPlayerState != PlayerState.Dead) return;
-        currentPlayerState = PlayerState.Alive;
-
-        playerMovement.rb.position = SpawnHandler.Instance.GetSpawnLocation();
-        playerShooting.PickStartingWeapons();
-        playerShooting.ReplenishAllAmmo();
-        currentHealth = scriptablePlayer.maxHealth;
-
-        EnableDisablePlayerColliders(true);
-        EnableDisableModels(true);
-
-        playerMovement.FreePlayerMovement();
-
-        if (NetworkManager.Singleton.Server.IsRunning) SendStatusMessage();
+        StartCoroutine(Respawn());
     }
 
-    private void HandleServerPlayerStatus(bool status, Vector3 position, ushort tick)
+    private void HandleServerPlayerDied(ushort tick)
     {
-        if (tick <= lastReceivedStatusTick) return;
-        lastReceivedStatusTick = tick;
+        if (tick <= lastReceivedDiedTick) return;
+        lastReceivedDiedTick = tick;
 
-        if (status)
-        {
-            Respawn();
-            playerMovement.transform.position = position;
-        }
+        Die();
+    }
 
-        else Die();
+    private void HandleServerPlayerRespawned(Vector3 pos, ushort tick)
+    {
+        if (tick <= lastReceivedRespawnTick) return;
+        lastReceivedRespawnTick = tick;
+
+        transform.position = pos;
+        StartRespawn();
     }
 
     public bool ReceiveDamage(float damage)
     {
-        if (currentPlayerState == PlayerState.Dead) return false;
+        if (currentPlayerState == PlayerState.Dead || currentPlayerState == PlayerState.Invincible) return false;
         currentHealth -= damage;
 
         if (currentHealth <= 0)
@@ -170,12 +191,19 @@ public class PlayerHealth : MonoBehaviour
     }
 
     #region  ServerSenders
-    private void SendStatusMessage()
+    private void SendPlayerDied()
     {
         Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.playerDied);
         message.AddUShort(player.Id);
-        message.AddBool(currentPlayerState == PlayerState.Alive);
-        message.AddVector3(playerMovement.rb.position);
+        message.AddUShort(NetworkManager.Singleton.serverTick);
+        NetworkManager.Singleton.Server.SendToAll(message);
+    }
+
+    private void SendPlayerRespawned()
+    {
+        Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.playerRespawned);
+        message.AddUShort(player.Id);
+        message.AddVector3(transform.position);
         message.AddUShort(NetworkManager.Singleton.serverTick);
         NetworkManager.Singleton.Server.SendToAll(message);
     }
@@ -186,7 +214,7 @@ public class PlayerHealth : MonoBehaviour
         message.AddUShort(player.Id);
         message.AddSByte((sbyte)currentHealth);
         message.AddUShort(NetworkManager.Singleton.serverTick);
-        NetworkManager.Singleton.Server.Send(message, player.Id);
+        NetworkManager.Singleton.Server.SendToAll(message);
     }
     #endregion
 
@@ -197,17 +225,56 @@ public class PlayerHealth : MonoBehaviour
         if (NetworkManager.Singleton.Server.IsRunning) return;
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
-            player.playerHealth.HandleServerPlayerStatus(message.GetBool(), message.GetVector3(), message.GetUShort());
+            player.playerHealth.HandleServerPlayerDied(message.GetUShort());
+        }
+    }
+
+    [MessageHandler((ushort)ServerToClientId.playerRespawned)]
+    private static void PlayerRespawned(Message message)
+    {
+        if (NetworkManager.Singleton.Server.IsRunning) return;
+        if (Player.list.TryGetValue(message.GetUShort(), out Player player))
+        {
+            player.playerHealth.HandleServerPlayerRespawned(message.GetVector3(), message.GetUShort());
         }
     }
 
     [MessageHandler((ushort)ServerToClientId.healthChanged)]
     private static void ChangeHealth(Message message)
     {
+        if (NetworkManager.Singleton.Server.IsRunning) return;
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
             player.playerHealth.HandleServerHealth((float)message.GetSByte(), message.GetUShort());
         }
     }
     #endregion
+
+    private IEnumerator Respawn()
+    {
+        if (currentPlayerState != PlayerState.Dead) yield break;
+        currentPlayerState = PlayerState.Invincible;
+        shieldsHolder.SetActive(true);
+        shieldAnimator.Play("ShieldRaise");
+
+        if (NetworkManager.Singleton.Server.IsRunning)
+        {
+            transform.position = SpawnHandler.Instance.GetSpawnLocation();
+            currentHealth = scriptablePlayer.maxHealth;
+            SendPlayerRespawned();
+        }
+
+        playerShooting.PickStartingWeapons();
+        playerShooting.ReplenishAllAmmo();
+
+        EnableDisablePlayerColliders(true);
+        EnableDisableModels(true);
+
+        if (player.IsLocal) playerMovement.FreePlayerMovement();
+        else playerMovement.FreeNetPlayerMovement();
+
+        yield return new WaitForSeconds(scriptablePlayer.invincibilityTime);
+        shieldsHolder.SetActive(false);
+        currentPlayerState = PlayerState.Alive;
+    }
 }

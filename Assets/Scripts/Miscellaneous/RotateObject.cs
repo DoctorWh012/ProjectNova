@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class RotateObject : MonoBehaviour
@@ -13,11 +11,11 @@ public class RotateObject : MonoBehaviour
     [SerializeField] bool z;
 
     // Update is called once per frame
-    void FixedUpdate()
+    void Update()
     {
         if (!rotate) return;
-        if (x) objectPos.Rotate(rotateSpeed, 0, 0);
-        if (y) objectPos.Rotate(0, rotateSpeed, 0);
-        if (z) objectPos.Rotate(0, 0, rotateSpeed);
+        if (x) objectPos.Rotate(rotateSpeed * Time.deltaTime, 0, 0);
+        if (y) objectPos.Rotate(0, rotateSpeed * Time.deltaTime, 0);
+        if (z) objectPos.Rotate(0, 0, rotateSpeed * Time.deltaTime);
     }
 }

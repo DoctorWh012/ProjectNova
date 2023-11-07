@@ -1,7 +1,5 @@
 using Riptide;
-using UnityEditor;
 using UnityEngine;
-
 
 /* WORK REMINDER
 
@@ -14,7 +12,7 @@ using UnityEngine;
 public class SimulationState
 {
     public Vector3 position = Vector3.zero;
-    public Vector3 velocity = Vector3.zero;
+    public Vector3 playerCharacterPos = Vector3.zero;
     public Vector3 rotation = Vector3.zero;
     public Vector3 camRotation = Vector3.zero;
     public ushort currentTick = 0;
@@ -29,6 +27,7 @@ public class PlayerMovement : MonoBehaviour
     [Space(5)]
     [SerializeField] private Player player;
     [SerializeField] private PlayerHealth playerHealth;
+    [SerializeField] private PlayerHud playerHud;
     [SerializeField] private Animator playerAnimator;
     [SerializeField] private CapsuleCollider col;
     [SerializeField] public Rigidbody rb;
@@ -81,7 +80,7 @@ public class PlayerMovement : MonoBehaviour
     private float airMovementMultiplier;
 
     private float jumpBufferCounter;
-    private bool readyToJump = true;
+    [SerializeField] private bool readyToJump = true;
     private Vector3 moveDir;
     private RaycastHit slopeHit;
 
@@ -106,8 +105,8 @@ public class PlayerMovement : MonoBehaviour
     private ushort lastReceivedDashTick;
 
     // Lag Compensation
+    private Vector3 playerCharacterDefaultPos = new Vector3(0, -1, 0);
     public SimulationState[] playerSimulationState = new SimulationState[NetworkManager.lagCompensationCacheSize];
-    private Vector3 savedPlayerPos;
 
     // Interpolation
     [SerializeField] private float timeSinceReceivedMovement;
@@ -124,33 +123,34 @@ public class PlayerMovement : MonoBehaviour
 
     private void Start()
     {
-        emission = speedLinesEffect.emission;
+        if (player.IsLocal) emission = speedLinesEffect.emission;
     }
 
     private void Update()
     {
-        if (playerHealth.currentPlayerState == PlayerState.Dead) return;
         CheckIfGrounded();
+        if (playerHealth.currentPlayerState == PlayerState.Dead || currentMovementState == MovementStates.Inactive) return;
+
         if (!player.IsLocal)
         {
             Interpolate();
             return;
         }
-        PlayerAnimator();
-
+        PlayerEffects();
+        if (!PlayerHud.Focused) return;
         GetInput();
     }
 
     private void FixedUpdate()
     {
-        if (!player.IsLocal || playerHealth.currentPlayerState == PlayerState.Dead) return;
+        if (!player.IsLocal || playerHealth.currentPlayerState == PlayerState.Dead || currentMovementState == MovementStates.Inactive) return;
 
         CheckWallRun();
         ApplyMovement(GetTrueForward());
         if (CanJump()) Jump();
         IncreaseGravity();
         ApplyDrag();
-        if (NetworkManager.Singleton.Server.IsRunning) SendServerMovement(rb.position, rb.velocity, orientation.forward, playerCam.forward, (byte)currentAnimationId);
+        if (NetworkManager.Singleton.Server.IsRunning) SendServerMovement(transform.position, rb.velocity, orientation.forward, playerCam.forward, (byte)currentAnimationId);
         else SendClientMovement();
     }
 
@@ -158,23 +158,23 @@ public class PlayerMovement : MonoBehaviour
     private void GetInput()
     {
         // Desired Input
-        verticalInput = Input.GetKey(Keybinds.forwardKey) ? 1 : (Input.GetKey(Keybinds.backwardsKey) ? -1 : 0);
-        horizontalInput = Input.GetKey(Keybinds.rightKey) ? 1 : (Input.GetKey(Keybinds.leftKey) ? -1 : 0);
+        verticalInput = Input.GetKey(SettingsManager.playerPreferences.forwardKey) ? 1 : (Input.GetKey(SettingsManager.playerPreferences.backwardKey) ? -1 : 0);
+        horizontalInput = Input.GetKey(SettingsManager.playerPreferences.rightKey) ? 1 : (Input.GetKey(SettingsManager.playerPreferences.leftKey) ? -1 : 0);
 
         // Counter movement keys
-        if (Input.GetKey(Keybinds.forwardKey) && Input.GetKey(Keybinds.backwardsKey)) verticalInput = 0;
-        if (Input.GetKey(Keybinds.rightKey) && Input.GetKey(Keybinds.leftKey)) horizontalInput = 0;
+        if (Input.GetKey(SettingsManager.playerPreferences.forwardKey) && Input.GetKey(SettingsManager.playerPreferences.backwardKey)) verticalInput = 0;
+        if (Input.GetKey(SettingsManager.playerPreferences.rightKey) && Input.GetKey(SettingsManager.playerPreferences.leftKey)) horizontalInput = 0;
 
         // Jumping
-        jumpBufferCounter = Input.GetKey(Keybinds.jumpKey) ? movementSettings.jumpBufferTime : jumpBufferCounter > 0 ? jumpBufferCounter - Time.deltaTime : 0;
+        jumpBufferCounter = Input.GetKey(SettingsManager.playerPreferences.jumpKey) ? movementSettings.jumpBufferTime : jumpBufferCounter > 0 ? jumpBufferCounter - Time.deltaTime : 0;
 
         // Crouching / GroundSlam
-        if (Input.GetKey(Keybinds.crouchKey) && (coyoteTimeCounter > 0) && jumpBufferCounter == 0) StartCrouch();
-        if (Input.GetKeyDown(Keybinds.crouchKey) && coyoteTimeCounter == 0) GroundSlam();
-        if (Input.GetKeyUp(Keybinds.crouchKey)) EndCrouch();
+        if (Input.GetKeyDown(SettingsManager.playerPreferences.crouchKey) && (coyoteTimeCounter > 0) && jumpBufferCounter == 0) StartCrouch();
+        if (Input.GetKeyDown(SettingsManager.playerPreferences.crouchKey) && coyoteTimeCounter == 0) GroundSlam();
+        if (Input.GetKeyUp(SettingsManager.playerPreferences.crouchKey)) EndCrouch();
 
         // Dashing
-        if (Input.GetKeyDown(Keybinds.dashKey)) Dash();
+        if (Input.GetKeyDown(SettingsManager.playerPreferences.dashKey)) Dash();
     }
 
     private void SwitchMovementState(MovementStates state)
@@ -185,10 +185,18 @@ public class PlayerMovement : MonoBehaviour
     public void FreezePlayerMovement()
     {
         if (currentMovementState == MovementStates.Inactive) return;
+
+        if (currentMovementState == MovementStates.Crouched) EndCrouch();
+        CancelInvoke("FinishDashing");
+        CancelInvoke("RestoreJump");
+        readyToJump = false;
+        if (currentMovementState == MovementStates.Dashing) FinishDashing();
+        if (currentMovementState == MovementStates.GroundSlamming) FinishGroundSlam();
+
         currentMovementState = MovementStates.Inactive;
 
-        readyToJump = false;
-        CancelInvoke("RestoreJump");
+        StopAllEffects();
+
         rb.useGravity = false;
         rb.velocity = Vector3.zero;
     }
@@ -200,6 +208,23 @@ public class PlayerMovement : MonoBehaviour
 
         Invoke("RestoreJump", movementSettings.jumpCooldown);
         rb.useGravity = true;
+    }
+
+    public void FreezeNetPlayerMovement()
+    {
+        if (currentMovementState == MovementStates.Inactive) return;
+        currentMovementState = MovementStates.Inactive;
+
+        interpolationGoal = new SimulationState();
+        interpolationStartingState = new SimulationState();
+
+        StopAllEffects();
+    }
+
+    public void FreeNetPlayerMovement()
+    {
+        if (currentMovementState != MovementStates.Inactive) return;
+        currentMovementState = MovementStates.Active;
     }
 
     private void ApplyMass()
@@ -311,8 +336,8 @@ public class PlayerMovement : MonoBehaviour
     {
         return new SimulationState
         {
-            position = rb.position,
-            velocity = rb.velocity,
+            position = transform.position,
+            playerCharacterPos = playerCharacter.position,
             rotation = orientation.forward,
             camRotation = playerCam.forward,
             currentTick = NetworkManager.Singleton.serverTick
@@ -321,17 +346,16 @@ public class PlayerMovement : MonoBehaviour
 
     public void SetPlayerPositionToTick(ushort tick)
     {
-        savedPlayerPos = playerCharacter.position;
         int cacheIndex = tick % NetworkManager.lagCompensationCacheSize;
 
         if (playerSimulationState[cacheIndex].currentTick != tick) return;
 
-        playerCharacter.position = playerSimulationState[cacheIndex].position;
+        playerCharacter.position = playerSimulationState[cacheIndex].playerCharacterPos;
     }
 
     public void ResetPlayerPosition()
     {
-        playerCharacter.position = savedPlayerPos;
+        playerCharacter.localPosition = playerCharacterDefaultPos;
     }
     #endregion
 
@@ -395,7 +419,12 @@ public class PlayerMovement : MonoBehaviour
         SwitchMovementState(MovementStates.GroundSlamming);
         groundSlamAirParticles.Play();
 
-        if (NetworkManager.Singleton.Server.IsRunning && player.IsLocal) SendServerGroundSlam();
+        if (player.IsLocal)
+        {
+            playerHud.UpdateGroundSlamIcon(false);
+            playerHud.groundSlamSlider.value = 0;
+            if (NetworkManager.Singleton.Server.IsRunning) SendServerGroundSlam();
+        }
         else SendClientGroundSlam();
     }
 
@@ -443,9 +472,13 @@ public class PlayerMovement : MonoBehaviour
 
     private void RefilGroundSlam()
     {
+        if (availableGroundSlams >= movementSettings.groundSlamQuantity) return;
+
         groundSlamTimer -= Time.deltaTime;
-        if (groundSlamTimer <= 0 && availableGroundSlams < movementSettings.groundSlamQuantity)
+        playerHud.groundSlamSlider.value = (movementSettings.groundSlamRefilTime - groundSlamTimer) / movementSettings.groundSlamRefilTime;
+        if (groundSlamTimer <= 0)
         {
+            playerHud.UpdateGroundSlamIcon(true);
             availableGroundSlams++;
             groundSlamTimer = movementSettings.groundSlamRefilTime;
             playerAudioSource.pitch = Utilities.GetRandomPitch();
@@ -460,6 +493,7 @@ public class PlayerMovement : MonoBehaviour
 
         if (availableDashes <= 0) return;
         availableDashes--;
+        playerHud.UpdateDashIcons(availableDashes, false);
 
         SwitchMovementState(MovementStates.Dashing);
         CancelInvoke("FinishDashing");
@@ -515,11 +549,13 @@ public class PlayerMovement : MonoBehaviour
     private void RefilDash()
     {
         if (availableDashes >= movementSettings.dashQuantity) return;
-
         dashTimer -= Time.deltaTime;
+        // playerHud.dashSlider.value = (movementSettings.dashRefilTime - dashTimer) / movementSettings.dashRefilTime;
+
         if (dashTimer <= 0)
         {
             availableDashes++;
+            playerHud.UpdateDashIcons(availableDashes, true);
             dashTimer = movementSettings.dashRefilTime;
             playerAudioSource.pitch = Utilities.GetRandomPitch(-0.05f, 0.1f);
             playerAudioSource.PlayOneShot(movementSettings.dashRefilAudioClip, movementSettings.dashRefilAudioVolume);
@@ -614,13 +650,25 @@ public class PlayerMovement : MonoBehaviour
     #endregion
 
     #region Effects
-    private void PlayerAnimator()
+    private void PlayerEffects()
     {
         AnimatePlayer();
         PlayFootStepSound();
         CheckCameraTilt();
         SlideEffects(rb.velocity);
         UpdateSpeedLinesEmission();
+    }
+
+    private void StopAllEffects()
+    {
+        // Stops Sliding Particles
+
+        if (slideParticles.isEmitting)
+        {
+            slideParticles.Stop();
+            slideAudioSouce.Stop();
+        }
+        if (player.IsLocal) emission.rateOverTime = 0;
     }
 
     private void SlideEffects(Vector3 velocity)
@@ -653,7 +701,7 @@ public class PlayerMovement : MonoBehaviour
         footStepTimer -= Time.deltaTime;
         if (currentMovementState != MovementStates.Active && currentMovementState != MovementStates.Wallrunning) return;
         if (currentMovementState == MovementStates.Active && coyoteTimeCounter == 0) return;
-        if (rb.velocity.magnitude < 5 || footStepTimer > 0) return;
+        if (rb.velocity.magnitude < movementSettings.footStepStartVelocity || footStepTimer > 0) return;
 
 
         playerAudioSource.pitch = Utilities.GetRandomPitch(-0.15f, 0.15f);
@@ -750,7 +798,7 @@ public class PlayerMovement : MonoBehaviour
     private void HandleMovementData(Vector3 receivedPosition, Vector3 receivedVelocity, Vector3 receivedOrientation, Vector3 receivedCamForward, byte animationId, ushort tick)
     {
         if (tick <= interpolationGoal.currentTick) return;
-        if (currentMovementState == MovementStates.Inactive) return;
+        if (currentMovementState == MovementStates.Inactive || playerHealth.currentPlayerState == PlayerState.Dead) return;
 
         timeSinceReceivedMovement = 0;
 
@@ -841,7 +889,7 @@ public class PlayerMovement : MonoBehaviour
     private void SendClientMovement()
     {
         Message message = Message.Create(MessageSendMode.Unreliable, ClientToServerId.playerMovement);
-        message.AddVector3(rb.position);
+        message.AddVector3(transform.position);
         message.AddVector3(rb.velocity);
         message.AddVector3(orientation.forward);
         message.AddVector3(playerCam.forward);

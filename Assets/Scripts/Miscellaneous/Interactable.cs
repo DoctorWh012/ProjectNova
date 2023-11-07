@@ -1,93 +1,29 @@
 using UnityEngine;
-using System.Collections;
+using System.Collections.Generic;
 
 public class Interactable : MonoBehaviour
 {
-    private enum Action { PickUpGun, StartMatch }
-    [SerializeField] private Action desiredAction;
+    [TextArea]
+    [SerializeField] private string popUpMessage;
 
-    private Coroutine waitCoroutine;
-    private Animator animator;
-    private bool matchStart = false;
+    protected List<Player> players = new List<Player>();
+    Player player;
 
-    private void Start()
-    {
-        if (desiredAction == Action.StartMatch) animator = GetComponent<Animator>();
-    }
-
-    private void VerifyUIText(Player player)
-    {
-        if (player.IsLocal)
-        {
-            switch (desiredAction)
-            {
-                case Action.PickUpGun:
-                    // GameCanvas.Instance.SetUiPopUpText($"Press [E] to PickUp the gun!");
-                    break;
-
-                case Action.StartMatch:
-                    // GameCanvas.Instance.SetUiPopUpText($"Press [E] to Start the match!");
-                    break;
-            }
-
-        }
-    }
-
-    private void OnTriggerEnter(Collider other)
+    public void OnTriggerEnter(Collider other)
     {
         if (!other.CompareTag("Player")) return;
-        if (waitCoroutine != null) return;
 
-        Player player = other.GetComponentInParent<Player>();
-        VerifyUIText(player);
-
-        waitCoroutine = StartCoroutine(WaitForInteract(player));
+        player = other.GetComponentInParent<Player>();
+        if (player.IsLocal) player.playerHud.UpdateMediumBottomText(string.Format(popUpMessage, SettingsManager.playerPreferences.interactKey));
+        players.Add(player);
     }
 
-    private void OnTriggerStay(Collider other)
-    {
-        if (!other.CompareTag("Player") || waitCoroutine != null) return;
-
-        Player player = other.GetComponentInParent<Player>();
-        VerifyUIText(player);
-
-        waitCoroutine = StartCoroutine(WaitForInteract(player));
-    }
-
-    private void OnTriggerExit(Collider other)
+    public void OnTriggerExit(Collider other)
     {
         if (!other.CompareTag("Player")) return;
-        if (waitCoroutine == null) return;
 
-        // GameCanvas.Instance.SetUiPopUpText("");
-        if (waitCoroutine != null) StopCoroutine(waitCoroutine);
-        waitCoroutine = null;
-    }
-
-    private IEnumerator WaitForInteract(Player player)
-    {
-        while (player.playerInteractions.interactTimeCounter == 0)
-        {
-            yield return null;
-        }
-
-        switch (desiredAction)
-        {
-            case Action.PickUpGun:
-                GetComponent<GunSpawn>().PickUpTheGun(player);
-                // GameCanvas.Instance.SetUiPopUpText("");
-                break;
-
-            case Action.StartMatch:
-                animator.Play("Press");
-                if (!NetworkManager.Singleton.Server.IsRunning) break;
-                if (!player.IsLocal) break;
-
-                matchStart = !matchStart;
-                MatchManager.Singleton.SendMatchStartMessage(matchStart);
-                yield return new WaitForSeconds(1);
-                break;
-        }
-        waitCoroutine = null;
+        player = other.GetComponentInParent<Player>();
+        if (player.IsLocal) player.playerHud.UpdateMediumBottomText("");
+        players.Remove(player);
     }
 }

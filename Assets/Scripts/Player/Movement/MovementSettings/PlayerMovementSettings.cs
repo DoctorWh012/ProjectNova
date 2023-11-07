@@ -1,5 +1,4 @@
 using System.Runtime.Remoting.Messaging;
-using UnityEditor;
 using UnityEngine;
 
 [CreateAssetMenu(fileName = "PlayerMovement", menuName = "RUSP/PlayerMovement", order = 0)]
@@ -18,6 +17,7 @@ public class PlayerMovementSettings : ScriptableObject
     [SerializeField] public AudioClip footStepSounds;
     [Range(0, 1)]
     [SerializeField] public float footStepSoundVolume = 0.3f;
+    [SerializeField] public float footStepStartVelocity;
     [SerializeField] public Vector3 groundCheckPos;
     [SerializeField] public float footStepRate = 2.5f;
     [SerializeField] public float movementMultiplier = 10;

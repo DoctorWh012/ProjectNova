@@ -1,14 +1,16 @@
 using Riptide;
-using Riptide.Utils;
 using System;
+using Steamworks;
+using Riptide.Utils;
 using UnityEngine;
-using UnityEngine.SceneManagement;
 using Riptide.Transports.Steam;
 using System.Collections.Generic;
 
 public enum ServerToClientId : ushort
 {
     serverTick = 1,
+
+    SceneChanged,
 
     playerMovement,
     playerCrouch,
@@ -25,23 +27,21 @@ public enum ServerToClientId : ushort
 
     healthChanged,
     playerDied,
-    playerScore,
-
-    gunSpawned,
-    gunDespawned,
-
-    matchStart,
-    matchOver,
+    playerRespawned,
+    weaponSpawned,
+    weaponDespawned,
 }
 
 public enum ClientToServerId : ushort
 {
-    name = 1,
+    playerInfo = 1,
     playerMovement,
     playerCrouch,
     playerDash,
     playerGroundSlam,
     playerInteract,
+
+    playerSuicide,
 
     fireInput,
     slotChange,
@@ -49,12 +49,11 @@ public enum ClientToServerId : ushort
 }
 
 public class NetworkManager : MonoBehaviour
-
 {
     private static NetworkManager _singleton;
     public static NetworkManager Singleton
     {
-        get => _singleton;
+        get { return _singleton; }
         private set
         {
             if (_singleton == null)
@@ -65,35 +64,35 @@ public class NetworkManager : MonoBehaviour
             else if (_singleton != value)
             {
                 Debug.Log($"{nameof(NetworkManager)} instance already exists, destroying duplicate");
-                Destroy(value.gameObject);
+                Destroy(value);
             }
 
         }
     }
 
-    public const float ServerTickRate = 64f;
-
-    public float minTimeBetweenTicks { get; private set; }
     public ushort serverTick { get; private set; }
-    public static int lagCompensationCacheSize { get; private set; } = 20; //64 ticks every 1000ms
+    public static int lagCompensationCacheSize { get; private set; } = 22; //64 ticks every 1000ms
 
     public Client Client { get; private set; }
     public Server Server { get; private set; }
-
 
     [Header("Prefabs")]
     [SerializeField] public GameObject localPlayerPrefab;
     [SerializeField] public GameObject netPlayerPrefab;
 
-    [Header("Settings")]
-    [SerializeField] public ushort maxClientCount;
+    protected Callback<LobbyCreated_t> lobbyCreated;
+    protected Callback<GameLobbyJoinRequested_t> gameLobbyJoinRequested;
+    protected Callback<LobbyEnter_t> lobbyEnter;
 
-    private float timer;
+    public CSteamID lobbyId { get; private set; }
+    public Dictionary<ushort, string> playersOnLobby = new Dictionary<ushort, string>();
+
+    public int maxPlayers;
+    public string lobbyName;
 
     private void Awake()
     {
         Singleton = this;
-        minTimeBetweenTicks = 1f / ServerTickRate;
         DontDestroyOnLoad(gameObject);
     }
 
@@ -105,44 +104,49 @@ public class NetworkManager : MonoBehaviour
             Application.Quit(); return;
         }
 
-        SceneManager.sceneLoaded += SceneChangeDebug;
-
         RiptideLogger.Initialize(Debug.Log, Debug.Log, Debug.LogWarning, Debug.LogError, false);
 
         SteamServer steamServer = new SteamServer();
         Server = new Server(steamServer);
-        Server.ClientDisconnected += PlayerLeft;
+        Server.ClientConnected += ClientJoined;
+        Server.ClientDisconnected += ClientLeft;
 
-        Client = new Client(new SteamClient(steamServer));
-        Client.Connected += DidConnect;
-        Client.ConnectionFailed += FailedToConnect;
-        Client.ClientDisconnected += PlayerLeft;
-        Client.Disconnected += DidDisconnect;
+        Client = new Client(new Riptide.Transports.Steam.SteamClient(steamServer));
+        Client.Connected += JoinedServer;
+        Client.Disconnected += PlayerDisconnected;
+
+        lobbyCreated = Callback<LobbyCreated_t>.Create(OnLobbyCreated);
+        gameLobbyJoinRequested = Callback<GameLobbyJoinRequested_t>.Create(OnGameLobbyJoinRequested);
+        lobbyEnter = Callback<LobbyEnter_t>.Create(OnLobbyEnter);
     }
 
-    private void Update()
+    private void OnApplicationQuit()
     {
-        timer += Time.deltaTime;
-        while (timer >= minTimeBetweenTicks)
-        {
-            timer -= minTimeBetweenTicks;
-            if (Server.IsRunning)
-            {
-                Server.Update();
-                serverTick++;
-                SendTick();
+        Client.Disconnect();
+        Client.Connected -= JoinedServer;
+        Client.Disconnected -= PlayerDisconnected;
 
-                int cacheIndex = NetworkManager.Singleton.serverTick % lagCompensationCacheSize;
-
-                for (int i = 0; i < Player.list.Count; i++)
-                {
-                    foreach (Player player in Player.list.Values) player.playerMovement.playerSimulationState[cacheIndex] = player.playerMovement.CurrentSimulationState();
-                }
-            }
-            Client.Update();
-        }
+        if (Server.IsRunning) Server.Stop();
+        Server.ClientConnected -= ClientJoined;
+        Server.ClientDisconnected -= ClientLeft;
+        SteamMatchmaking.LeaveLobby(NetworkManager.Singleton.lobbyId);
     }
 
+    private void FixedUpdate()
+    {
+        if (Server.IsRunning)
+        {
+            Server.Update();
+            serverTick++;
+            SendTick();
+
+            int cacheIndex = NetworkManager.Singleton.serverTick % lagCompensationCacheSize;
+            foreach (Player player in Player.list.Values) player.playerMovement.playerSimulationState[cacheIndex] = player.playerMovement.CurrentSimulationState();
+        }
+        Client.Update();
+    }
+
+    #region Lag Compensation
     public void SetAllPlayersPositionsTo(ushort tick, ushort excludedPlayerId)
     {
         foreach (Player player in Player.list.Values)
@@ -160,79 +164,108 @@ public class NetworkManager : MonoBehaviour
             player.playerMovement.ResetPlayerPosition();
         }
     }
+    #endregion
 
-    private void OnApplicationQuit()
+    #region  Server/Client Event Handlers
+    private void JoinedServer(object sender, EventArgs e)
     {
-        if (Server.IsRunning) Server.Stop();
-        Server.ClientDisconnected -= PlayerLeft;
+        if (Server.IsRunning)
+        {
+            GameManager.Singleton.LoadScene(Scenes.Lobby, "JoinedServer ServerOn");
+            HandleReceivedPlayerData(Client.Id, SteamFriends.GetPersonaName());
+            GameManager.Singleton.spawnPlayersAfterSceneLoad = true;
+        }
+        else
+        {
+            GameManager.Singleton.LoadScene(SteamMatchmaking.GetLobbyData(lobbyId, "map"), "JoinedServer ServerOff");
+            SendPlayerInfo();
+        }
+    }
 
-        Client.Disconnect();
-        Client.Connected -= DidConnect;
-        Client.ConnectionFailed -= FailedToConnect;
-        Client.ClientDisconnected -= PlayerLeft;
-        Client.Disconnected -= DidDisconnect;
+    private void ClientJoined(object sender, ServerConnectedEventArgs e)
+    {
 
     }
 
-    internal void StopServer()
+    private void ClientLeft(object sender, ServerDisconnectedEventArgs e)
     {
-        Server.Stop();
-        DestroyAllPlayers();
-    }
-
-    internal void DisconnectClient()
-    {
-        Client.Disconnect();
-        DestroyAllPlayers();
-        GameObject[] toBeDestroyed = GameObject.FindGameObjectsWithTag("Destroy");
-        foreach (GameObject go in toBeDestroyed) Destroy(go);
-    }
-
-    private void DestroyAllPlayers()
-    {
-        foreach (KeyValuePair<ushort, Player> player in Player.list) Destroy(player.Value.gameObject);
-    }
-
-    private void DidConnect(object sender, EventArgs e)
-    {
-        StartCoroutine(LobbyManager.Singleton.SendName());
-    }
-
-    private void FailedToConnect(object sender, EventArgs e)
-    {
-        SceneManager.LoadScene("Menu");
-    }
-
-    private void PlayerLeft(object sender, ClientDisconnectedEventArgs e)
-    {
-        Destroy(Player.list[e.Id].gameObject);
-    }
-
-    private void PlayerLeft(object sender, ServerDisconnectedEventArgs e)
-    {
+        playersOnLobby.Remove(e.Client.Id);
         Destroy(Player.list[e.Client.Id].gameObject);
     }
 
-    private void DidDisconnect(object sender, EventArgs e)
+    private void PlayerDisconnected(object sender, DisconnectedEventArgs e)
     {
-        LobbyManager.Singleton.LeaveLobby();
-        SceneManager.LoadScene("Menu");
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
+
+        SteamMatchmaking.LeaveLobby(NetworkManager.Singleton.lobbyId);
+        GameManager.Singleton.LoadScene(Scenes.Menu, "PlayerDisconnected");
+        playersOnLobby.Clear();
     }
 
-    private void SceneChangeDebug(Scene loaded, LoadSceneMode i)
+    private void HandleReceivedPlayerData(ushort id, string username)
     {
-        Debug.LogWarning($"Switched scene To {loaded.name}");
+        playersOnLobby.Add(id, username);
+        if (Server.IsRunning && id != Client.Id) GameManager.Singleton.AttemptToSpawnPlayer(id, username);
     }
 
+    #endregion
+
+    #region Lobby Management
+    private void OnLobbyCreated(LobbyCreated_t callback)
+    {
+        if (callback.m_eResult != EResult.k_EResultOK) { Debug.LogError("Failed to create steam lobby"); return; }
+
+        lobbyId = new CSteamID(callback.m_ulSteamIDLobby);
+
+        SteamMatchmaking.SetLobbyData(lobbyId, "HostCSteamId", SteamUser.GetSteamID().ToString());
+        SteamMatchmaking.SetLobbyData(lobbyId, "name", lobbyName);
+        SteamMatchmaking.SetLobbyData(lobbyId, "status", "WIP");
+        SteamMatchmaking.SetLobbyData(lobbyId, "map", GameManager.Singleton.currentScene);
+
+        Server.Start(0, (ushort)maxPlayers);
+        Client.Connect("127.0.0.1");
+    }
+
+    public void JoinLobby(ulong lobbyId)
+    {
+        SteamMatchmaking.JoinLobby(new CSteamID(lobbyId));
+    }
+
+    private void OnGameLobbyJoinRequested(GameLobbyJoinRequested_t callback)
+    {
+        SteamMatchmaking.JoinLobby(callback.m_steamIDLobby);
+    }
+
+    private void OnLobbyEnter(LobbyEnter_t callback)
+    {
+        if (Server.IsRunning) return;
+        lobbyId = new CSteamID(callback.m_ulSteamIDLobby);
+        Client.Connect(SteamMatchmaking.GetLobbyData(lobbyId, "HostCSteamId"));
+    }
+    #endregion
+
+    #region ClientToServerSenders
+
+    private void SendPlayerInfo()
+    {
+        Message message = Message.Create(MessageSendMode.Reliable, ClientToServerId.playerInfo);
+        message.AddString(SteamFriends.GetPersonaName());
+        Client.Send(message);
+    }
+
+    #endregion
+
+    #region ServerToClientSenders
     private void SendTick()
     {
-        Message message = Message.Create(MessageSendMode.Unreliable, (ushort)ServerToClientId.serverTick);
+        Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.serverTick);
         message.AddUShort(serverTick);
-        NetworkManager.Singleton.Server.SendToAll(message);
+        Server.SendToAll(message);
     }
+    #endregion
 
+    #region ServerToClientReceivers
     [MessageHandler((ushort)ServerToClientId.serverTick)]
     private static void SyncTick(Message message)
     {
@@ -241,4 +274,13 @@ public class NetworkManager : MonoBehaviour
         ushort tick = message.GetUShort();
         if (tick > NetworkManager.Singleton.serverTick) NetworkManager.Singleton.serverTick = tick;
     }
+    #endregion
+
+    #region ClientToServerReceivers
+    [MessageHandler((ushort)ClientToServerId.playerInfo)]
+    private static void GetPlayerInfo(ushort fromClientId, Message message)
+    {
+        NetworkManager.Singleton.HandleReceivedPlayerData(fromClientId, message.GetString());
+    }
+    #endregion
 }

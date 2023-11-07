@@ -9933,7 +9933,6 @@ GameObject:
   m_Component:
   - component: {fileID: 4386201687322238916}
   - component: {fileID: 2803683846540539468}
-  - component: {fileID: 4023074237348536986}
   m_Layer: 6
   m_Name: LS-50
   m_TagString: Untagged
@@ -9972,13 +9971,8 @@ MonoBehaviour:
   gunSway: {fileID: 8255138496008962648}
   barrelTip: {fileID: 4386201688140296825}
   gunModelPos: {fileID: 5338952835101604512}
-  gunMesh:
-  - {fileID: 6511335955835929039}
-  - {fileID: 7022534151402828163}
   animator: {fileID: 1609255122068997805}
   muzzleFlash: {fileID: 565195523549110475}
-  gunTrail: {fileID: 1410028475}
-  humSource: {fileID: 4023074237348536986}
   scopeMesh: {fileID: 6469355698366977918}
   rightArmTarget: {fileID: 1559470615}
   leftArmTarget: {fileID: 1651992487}
@@ -9987,102 +9981,6 @@ MonoBehaviour:
   fadeinTime: 0.1
   fadeOutTime: 1
   shakeAmmount: 5
---- !u!82 &4023074237348536986
-AudioSource:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4386201687322238917}
-  m_Enabled: 1
-  serializedVersion: 4
-  OutputAudioMixerGroup: {fileID: 0}
-  m_audioClip: {fileID: 0}
-  m_PlayOnAwake: 1
-  m_Volume: 1
-  m_Pitch: 1
-  Loop: 0
-  Mute: 0
-  Spatialize: 0
-  SpatializePostEffects: 0
-  Priority: 128
-  DopplerLevel: 1
-  MinDistance: 1
-  MaxDistance: 500
-  Pan2D: 0
-  rolloffMode: 0
-  BypassEffects: 0
-  BypassListenerEffects: 0
-  BypassReverbZones: 0
-  rolloffCustomCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 1
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    - serializedVersion: 3
-      time: 1
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
-  panLevelCustomCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
-  spreadCustomCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 0
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
-  reverbZoneMixCustomCurve:
-    serializedVersion: 2
-    m_Curve:
-    - serializedVersion: 3
-      time: 0
-      value: 1
-      inSlope: 0
-      outSlope: 0
-      tangentMode: 0
-      weightedMode: 0
-      inWeight: 0.33333334
-      outWeight: 0.33333334
-    m_PreInfinity: 2
-    m_PostInfinity: 2
-    m_RotationOrder: 4
 --- !u!1 &4386201688140296826
 GameObject:
   m_ObjectHideFlags: 0
@@ -10307,24 +10205,14 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: bf76c9eb589b86341970c0c630bac913, type: 3}
---- !u!23 &7022534151402828163 stripped
-MeshRenderer:
-  m_CorrespondingSourceObject: {fileID: -5987410673878111032, guid: bf76c9eb589b86341970c0c630bac913, type: 3}
-  m_PrefabInstance: {fileID: 5592762842671930699}
-  m_PrefabAsset: {fileID: 0}
---- !u!23 &6511335955835929039 stripped
-MeshRenderer:
-  m_CorrespondingSourceObject: {fileID: -7511558181221131132, guid: bf76c9eb589b86341970c0c630bac913, type: 3}
+--- !u!1 &4709663489151197210 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: bf76c9eb589b86341970c0c630bac913, type: 3}
   m_PrefabInstance: {fileID: 5592762842671930699}
   m_PrefabAsset: {fileID: 0}
 --- !u!4 &5338952835101604512 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: bf76c9eb589b86341970c0c630bac913, type: 3}
-  m_PrefabInstance: {fileID: 5592762842671930699}
-  m_PrefabAsset: {fileID: 0}
---- !u!1 &4709663489151197210 stripped
-GameObject:
-  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: bf76c9eb589b86341970c0c630bac913, type: 3}
   m_PrefabInstance: {fileID: 5592762842671930699}
   m_PrefabAsset: {fileID: 0}
 --- !u!95 &1609255122068997805
@@ -10359,18 +10247,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 642e3ad01b7184d47b6dfdca9faa78aa, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  call:
+  finishShooting:
     m_PersistentCalls:
-      m_Calls:
-      - m_Target: {fileID: 0}
-        m_TargetAssemblyTypeName: GunShoot, Assembly-CSharp
-        m_MethodName: FinishPlayerShooting
-        m_Mode: 1
-        m_Arguments:
-          m_ObjectArgument: {fileID: 0}
-          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
-          m_FloatArgument: 0
-          m_StringArgument: 
-          m_BoolArgument: 0
-        m_CallState: 2
+      m_Calls: []
+  finishSwitching:
+    m_PersistentCalls:
+      m_Calls: []

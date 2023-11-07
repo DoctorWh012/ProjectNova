@@ -21,4 +21,9 @@ public class GunComponents : MonoBehaviour
     [SerializeField] public float fadeinTime;
     [SerializeField] public float fadeOutTime;
     [SerializeField] public float shakeAmmount;
+
+    private void Start()
+    {
+        animator.keepAnimatorStateOnDisable = true;
+    }
 }

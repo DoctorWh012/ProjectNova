@@ -76,7 +76,7 @@ public class Guns : ScriptableObject
     private void Awake()
     {
         currentAmmo = maxAmmo;
-        tickFireRate = (1f / fireRate) / (1f / NetworkManager.ServerTickRate);
+        tickFireRate = (1f / fireRate) / Time.fixedDeltaTime;
     }
 
     public void CreateGaussianDistribution()

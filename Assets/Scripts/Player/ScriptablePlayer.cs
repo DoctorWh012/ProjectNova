@@ -16,6 +16,15 @@ public class ScriptablePlayer : ScriptableObject
     [SerializeField] public float crouchedHeight = 1.5f;
 
     [Header("Health")]
+    [Range(0, 1f)]
+    [SerializeField] public float playerHurtAudioVolume;
+    [SerializeField] public AudioClip playerHurtAudio;
+    [SerializeField ] public float invincibilityTime;
+
+    [Range(0, 1f)]
+    [SerializeField] public float playerDieAudioVolume;
+    [SerializeField] public AudioClip playerDieAudio;
+
     [SerializeField] public float maxHealth;
     [SerializeField] public BodyPartHitTagMultiplier[] bodyPartHitTagMultipliers;
 
@@ -24,6 +33,10 @@ public class ScriptablePlayer : ScriptableObject
     [SerializeField] public int[] startingWeaponsIndex = new int[3];
 
     [Header("Game")]
+    [Range(0, 1f)]
+    [SerializeField] public float playerHitAudioVolume;
+    [SerializeField] public float playerHitAudio;
+
     [SerializeField] public float respawnTime;
     [SerializeField] public float interactBufferTime = 0.1f;
 }

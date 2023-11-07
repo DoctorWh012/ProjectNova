@@ -13,6 +13,6 @@ public class LobbyDisplay : MonoBehaviour
 
     public void JoinLobby()
     {
-        LobbyManager.Singleton.JoinLobby((ulong)lobbyId);
+        MainMenu.Instance.JoinLobby((ulong)lobbyId);
     }
 }

@@ -3,8 +3,6 @@ using Riptide;
 
 public class PlayerInteractions : MonoBehaviour
 {
-    public bool Focused { get; private set; }
-
     [Header("Components")]
     [SerializeField] private Player player;
     [SerializeField] private ScriptablePlayer scriptablePlayer;
@@ -23,14 +21,11 @@ public class PlayerInteractions : MonoBehaviour
     private void GetInput()
     {
         // Interacting
-        if (Input.GetKeyDown(Keybinds.interactKey))
+        if (Input.GetKeyDown(SettingsManager.playerPreferences.interactKey))
         {
             interactTimeCounter = scriptablePlayer.interactBufferTime;
             SendClientInteract();
         }
-
-        // Pausing
-        if (Input.GetKeyDown(Keybinds.pauseKey)) PauseUnpause();
     }
 
     private void HandleClientInteract(ushort tick)
@@ -39,23 +34,6 @@ public class PlayerInteractions : MonoBehaviour
         lastReceivedInteractTick = tick;
 
         interactTimeCounter = scriptablePlayer.interactBufferTime;
-    }
-
-    private void PauseUnpause()
-    {
-        if (Focused)
-        {
-            Cursor.lockState = CursorLockMode.None;
-            Cursor.visible = true;
-            Focused = false;
-        }
-
-        else
-        {
-            Cursor.lockState = CursorLockMode.Locked;
-            Cursor.visible = false;
-            Focused = true;
-        }
     }
 
     private void SendClientInteract()
