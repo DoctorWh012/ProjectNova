@@ -22,6 +22,14 @@ public enum TracerType
     red,
 }
 
+public enum CrosshairType : int
+{
+    cross,
+    x,
+    square,
+    dot,
+}
+
 [CreateAssetMenu(fileName = "Guns", menuName = "RUSP/Guns", order = 0)]
 public class Guns : ScriptableObject
 {
@@ -33,6 +41,12 @@ public class Guns : ScriptableObject
     [SerializeField] public GameObject gunModel;
     [SerializeField] public Sprite gunIcon;
     [SerializeField] public string gunName;
+
+    [Header("Crosshair")]
+    [SerializeField] public CrosshairType crosshairType;
+    [SerializeField] public float crosshairScale = 1;
+    [SerializeField] public float crosshairShotScale = 1.2f;
+    [SerializeField] public float crosshairShrinkTime = 0.5f;
 
     [Header("Damage")]
     [SerializeField] public int damage;

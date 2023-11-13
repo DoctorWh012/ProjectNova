@@ -21,12 +21,16 @@ public class GunSpawn : Interactable
     [Header("Settings")]
     [SerializeField] private float weaponChangeDelay;
     [SerializeField] private float weaponRespawnDelay;
+    [Space(15)]
+    [SerializeField] private bool spawnSpecificWeapon = false;
+    [SerializeField] private int specificWeaponId;
+
 
     private Guns spawnedWeaponSettings;
     public int weaponSpawnerId;
 
-    [HideInInspector] public ushort lastReceivedWeaponSpawnTick;
-    [HideInInspector] public ushort lastReceivedWeaponDespawnTick;
+    [HideInInspector] public uint lastReceivedWeaponSpawnTick;
+    [HideInInspector] public uint lastReceivedWeaponDespawnTick;
 
     void Start()
     {
@@ -35,7 +39,11 @@ public class GunSpawn : Interactable
         NetworkManager.Singleton.Server.ClientConnected += SendWeaponSpawnerDataToPlayer;
 
         HideAllWeapons();
-        if (NetworkManager.Singleton.Server.IsRunning) InvokeRepeating("SpawnWeapon", weaponChangeDelay, weaponChangeDelay);
+        if (NetworkManager.Singleton.Server.IsRunning)
+        {
+            if (spawnSpecificWeapon) InvokeRepeating("FixedWeaponSpawn", weaponChangeDelay, weaponChangeDelay);
+            else InvokeRepeating("SpawnWeapon", weaponChangeDelay, weaponChangeDelay);
+        }
     }
 
     private void OnApplicationQuit()
@@ -63,6 +71,11 @@ public class GunSpawn : Interactable
     private void HideAllWeapons()
     {
         for (int i = 0; i < weapons.Length; i++) weapons[i].weaponObject.SetActive(false);
+    }
+
+    private void FixedWeaponSpawn()
+    {
+        SpawnSpecificWeapon(specificWeaponId);
     }
 
     public void SpawnSpecificWeapon(int weaponId)
@@ -94,8 +107,17 @@ public class GunSpawn : Interactable
         spawnedWeaponSettings = null;
 
         if (!NetworkManager.Singleton.Server.IsRunning) return;
-        CancelInvoke("SpawnWeapon");
-        InvokeRepeating("SpawnWeapon", weaponRespawnDelay, weaponChangeDelay);
+        if (spawnSpecificWeapon)
+        {
+            CancelInvoke("FixedWeaponSpawn");
+            InvokeRepeating("FixedWeaponSpawn", weaponRespawnDelay, weaponChangeDelay);
+        }
+        else
+        {
+            CancelInvoke("SpawnWeapon");
+            InvokeRepeating("SpawnWeapon", weaponRespawnDelay, weaponChangeDelay);
+        }
+
         SendWeaponDespawned();
     }
 
@@ -104,7 +126,7 @@ public class GunSpawn : Interactable
         Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.weaponSpawned);
         message.AddByte((byte)weaponSpawnerId);
         message.AddByte((byte)spawnedWeaponId);
-        message.AddUShort(NetworkManager.Singleton.serverTick);
+        message.AddUInt(NetworkManager.Singleton.serverTick);
         NetworkManager.Singleton.Server.SendToAll(message);
     }
 
@@ -114,7 +136,7 @@ public class GunSpawn : Interactable
         Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.weaponSpawned);
         message.AddByte((byte)weaponSpawnerId);
         message.AddByte((byte)spawnedWeaponId);
-        message.AddUShort(NetworkManager.Singleton.serverTick);
+        message.AddUInt(NetworkManager.Singleton.serverTick);
         NetworkManager.Singleton.Server.Send(message, e.Client.Id);
     }
 
@@ -122,7 +144,7 @@ public class GunSpawn : Interactable
     {
         Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.weaponDespawned);
         message.AddByte((byte)weaponSpawnerId);
-        message.AddUShort(NetworkManager.Singleton.serverTick);
+        message.AddUInt(NetworkManager.Singleton.serverTick);
         NetworkManager.Singleton.Server.SendToAll(message);
     }
 }

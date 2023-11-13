@@ -2,15 +2,25 @@ using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
 using Riptide;
-using Steamworks;
 
-public class PlayerHud : MonoBehaviour
+/* WORK REMINDER
+
+    Implement Color Customization
+
+*/
+
+public class PlayerHud : SettingsMenu
 {
     public static bool Focused { get; private set; } = true;
 
     [Header("Components")]
     [SerializeField] private ScriptablePlayer playerSettings;
     [SerializeField] private PlayerHealth playerHealth;
+    [SerializeField] private PlayerShooting playerShooting;
+
+    [SerializeField] private Color dashAvailableColor;
+    [SerializeField] private Color highlitedColor;
+    [SerializeField] private Color fadedColor;
 
     [Header("Health Battery")]
     [SerializeField] private TextMeshProUGUI healthText;
@@ -18,7 +28,7 @@ public class PlayerHud : MonoBehaviour
 
     [Header("Abilities Panel")]
     [SerializeField] private Image[] dashIcons;
-    [SerializeField] public Slider dashSlider;
+    [SerializeField] public Slider[] dashSliders;
     [SerializeField] private Image groundSlamIcon;
     [SerializeField] public Slider groundSlamSlider;
 
@@ -28,8 +38,8 @@ public class PlayerHud : MonoBehaviour
     [SerializeField] private TextMeshProUGUI[] weaponsNamesText;
     [SerializeField] private Image[] weaponsImages;
 
-    [SerializeField] private Color highlitedColor;
-    [SerializeField] private Color fadedColor;
+    [Header("Crosshairs")]
+    [SerializeField] private GameObject[] crosshairs;
 
     [Header("UI Texts")]
     [SerializeField] private TextMeshProUGUI mediumBottomText;
@@ -43,25 +53,59 @@ public class PlayerHud : MonoBehaviour
     [SerializeField] private GameObject settingsMenu;
     [SerializeField] private GameObject gameHud;
 
+    private int currentCrosshairIndex;
+    private Vector3 crosshairScale;
+    private Vector3 crosshairShotScale;
+    private float crosshairShrinkTime;
+    private float crosshairShrinkTimer;
+
+    private void Awake()
+    {
+        SettingsManager.updatedPlayerPrefs += UpdatePreferences;
+    }
+
+    private void OnApplicationQuit()
+    {
+        SettingsManager.updatedPlayerPrefs -= UpdatePreferences;
+    }
+
+    private void OnDestroy()
+    {
+        SettingsManager.updatedPlayerPrefs -= UpdatePreferences;
+    }
+
     private void Start()
     {
         Focused = true;
+
+        AddListenerToSettingsSliders();
         ResetWeaponsOnSlots();
         ResetAllUITexts();
-        DeactivateAllMenus();
+        DisableAllMenus();
+
+        SettingsManager.VerifyJson();
+        UpdatePreferences();
     }
 
     private void Update()
     {
         if (Input.GetKeyDown(SettingsManager.playerPreferences.pauseKey)) PauseUnpause();
+        ScaleDownCrosshair();
         pingTxt.SetText($"Ping: {NetworkManager.Singleton.Client.RTT}");
+    }
+
+    private void UpdatePreferences()
+    {
+        UpdateSettingsValues();
+        if (SettingsManager.playerPreferences.crosshairType == 0) UpdateCrosshair((int)playerShooting.activeGun.crosshairType, playerShooting.activeGun.crosshairScale, playerShooting.activeGun.crosshairShotScale, playerShooting.activeGun.crosshairShrinkTime);
+        else UpdateCrosshair((int)CrosshairType.dot, 1, 1, 0);
     }
 
     #region Menus
     public void PauseUnpause()
     {
         Focused = !Focused;
-        DeactivateAllMenus();
+        DisableAllMenus();
         pauseMenu.SetActive(!Focused);
         gameHud.SetActive(Focused);
 
@@ -71,12 +115,26 @@ public class PlayerHud : MonoBehaviour
 
     public void OpenSettingsMenu()
     {
-        DeactivateAllMenus();
+        DisableAllMenus();
         settingsMenu.SetActive(true);
+
+        GetAvailableResolutions();
+
+        UpdateSettingsValues();
+        DisableAllSettingsMenus();
+        EnterGeneralMenu();
+    }
+
+    public void ReturnToPauseMenu()
+    {
+        DisableAllMenus();
+        pauseMenu.SetActive(true);
     }
 
     public void Respawn()
     {
+        if (playerHealth.currentPlayerState == PlayerState.Dead) return;
+
         if (NetworkManager.Singleton.Server.IsRunning) playerHealth.InstaKill();
         else SendSuicideMessage();
 
@@ -95,7 +153,7 @@ public class PlayerHud : MonoBehaviour
         NetworkManager.Singleton.Client.Disconnect();
     }
 
-    private void DeactivateAllMenus()
+    private void DisableAllMenus()
     {
         pauseMenu.SetActive(false);
         settingsMenu.SetActive(false);
@@ -177,13 +235,47 @@ public class PlayerHud : MonoBehaviour
         groundSlamIcon.color = state ? highlitedColor : fadedColor;
     }
 
-    public void UpdateDashIcons(int availableDashes, bool state)
+    public void UpdateDashIcons(int availableDashes)
     {
-        for (int i = dashIcons.Length; i-- > 0;)
+        for (int i = 0; i < dashIcons.Length; i++)
         {
-            dashIcons[i].color = state ? highlitedColor : fadedColor;
-            if (availableDashes == i) return;
+            dashIcons[i].color = i < availableDashes ? dashAvailableColor : fadedColor;
+            dashSliders[i].value = i < availableDashes ? 1 : 0;
         }
+    }
+
+    public void UpdateCrosshair(int crosshairIndex, float weaponCrosshairScale, float weaponcrosshairShotScale, float weaponcrosshairShrinkTime)
+    {
+        DisableAllCrosshairs();
+
+        currentCrosshairIndex = crosshairIndex;
+        crosshairs[currentCrosshairIndex].SetActive(true);
+
+        crosshairShrinkTimer = 0;
+        crosshairScale = new Vector3(weaponCrosshairScale, weaponCrosshairScale, weaponCrosshairScale);
+        crosshairShotScale = new Vector3(weaponcrosshairShotScale, weaponcrosshairShotScale, weaponcrosshairShotScale);
+        crosshairShrinkTime = weaponcrosshairShrinkTime;
+
+        crosshairs[currentCrosshairIndex].transform.localScale = crosshairScale;
+    }
+
+    public void ScaleCrosshairShot()
+    {
+        crosshairs[currentCrosshairIndex].transform.localScale = crosshairShotScale;
+        crosshairShrinkTimer = 0;
+    }
+
+    private void ScaleDownCrosshair()
+    {
+        if (crosshairShrinkTimer >= crosshairShrinkTime) return;
+
+        crosshairShrinkTimer += Time.deltaTime;
+        crosshairs[currentCrosshairIndex].transform.localScale = Vector3.Lerp(crosshairShotScale, crosshairScale, crosshairShrinkTimer / crosshairShrinkTime);
+    }
+
+    private void DisableAllCrosshairs()
+    {
+        for (int i = 0; i < crosshairs.Length; i++) crosshairs[i].SetActive(false);
     }
     #endregion
 

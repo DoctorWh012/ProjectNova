@@ -26,6 +26,8 @@ public class PlayerPreferences
 
     // Miscellaneous
     public bool renderArms;
+    public int crosshairType;
+    public int crosshairColor;
 
     // Keybinds
     // Interactions
@@ -64,7 +66,7 @@ public static class SettingsManager
     }
 
     public static void UpdateJson(int resWidth = 0, int resHeight = 0, int maxFrameRateIndex = 0, int graphics = 1, bool vsync = true, bool fullScreen = true, float sensitivity = 20f, int cameraFov = 90
-    , float mastervolume = 1f, float musicVolume = 1, bool renderArms = true, KeyCode forward = KeyCode.W, KeyCode backward = KeyCode.S, KeyCode left = KeyCode.A, KeyCode right = KeyCode.D, KeyCode jump = KeyCode.Space, KeyCode dash = KeyCode.LeftShift, KeyCode crouch = KeyCode.LeftControl, KeyCode interact = KeyCode.E, KeyCode fire = KeyCode.Mouse0, KeyCode altFire = KeyCode.Mouse1, KeyCode reload = KeyCode.R, KeyCode primarySlot = KeyCode.Alpha1, KeyCode secondarySlot = KeyCode.Alpha2, KeyCode tertiarySlot = KeyCode.Alpha3)
+    , float mastervolume = 1f, float musicVolume = 1, bool renderArms = true, int crosshairType = 0, int crosshairColor = 0, KeyCode forward = KeyCode.W, KeyCode backward = KeyCode.S, KeyCode left = KeyCode.A, KeyCode right = KeyCode.D, KeyCode jump = KeyCode.Space, KeyCode dash = KeyCode.LeftShift, KeyCode crouch = KeyCode.LeftControl, KeyCode interact = KeyCode.E, KeyCode fire = KeyCode.Mouse0, KeyCode altFire = KeyCode.Mouse1, KeyCode reload = KeyCode.R, KeyCode primarySlot = KeyCode.Alpha1, KeyCode secondarySlot = KeyCode.Alpha2, KeyCode tertiarySlot = KeyCode.Alpha3)
     {
         PlayerPreferences playerPrefs = new PlayerPreferences();
 
@@ -84,6 +86,9 @@ public static class SettingsManager
         playerPrefs.musicVolume = musicVolume;
 
         playerPrefs.renderArms = renderArms;
+
+        playerPrefs.crosshairType = crosshairType;
+        playerPrefs.crosshairColor = crosshairColor;
 
         playerPrefs.forwardKey = forward;
         playerPrefs.backwardKey = backward;

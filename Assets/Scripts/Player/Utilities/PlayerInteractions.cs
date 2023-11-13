@@ -8,7 +8,7 @@ public class PlayerInteractions : MonoBehaviour
     [SerializeField] private ScriptablePlayer scriptablePlayer;
 
     [SerializeField] public float interactTimeCounter;
-    private ushort lastReceivedInteractTick;
+    private uint lastReceivedInteractTick;
 
     private void Update()
     {
@@ -28,7 +28,7 @@ public class PlayerInteractions : MonoBehaviour
         }
     }
 
-    private void HandleClientInteract(ushort tick)
+    private void HandleClientInteract(uint tick)
     {
         if (tick <= lastReceivedInteractTick) return;
         lastReceivedInteractTick = tick;
@@ -39,7 +39,7 @@ public class PlayerInteractions : MonoBehaviour
     private void SendClientInteract()
     {
         Message message = Message.Create(MessageSendMode.Unreliable, ClientToServerId.playerInteract);
-        message.AddUShort(NetworkManager.Singleton.serverTick);
+        message.AddUInt(NetworkManager.Singleton.serverTick);
         NetworkManager.Singleton.Client.Send(message);
     }
 
@@ -48,7 +48,7 @@ public class PlayerInteractions : MonoBehaviour
     {
         if (Player.list.TryGetValue(fromClientId, out Player player))
         {
-            player.playerInteractions.HandleClientInteract(message.GetUShort());
+            player.playerInteractions.HandleClientInteract(message.GetUInt());
         }
     }
 }

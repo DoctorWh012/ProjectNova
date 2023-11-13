@@ -15,9 +15,13 @@ MonoBehaviour:
   slot: 1
   weaponType: 1
   gunModel: {fileID: 919132149155446097, guid: 7b4fec31ca43ae64abe4977ed7dac725, type: 3}
-  gunIcon: {fileID: 21300000, guid: 29bf47caf710a62469d15683ad5e9aaf, type: 3}
+  gunIcon: {fileID: 21300000, guid: 0de1787f1b0651e4a9499edcfcf4075a, type: 3}
   gunName: LP-12
-  damage: 100
+  crosshairType: 2
+  crosshairScale: 1
+  crosshairShotScale: 2
+  crosshairShrinkTime: 0.3
+  damage: 60
   range: 20
   fireRate: 2
   reloadTime: 2
@@ -40,4 +44,13 @@ MonoBehaviour:
   isShotgun: 1
   pellets: 9
   spread: 0.1
-  spreadPatterns: []
+  spreadPatterns:
+  - {x: 0.64567184, y: 0.13005513}
+  - {x: -0.49370646, y: 0.4627856}
+  - {x: -0.3753001, y: -0.92414635}
+  - {x: -0.32115403, y: 0.7056524}
+  - {x: 0.16135576, y: -0.70953}
+  - {x: 0.14295255, y: -0.4472051}
+  - {x: -0.46001783, y: -0.8056188}
+  - {x: -0.44921955, y: -0.56547755}
+  - {x: 0.4640451, y: 0.7457419}

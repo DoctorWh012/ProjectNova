@@ -19,7 +19,7 @@ public class GunSpawnManager : MonoBehaviour
         for (int i = 0; i < weaponSpawners.Length; i++) weaponSpawners[i].weaponSpawnerId = i;
     }
 
-    private void HandleServerWeaponSpawn(int spawnerId, int weaponId, ushort tick)
+    private void HandleServerWeaponSpawn(int spawnerId, int weaponId, uint tick)
     {
         if (weaponSpawners[spawnerId].lastReceivedWeaponSpawnTick >= tick) return;
         weaponSpawners[spawnerId].lastReceivedWeaponSpawnTick = tick;
@@ -27,7 +27,7 @@ public class GunSpawnManager : MonoBehaviour
         weaponSpawners[spawnerId].SpawnSpecificWeapon(weaponId);
     }
 
-    private void HandleServerWeaponDespawn(int spawnerId, ushort tick)
+    private void HandleServerWeaponDespawn(int spawnerId, uint tick)
     {
         if (weaponSpawners[spawnerId].lastReceivedWeaponDespawnTick >= tick) return;
         weaponSpawners[spawnerId].lastReceivedWeaponDespawnTick = tick;
@@ -39,13 +39,13 @@ public class GunSpawnManager : MonoBehaviour
     private static void GetSpawnedWeapon(Message message)
     {
         if (NetworkManager.Singleton.Server.IsRunning) return;
-        GunSpawnManager.Instance.HandleServerWeaponSpawn((int)message.GetByte(), (int)message.GetByte(), message.GetUShort());
+        GunSpawnManager.Instance.HandleServerWeaponSpawn((int)message.GetByte(), (int)message.GetByte(), message.GetUInt());
     }
 
     [MessageHandler((ushort)ServerToClientId.weaponDespawned)]
     private static void GetWeaponDespawn(Message message)
     {
         if (NetworkManager.Singleton.Server.IsRunning) return;
-        GunSpawnManager.Instance.HandleServerWeaponDespawn((int)message.GetByte(), message.GetUShort());
+        GunSpawnManager.Instance.HandleServerWeaponDespawn((int)message.GetByte(), message.GetUInt());
     }
 }

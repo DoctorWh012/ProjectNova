@@ -15,9 +15,13 @@ MonoBehaviour:
   slot: 0
   weaponType: 0
   gunModel: {fileID: 919132149155446097, guid: 9a5985c8af170834aab5a7b6e1ae376a, type: 3}
-  gunIcon: {fileID: 21300000, guid: 686e3051d21f6a143a7ce438c2fbef76, type: 3}
+  gunIcon: {fileID: 21300000, guid: c36c8d73507f94f46a743338c05ab065, type: 3}
   gunName: LW-50
-  damage: 75
+  crosshairType: 0
+  crosshairScale: 0.45
+  crosshairShotScale: 1.6
+  crosshairShrinkTime: 0.8
+  damage: 60
   range: 50
   fireRate: 1.2
   reloadTime: 1
@@ -30,6 +34,7 @@ MonoBehaviour:
   weaponPickupSound: {fileID: 8300000, guid: d5569ed4a10935d46be5ad4b9f4da396, type: 3}
   weaponSpinSound: {fileID: 8300000, guid: 2bcd552318991af4f91eac08804a20a4, type: 3}
   weaponReloadSound: {fileID: 8300000, guid: d3e77d5d17a857c409a0bdda6fd9cf06, type: 3}
+  weaponShootingSoundVolume: 1
   weaponShootingSounds:
   - {fileID: 8300000, guid: 4978cc4c0e3d94149814ebe16008d043, type: 3}
   tracerType: 0

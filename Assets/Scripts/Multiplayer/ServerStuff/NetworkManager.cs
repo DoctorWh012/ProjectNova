@@ -70,8 +70,8 @@ public class NetworkManager : MonoBehaviour
         }
     }
 
-    public ushort serverTick { get; private set; }
-    public static int lagCompensationCacheSize { get; private set; } = 22; //64 ticks every 1000ms
+    public uint serverTick; //{ get; private set; }
+    public static uint lagCompensationCacheSize { get; private set; } = 22; //64 ticks every 1000ms
 
     public Client Client { get; private set; }
     public Server Server { get; private set; }
@@ -140,14 +140,14 @@ public class NetworkManager : MonoBehaviour
             serverTick++;
             SendTick();
 
-            int cacheIndex = NetworkManager.Singleton.serverTick % lagCompensationCacheSize;
+            uint cacheIndex = NetworkManager.Singleton.serverTick % lagCompensationCacheSize;
             foreach (Player player in Player.list.Values) player.playerMovement.playerSimulationState[cacheIndex] = player.playerMovement.CurrentSimulationState();
         }
         Client.Update();
     }
 
     #region Lag Compensation
-    public void SetAllPlayersPositionsTo(ushort tick, ushort excludedPlayerId)
+    public void SetAllPlayersPositionsTo(uint tick, ushort excludedPlayerId)
     {
         foreach (Player player in Player.list.Values)
         {
@@ -201,6 +201,7 @@ public class NetworkManager : MonoBehaviour
         SteamMatchmaking.LeaveLobby(NetworkManager.Singleton.lobbyId);
         GameManager.Singleton.LoadScene(Scenes.Menu, "PlayerDisconnected");
         playersOnLobby.Clear();
+        serverTick = 0;
     }
 
     private void HandleReceivedPlayerData(ushort id, string username)
@@ -214,7 +215,12 @@ public class NetworkManager : MonoBehaviour
     #region Lobby Management
     private void OnLobbyCreated(LobbyCreated_t callback)
     {
-        if (callback.m_eResult != EResult.k_EResultOK) { Debug.LogError("Failed to create steam lobby"); return; }
+        if (callback.m_eResult != EResult.k_EResultOK)
+        {
+            Debug.LogError("Failed to create steam lobby");
+            MainMenu.Instance.ReturnToMainMenu();
+            return;
+        }
 
         lobbyId = new CSteamID(callback.m_ulSteamIDLobby);
 
@@ -260,7 +266,7 @@ public class NetworkManager : MonoBehaviour
     private void SendTick()
     {
         Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.serverTick);
-        message.AddUShort(serverTick);
+        message.AddUInt(serverTick);
         Server.SendToAll(message);
     }
     #endregion
@@ -271,7 +277,7 @@ public class NetworkManager : MonoBehaviour
     {
         if (NetworkManager.Singleton.Server.IsRunning) return;
 
-        ushort tick = message.GetUShort();
+        uint tick = message.GetUInt();
         if (tick > NetworkManager.Singleton.serverTick) NetworkManager.Singleton.serverTick = tick;
     }
     #endregion

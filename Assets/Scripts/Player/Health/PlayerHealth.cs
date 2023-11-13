@@ -34,9 +34,9 @@ public class PlayerHealth : MonoBehaviour
     [Header("Debugging Serialized")]
     [SerializeField] public PlayerState currentPlayerState = PlayerState.Alive;
 
-    private ushort lastReceivedDiedTick;
-    private ushort lastReceivedRespawnTick;
-    private ushort lastReceivedHealthTick;
+    private uint lastReceivedDiedTick;
+    private uint lastReceivedRespawnTick;
+    private uint lastReceivedHealthTick;
 
     [SerializeField] private float _currentHealth;
     private float currentHealth
@@ -107,7 +107,7 @@ public class PlayerHealth : MonoBehaviour
         StartCoroutine(Respawn());
     }
 
-    private void HandleServerPlayerDied(ushort tick)
+    private void HandleServerPlayerDied(uint tick)
     {
         if (tick <= lastReceivedDiedTick) return;
         lastReceivedDiedTick = tick;
@@ -115,7 +115,7 @@ public class PlayerHealth : MonoBehaviour
         Die();
     }
 
-    private void HandleServerPlayerRespawned(Vector3 pos, ushort tick)
+    private void HandleServerPlayerRespawned(Vector3 pos, uint tick)
     {
         if (tick <= lastReceivedRespawnTick) return;
         lastReceivedRespawnTick = tick;
@@ -152,7 +152,7 @@ public class PlayerHealth : MonoBehaviour
         currentHealth += healAmount;
     }
 
-    private void HandleServerHealth(float health, ushort tick)
+    private void HandleServerHealth(float health, uint tick)
     {
         if (tick <= lastReceivedHealthTick) return;
         lastReceivedHealthTick = tick;
@@ -162,7 +162,7 @@ public class PlayerHealth : MonoBehaviour
 
     private void EnableDisableModels(bool state)
     {
-        if (player.IsLocal) playerShooting.EnableDisableHandsMeshes(state);
+        if (player.IsLocal) playerShooting.EnableDisableHandsMeshes(state, state);
 
         for (int i = 0; i < playerModels.Length; i++)
         {
@@ -195,7 +195,7 @@ public class PlayerHealth : MonoBehaviour
     {
         Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.playerDied);
         message.AddUShort(player.Id);
-        message.AddUShort(NetworkManager.Singleton.serverTick);
+        message.AddUInt(NetworkManager.Singleton.serverTick);
         NetworkManager.Singleton.Server.SendToAll(message);
     }
 
@@ -204,7 +204,7 @@ public class PlayerHealth : MonoBehaviour
         Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.playerRespawned);
         message.AddUShort(player.Id);
         message.AddVector3(transform.position);
-        message.AddUShort(NetworkManager.Singleton.serverTick);
+        message.AddUInt(NetworkManager.Singleton.serverTick);
         NetworkManager.Singleton.Server.SendToAll(message);
     }
 
@@ -213,7 +213,7 @@ public class PlayerHealth : MonoBehaviour
         Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.healthChanged);
         message.AddUShort(player.Id);
         message.AddSByte((sbyte)currentHealth);
-        message.AddUShort(NetworkManager.Singleton.serverTick);
+        message.AddUInt(NetworkManager.Singleton.serverTick);
         NetworkManager.Singleton.Server.SendToAll(message);
     }
     #endregion
@@ -225,7 +225,7 @@ public class PlayerHealth : MonoBehaviour
         if (NetworkManager.Singleton.Server.IsRunning) return;
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
-            player.playerHealth.HandleServerPlayerDied(message.GetUShort());
+            player.playerHealth.HandleServerPlayerDied(message.GetUInt());
         }
     }
 
@@ -235,7 +235,7 @@ public class PlayerHealth : MonoBehaviour
         if (NetworkManager.Singleton.Server.IsRunning) return;
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
-            player.playerHealth.HandleServerPlayerRespawned(message.GetVector3(), message.GetUShort());
+            player.playerHealth.HandleServerPlayerRespawned(message.GetVector3(), message.GetUInt());
         }
     }
 
@@ -245,7 +245,7 @@ public class PlayerHealth : MonoBehaviour
         if (NetworkManager.Singleton.Server.IsRunning) return;
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
-            player.playerHealth.HandleServerHealth((float)message.GetSByte(), message.GetUShort());
+            player.playerHealth.HandleServerHealth((float)message.GetSByte(), message.GetUInt());
         }
     }
     #endregion

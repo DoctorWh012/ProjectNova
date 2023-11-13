@@ -3,6 +3,7 @@ using UnityEngine;
 
 /* WORK REMINDER
 
+    Implement Momentum
     Weapon Tilting is inefficient
     Network FootstepSound
     Dash Rotation Is Fucked
@@ -15,7 +16,7 @@ public class SimulationState
     public Vector3 playerCharacterPos = Vector3.zero;
     public Vector3 rotation = Vector3.zero;
     public Vector3 camRotation = Vector3.zero;
-    public ushort currentTick = 0;
+    public uint currentTick = 0;
 }
 
 public class PlayerMovement : MonoBehaviour
@@ -100,9 +101,9 @@ public class PlayerMovement : MonoBehaviour
     private ParticleSystem.EmissionModule emission;
     private float lerpDuration = 0;
 
-    private ushort lastReceivedCrouchTick;
-    private ushort lastReceivedGroundSlamTick;
-    private ushort lastReceivedDashTick;
+    private uint lastReceivedCrouchTick;
+    private uint lastReceivedGroundSlamTick;
+    private uint lastReceivedDashTick;
 
     // Lag Compensation
     private Vector3 playerCharacterDefaultPos = new Vector3(0, -1, 0);
@@ -169,7 +170,7 @@ public class PlayerMovement : MonoBehaviour
         jumpBufferCounter = Input.GetKey(SettingsManager.playerPreferences.jumpKey) ? movementSettings.jumpBufferTime : jumpBufferCounter > 0 ? jumpBufferCounter - Time.deltaTime : 0;
 
         // Crouching / GroundSlam
-        if (Input.GetKeyDown(SettingsManager.playerPreferences.crouchKey) && (coyoteTimeCounter > 0) && jumpBufferCounter == 0) StartCrouch();
+        if (Input.GetKey(SettingsManager.playerPreferences.crouchKey) && (coyoteTimeCounter > 0) && jumpBufferCounter == 0) StartCrouch();
         if (Input.GetKeyDown(SettingsManager.playerPreferences.crouchKey) && coyoteTimeCounter == 0) GroundSlam();
         if (Input.GetKeyUp(SettingsManager.playerPreferences.crouchKey)) EndCrouch();
 
@@ -256,6 +257,7 @@ public class PlayerMovement : MonoBehaviour
         // Sticks The Player To The Wall When Wallrunning
         if (currentMovementState == MovementStates.Wallrunning && !(onWallLeft && horizontalInput > 0) && !(onWallRight && horizontalInput < 0) && readyToJump)
             rb.AddForce(-wallNormal * movementSettings.wallStickForce * movementSettings.mass, ForceMode.Force);
+
 
         // Speed Cap
         flatVel = new Vector3(rb.velocity.x, 0, rb.velocity.z);
@@ -344,9 +346,9 @@ public class PlayerMovement : MonoBehaviour
         };
     }
 
-    public void SetPlayerPositionToTick(ushort tick)
+    public void SetPlayerPositionToTick(uint tick)
     {
-        int cacheIndex = tick % NetworkManager.lagCompensationCacheSize;
+        uint cacheIndex = tick % NetworkManager.lagCompensationCacheSize;
 
         if (playerSimulationState[cacheIndex].currentTick != tick) return;
 
@@ -385,7 +387,7 @@ public class PlayerMovement : MonoBehaviour
         else SendClientCrouch();
     }
 
-    private void HandleClientCrouch(bool state, ushort tick)
+    private void HandleClientCrouch(bool state, uint tick)
     {
         if (tick <= lastReceivedCrouchTick) return;
         lastReceivedCrouchTick = tick;
@@ -445,7 +447,7 @@ public class PlayerMovement : MonoBehaviour
         else SendClientGroundSlam();
     }
 
-    private void HandleClientGroundSlam(bool state, ushort tick)
+    private void HandleClientGroundSlam(bool state, uint tick)
     {
         if (tick <= lastReceivedGroundSlamTick) return;
         lastReceivedGroundSlamTick = tick;
@@ -493,7 +495,7 @@ public class PlayerMovement : MonoBehaviour
 
         if (availableDashes <= 0) return;
         availableDashes--;
-        playerHud.UpdateDashIcons(availableDashes, false);
+        playerHud.UpdateDashIcons(availableDashes);
 
         SwitchMovementState(MovementStates.Dashing);
         CancelInvoke("FinishDashing");
@@ -522,7 +524,7 @@ public class PlayerMovement : MonoBehaviour
         else SendClientDash();
     }
 
-    private void HandleClientDash(bool state, ushort tick)
+    private void HandleClientDash(bool state, uint tick)
     {
         if (tick <= lastReceivedDashTick) return;
         lastReceivedDashTick = tick;
@@ -550,12 +552,12 @@ public class PlayerMovement : MonoBehaviour
     {
         if (availableDashes >= movementSettings.dashQuantity) return;
         dashTimer -= Time.deltaTime;
-        // playerHud.dashSlider.value = (movementSettings.dashRefilTime - dashTimer) / movementSettings.dashRefilTime;
 
+        playerHud.dashSliders[availableDashes].value = (movementSettings.dashRefilTime - dashTimer) / movementSettings.dashRefilTime;
         if (dashTimer <= 0)
         {
             availableDashes++;
-            playerHud.UpdateDashIcons(availableDashes, true);
+            playerHud.UpdateDashIcons(availableDashes);
             dashTimer = movementSettings.dashRefilTime;
             playerAudioSource.pitch = Utilities.GetRandomPitch(-0.05f, 0.1f);
             playerAudioSource.PlayOneShot(movementSettings.dashRefilAudioClip, movementSettings.dashRefilAudioVolume);
@@ -610,6 +612,8 @@ public class PlayerMovement : MonoBehaviour
             EndCrouch();
             dashTimer = movementSettings.dashRefilTime;
             groundSlamTimer = movementSettings.groundSlamRefilTime;
+            playerHud.UpdateDashIcons(availableDashes);
+            playerHud.groundSlamSlider.value = availableGroundSlams;
         }
     }
 
@@ -662,7 +666,6 @@ public class PlayerMovement : MonoBehaviour
     private void StopAllEffects()
     {
         // Stops Sliding Particles
-
         if (slideParticles.isEmitting)
         {
             slideParticles.Stop();
@@ -795,7 +798,7 @@ public class PlayerMovement : MonoBehaviour
     #endregion
 
     #region Interpolation
-    private void HandleMovementData(Vector3 receivedPosition, Vector3 receivedVelocity, Vector3 receivedOrientation, Vector3 receivedCamForward, byte animationId, ushort tick)
+    private void HandleMovementData(Vector3 receivedPosition, Vector3 receivedVelocity, Vector3 receivedOrientation, Vector3 receivedCamForward, byte animationId, uint tick)
     {
         if (tick <= interpolationGoal.currentTick) return;
         if (currentMovementState == MovementStates.Inactive || playerHealth.currentPlayerState == PlayerState.Dead) return;
@@ -853,7 +856,7 @@ public class PlayerMovement : MonoBehaviour
         message.AddVector3(orientation);
         message.AddVector3(camForward);
         message.AddByte(animationId);
-        message.AddUShort(NetworkManager.Singleton.serverTick);
+        message.AddUInt(NetworkManager.Singleton.serverTick);
         NetworkManager.Singleton.Server.SendToAll(message);
     }
 
@@ -862,7 +865,7 @@ public class PlayerMovement : MonoBehaviour
         Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.playerCrouch);
         message.AddUShort(player.Id);
         message.AddBool(currentMovementState == MovementStates.Crouched);
-        message.AddUShort(NetworkManager.Singleton.serverTick);
+        message.AddUInt(NetworkManager.Singleton.serverTick);
         NetworkManager.Singleton.Server.SendToAll(message);
     }
 
@@ -871,7 +874,7 @@ public class PlayerMovement : MonoBehaviour
         Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.playerDash);
         message.AddUShort(player.Id);
         message.AddBool(currentMovementState == MovementStates.Dashing);
-        message.AddUShort(NetworkManager.Singleton.serverTick);
+        message.AddUInt(NetworkManager.Singleton.serverTick);
         NetworkManager.Singleton.Server.SendToAll(message);
     }
 
@@ -880,7 +883,7 @@ public class PlayerMovement : MonoBehaviour
         Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.playerGroundSlam);
         message.AddUShort(player.Id);
         message.AddBool(currentMovementState == MovementStates.GroundSlamming);
-        message.AddUShort(NetworkManager.Singleton.serverTick);
+        message.AddUInt(NetworkManager.Singleton.serverTick);
         NetworkManager.Singleton.Server.SendToAll(message);
     }
     #endregion
@@ -894,7 +897,7 @@ public class PlayerMovement : MonoBehaviour
         message.AddVector3(orientation.forward);
         message.AddVector3(playerCam.forward);
         message.AddByte((byte)currentAnimationId);
-        message.AddUShort(NetworkManager.Singleton.serverTick);
+        message.AddUInt(NetworkManager.Singleton.serverTick);
         NetworkManager.Singleton.Client.Send(message);
     }
 
@@ -902,7 +905,7 @@ public class PlayerMovement : MonoBehaviour
     {
         Message message = Message.Create(MessageSendMode.Unreliable, ClientToServerId.playerCrouch);
         message.AddBool(currentMovementState == MovementStates.Crouched);
-        message.AddUShort(NetworkManager.Singleton.serverTick);
+        message.AddUInt(NetworkManager.Singleton.serverTick);
         NetworkManager.Singleton.Client.Send(message);
     }
 
@@ -910,7 +913,7 @@ public class PlayerMovement : MonoBehaviour
     {
         Message message = Message.Create(MessageSendMode.Unreliable, ClientToServerId.playerDash);
         message.AddBool(currentMovementState == MovementStates.Dashing);
-        message.AddUShort(NetworkManager.Singleton.serverTick);
+        message.AddUInt(NetworkManager.Singleton.serverTick);
         NetworkManager.Singleton.Client.Send(message);
     }
 
@@ -918,7 +921,7 @@ public class PlayerMovement : MonoBehaviour
     {
         Message message = Message.Create(MessageSendMode.Unreliable, ClientToServerId.playerGroundSlam);
         message.AddBool(currentMovementState == MovementStates.GroundSlamming);
-        message.AddUShort(NetworkManager.Singleton.serverTick);
+        message.AddUInt(NetworkManager.Singleton.serverTick);
         NetworkManager.Singleton.Client.Send(message);
     }
     #endregion
@@ -931,7 +934,7 @@ public class PlayerMovement : MonoBehaviour
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
             if (player.IsLocal) return;
-            player.playerMovement.HandleMovementData(message.GetVector3(), message.GetVector3(), message.GetVector3(), message.GetVector3(), message.GetByte(), message.GetUShort());
+            player.playerMovement.HandleMovementData(message.GetVector3(), message.GetVector3(), message.GetVector3(), message.GetVector3(), message.GetByte(), message.GetUInt());
         }
     }
 
@@ -942,7 +945,7 @@ public class PlayerMovement : MonoBehaviour
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
             if (player.IsLocal) return;
-            player.playerMovement.HandleClientCrouch(message.GetBool(), message.GetUShort());
+            player.playerMovement.HandleClientCrouch(message.GetBool(), message.GetUInt());
         }
     }
 
@@ -953,7 +956,7 @@ public class PlayerMovement : MonoBehaviour
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
             if (player.IsLocal) return;
-            player.playerMovement.HandleClientDash(message.GetBool(), message.GetUShort());
+            player.playerMovement.HandleClientDash(message.GetBool(), message.GetUInt());
         }
     }
 
@@ -964,7 +967,7 @@ public class PlayerMovement : MonoBehaviour
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
             if (player.IsLocal) return;
-            player.playerMovement.HandleClientGroundSlam(message.GetBool(), message.GetUShort());
+            player.playerMovement.HandleClientGroundSlam(message.GetBool(), message.GetUInt());
         }
     }
     #endregion
@@ -975,7 +978,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if (Player.list.TryGetValue(fromClientId, out Player player))
         {
-            player.playerMovement.HandleMovementData(message.GetVector3(), message.GetVector3(), message.GetVector3(), message.GetVector3(), message.GetByte(), message.GetUShort());
+            player.playerMovement.HandleMovementData(message.GetVector3(), message.GetVector3(), message.GetVector3(), message.GetVector3(), message.GetByte(), message.GetUInt());
         }
     }
 
@@ -984,7 +987,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if (Player.list.TryGetValue(fromClientId, out Player player))
         {
-            player.playerMovement.HandleClientCrouch(message.GetBool(), message.GetUShort());
+            player.playerMovement.HandleClientCrouch(message.GetBool(), message.GetUInt());
         }
     }
 
@@ -993,7 +996,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if (Player.list.TryGetValue(fromClientId, out Player player))
         {
-            player.playerMovement.HandleClientGroundSlam(message.GetBool(), message.GetUShort());
+            player.playerMovement.HandleClientGroundSlam(message.GetBool(), message.GetUInt());
         }
     }
 
@@ -1002,7 +1005,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if (Player.list.TryGetValue(fromClientId, out Player player))
         {
-            player.playerMovement.HandleClientDash(message.GetBool(), message.GetUShort());
+            player.playerMovement.HandleClientDash(message.GetBool(), message.GetUInt());
         }
     }
     #endregion

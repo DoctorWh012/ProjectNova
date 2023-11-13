@@ -6,15 +6,12 @@ using System.Collections.Generic;
 
 /* WORK REMINDER
 
-    Button Remaping
-    Working CrosshairSystem
-    Menu beep sounds
     menu music
     New menu map
 
 */
 
-public class MainMenu : MonoBehaviour
+public class MainMenu : SettingsMenu
 {
     public static MainMenu Instance;
 
@@ -29,44 +26,6 @@ public class MainMenu : MonoBehaviour
     [SerializeField] private GameObject startMenu;
     [SerializeField] private GameObject multiplayerMenu;
     [SerializeField] private GameObject settingsMenu;
-
-    [Header("SettingsMenu")]
-    [SerializeField] private GameObject generalMenu;
-    [SerializeField] private GameObject videoMenu;
-    [SerializeField] private GameObject controlsMenu;
-    [SerializeField] private Slider fovSlider;
-    [SerializeField] private TextMeshProUGUI fovSliderTxt;
-    [SerializeField] private Slider sensitivitySlider;
-    [SerializeField] private TextMeshProUGUI sensitivitySliderTxt;
-    [SerializeField] private Slider masterVolumeSlider;
-    [SerializeField] private TextMeshProUGUI masterVolumeSliderTxt;
-    [SerializeField] private Slider musicVolumeSlider;
-    [SerializeField] private TextMeshProUGUI musicVolumeSliderTxt;
-    [SerializeField] private Toggle vSyncToggle;
-    [SerializeField] private Toggle fullScreenToggle;
-    [SerializeField] private Toggle renderArmsToggle;
-    [SerializeField] private TMP_Dropdown framerateDropdown;
-    [SerializeField] private TMP_Dropdown resolutionDropdown;
-    [SerializeField] private GameObject rebindPopUp;
-
-    [Header("KeyRemappingButtons")]
-    [SerializeField] private KeybindButton forward;
-    [SerializeField] private KeybindButton backward;
-    [SerializeField] private KeybindButton left;
-    [SerializeField] private KeybindButton right;
-    [SerializeField] private KeybindButton jump;
-    [SerializeField] private KeybindButton dash;
-    [SerializeField] private KeybindButton crouch;
-    [SerializeField] private KeybindButton interact;
-    [SerializeField] private KeybindButton fire;
-    [SerializeField] private KeybindButton altFire;
-    [SerializeField] private KeybindButton reload;
-    [SerializeField] private KeybindButton primarySlot;
-    [SerializeField] private KeybindButton secondarySlot;
-    [SerializeField] private KeybindButton tertiarySlot;
-
-    private List<MyResolution> filteredResolutions = new List<MyResolution>();
-    private KeybindButton buttonWaitingForRebind;
 
     [Header("MultiplayerMenu")]
     [SerializeField] private GameObject findMatchMenu;
@@ -104,10 +63,7 @@ public class MainMenu : MonoBehaviour
 
     private void Start()
     {
-        fovSlider.onValueChanged.AddListener(delegate { UpdateSliderDisplayTxt(fovSliderTxt, fovSlider); });
-        sensitivitySlider.onValueChanged.AddListener(delegate { UpdateSliderDisplayTxt(sensitivitySliderTxt, sensitivitySlider); });
-        masterVolumeSlider.onValueChanged.AddListener(delegate { UpdateSliderDisplayTxt(masterVolumeSliderTxt, masterVolumeSlider, 100); });
-        musicVolumeSlider.onValueChanged.AddListener(delegate { UpdateSliderDisplayTxt(musicVolumeSliderTxt, musicVolumeSlider, 100); });
+        AddListenerToSettingsSliders();
 
         maxPlayersSlider.onValueChanged.AddListener(delegate { UpdateSliderDisplayTxt(maxPlayerSliderTxt, maxPlayersSlider); });
 
@@ -122,16 +78,6 @@ public class MainMenu : MonoBehaviour
     private void Update()
     {
         if (Input.GetKeyDown(SettingsManager.playerPreferences.pauseKey)) ReturnToMainMenu();
-    }
-
-    private void OnGUI()
-    {
-        if (!(Event.current.isKey || Event.current.isMouse) || !buttonWaitingForRebind) return;
-
-        KeyCode key = Event.current.isKey ? Event.current.keyCode : Event.current.button == 0 ? KeyCode.Mouse0 : Event.current.button == 1 ? KeyCode.Mouse1 : Event.current.button == 2 ? KeyCode.Mouse2 : Event.current.button == 3 ? KeyCode.Mouse3 : Event.current.button == 4 ? KeyCode.Mouse4 : Event.current.button == 5 ? KeyCode.Mouse5 : Event.current.button == 6 ? KeyCode.Mouse6 : KeyCode.Mouse0;
-        buttonWaitingForRebind.SetKey(key);
-        buttonWaitingForRebind = null;
-        rebindPopUp.SetActive(false);
     }
 
     public void PlayButtonClickSound()
@@ -251,6 +197,7 @@ public class MainMenu : MonoBehaviour
     public void HostALobby()
     {
         hostPopUp.SetActive(true);
+
         ELobbyType lobbyType = lobbyTypeDropdown.value == 0 ? lobbyType = ELobbyType.k_ELobbyTypePublic : ELobbyType.k_ELobbyTypeFriendsOnly;
         NetworkManager.Singleton.lobbyName = !string.IsNullOrEmpty(lobbyNameInputField.text) ? lobbyNameInputField.text.Trim() : $"{SteamFriends.GetPersonaName()}'s Lobby";
         NetworkManager.Singleton.maxPlayers = (int)maxPlayersSlider.value;
@@ -264,94 +211,6 @@ public class MainMenu : MonoBehaviour
     }
     #endregion
 
-    #region SettingsMenu
-    private void UpdateSettingsValues()
-    {
-        fovSlider.value = SettingsManager.playerPreferences.cameraFov;
-        sensitivitySlider.value = SettingsManager.playerPreferences.sensitivity;
-        masterVolumeSlider.value = SettingsManager.playerPreferences.masterVolume;
-        musicVolumeSlider.value = SettingsManager.playerPreferences.musicVolume;
-
-        vSyncToggle.isOn = SettingsManager.playerPreferences.vSync;
-        fullScreenToggle.isOn = SettingsManager.playerPreferences.fullScreen;
-        renderArmsToggle.isOn = SettingsManager.playerPreferences.renderArms;
-
-        framerateDropdown.value = SettingsManager.playerPreferences.maxFrameRateIndex;
-
-        forward.SetKey(SettingsManager.playerPreferences.forwardKey);
-        backward.SetKey(SettingsManager.playerPreferences.backwardKey);
-        left.SetKey(SettingsManager.playerPreferences.leftKey);
-        right.SetKey(SettingsManager.playerPreferences.rightKey);
-        jump.SetKey(SettingsManager.playerPreferences.jumpKey);
-        dash.SetKey(SettingsManager.playerPreferences.dashKey);
-        crouch.SetKey(SettingsManager.playerPreferences.crouchKey);
-        interact.SetKey(SettingsManager.playerPreferences.interactKey);
-        fire.SetKey(SettingsManager.playerPreferences.fireBtn);
-        altFire.SetKey(SettingsManager.playerPreferences.altFireBtn);
-        reload.SetKey(SettingsManager.playerPreferences.reloadKey);
-        primarySlot.SetKey(SettingsManager.playerPreferences.primarySlotKey);
-        secondarySlot.SetKey(SettingsManager.playerPreferences.secondarySlotKey);
-        tertiarySlot.SetKey(SettingsManager.playerPreferences.tertiarySlotKey);
-    }
-
-    public void EnterGeneralMenu()
-    {
-        DisableAllSettingsMenus();
-        generalMenu.SetActive(true);
-    }
-
-    public void EnterVideoMenu()
-    {
-        DisableAllSettingsMenus();
-        videoMenu.SetActive(true);
-    }
-
-    public void EnterControlsMenu()
-    {
-        DisableAllSettingsMenus();
-        controlsMenu.SetActive(true);
-    }
-
-    public void SaveAndApply()
-    {
-        SettingsManager.UpdateJson(filteredResolutions[resolutionDropdown.value].width, filteredResolutions[resolutionDropdown.value].height, framerateDropdown.value, 0, vSyncToggle.isOn
-        , fullScreenToggle.isOn, sensitivitySlider.value, (int)fovSlider.value, masterVolumeSlider.value, musicVolumeSlider.value, renderArmsToggle.isOn, forward.key, backward.key, left.key, right.key, jump.key, dash.key, crouch.key, interact.key, fire.key, altFire.key, reload.key, primarySlot.key, secondarySlot.key, tertiarySlot.key);
-    }
-
-    private void GetAvailableResolutions()
-    {
-        resolutionDropdown.ClearOptions();
-        filteredResolutions.Clear();
-        MyResolution tempRes;
-
-        List<string> options = new List<string>();
-        int currentResolutionIndex = 0;
-
-        for (int i = 0; i < Screen.resolutions.Length; i++)
-        {
-            tempRes.width = Screen.resolutions[i].width;
-            tempRes.height = Screen.resolutions[i].height;
-
-            if (filteredResolutions.Contains(tempRes)) continue;
-
-            options.Add($"{Screen.resolutions[i].width}x{Screen.resolutions[i].height}");
-            filteredResolutions.Add(tempRes);
-
-            if (Screen.resolutions[i].width == Screen.width && Screen.resolutions[i].height == Screen.height) currentResolutionIndex = i;
-        }
-
-        resolutionDropdown.AddOptions(options);
-        resolutionDropdown.value = currentResolutionIndex;
-        resolutionDropdown.RefreshShownValue();
-    }
-
-    public void WaitForRebind(KeybindButton button)
-    {
-        buttonWaitingForRebind = button;
-        rebindPopUp.SetActive(true);
-    }
-
-    #endregion
     #region VideoMenu
     #endregion
     #region ControlsMenu
@@ -364,25 +223,10 @@ public class MainMenu : MonoBehaviour
         multiplayerMenu.SetActive(false);
     }
 
-    private void DisableAllSettingsMenus()
-    {
-        generalMenu.SetActive(false);
-        videoMenu.SetActive(false);
-        controlsMenu.SetActive(false);
-        rebindPopUp.SetActive(false);
-        buttonWaitingForRebind = null;
-    }
-
     private void DisableAllMultiplayerMenus()
     {
         findMatchMenu.SetActive(false);
         hostMenu.SetActive(false);
         refreshBtn.SetActive(false);
-    }
-
-    private void UpdateSliderDisplayTxt(TextMeshProUGUI display, Slider slider, int multiplier = 1)
-    {
-        float i = slider.value * multiplier;
-        display.SetText(i.ToString("#.##"));
     }
 }

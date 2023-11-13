@@ -15,9 +15,13 @@ MonoBehaviour:
   slot: 1
   weaponType: 0
   gunModel: {fileID: 919132149155446097, guid: 57403c40f81dd67428c7c5a008718542, type: 3}
-  gunIcon: {fileID: 21300000, guid: 68f27da00c0f2884a8be11a7d8b1b860, type: 3}
+  gunIcon: {fileID: 21300000, guid: 9fb8bbf4ce8e2c14daee74568032e018, type: 3}
   gunName: LA-99
-  damage: 10
+  crosshairType: 1
+  crosshairScale: 0.6
+  crosshairShotScale: 1.7
+  crosshairShrinkTime: 0.5
+  damage: 5
   range: 100
   fireRate: 10
   reloadTime: 4
@@ -30,6 +34,7 @@ MonoBehaviour:
   weaponPickupSound: {fileID: 8300000, guid: d5569ed4a10935d46be5ad4b9f4da396, type: 3}
   weaponSpinSound: {fileID: 8300000, guid: 2bcd552318991af4f91eac08804a20a4, type: 3}
   weaponReloadSound: {fileID: 8300000, guid: d3e77d5d17a857c409a0bdda6fd9cf06, type: 3}
+  weaponShootingSoundVolume: 1
   weaponShootingSounds:
   - {fileID: 8300000, guid: 1e593d1fe4287459dbe1601c00662dad, type: 3}
   tracerType: 0

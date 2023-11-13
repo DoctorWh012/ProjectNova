@@ -110,9 +110,9 @@ public class PlayerShooting : MonoBehaviour
     private float damageMultiplier;
     private int activeGunSlot;
 
-    private ushort lastShotTick = 0;
-    private ushort lastSlotChangeTick = 0;
-    private ushort lastReloadTick = 0;
+    private uint lastShotTick = 0;
+    private uint lastSlotChangeTick = 0;
+    private uint lastReloadTick = 0;
 
     private int playerLayer;
     private int NetPlayerLayer;
@@ -138,17 +138,12 @@ public class PlayerShooting : MonoBehaviour
 
     private void Awake()
     {
-        if (player.IsLocal) SettingsManager.updatedPlayerPrefs += GetPreferences;
+        SettingsManager.updatedPlayerPrefs += GetPreferences;
         currentPlayerGuns = new Guns[3];
         currentPlayerGunsIndexes = new int[3];
 
         playerLayer = LayerMask.NameToLayer("Player");
         NetPlayerLayer = LayerMask.NameToLayer("NetPlayer");
-    }
-
-    private void GetPreferences()
-    {
-        renderArms = SettingsManager.playerPreferences.renderArms;
     }
 
     private void Start()
@@ -177,6 +172,19 @@ public class PlayerShooting : MonoBehaviour
     {
         Player.clientSpawned -= SendWeaponSync;
         SettingsManager.updatedPlayerPrefs -= GetPreferences;
+    }
+
+    private void GetPreferences()
+    {
+        if (!player.IsLocal) return;
+        renderArms = SettingsManager.playerPreferences.renderArms;
+
+        if (!activeGun) return;
+
+        bool leftArm = !renderArms ? false : activeGun.weaponType == WeaponType.melee ? activeMeleeComponents.leftArmTarget : activeGunComponents.leftArmTarget;
+        bool rightArm = !renderArms ? false : activeGun.weaponType == WeaponType.melee ? activeMeleeComponents.rightArmTarget : activeGunComponents.rightArmTarget;
+
+        EnableDisableHandsMeshes(leftArm, rightArm);
     }
 
     private void Update()
@@ -208,7 +216,7 @@ public class PlayerShooting : MonoBehaviour
         currentWeaponState = desiredState;
     }
 
-    private bool GetShootingState(ushort tick, bool compensatingForSwitch)
+    private bool GetShootingState(uint tick, bool compensatingForSwitch)
     {
         if (playerHealth.currentPlayerState == PlayerState.Dead) return false;
 
@@ -225,7 +233,7 @@ public class PlayerShooting : MonoBehaviour
     }
 
     #region Shooting
-    private void HandleClientFired(int slot, ushort tick)
+    private void HandleClientFired(int slot, uint tick)
     {
         bool compensatingForSwitch = tick <= lastSlotChangeTick && activeGun != currentPlayerGuns[slot];
 
@@ -236,7 +244,7 @@ public class PlayerShooting : MonoBehaviour
         if (compensatingForSwitch) activeGun = currentPlayerGuns[activeGunSlot];
     }
 
-    public void FireTick(ushort tick, bool compensatingForSwitch = false)
+    public void FireTick(uint tick, bool compensatingForSwitch = false)
     {
         if (GetShootingState(tick, compensatingForSwitch)) currentShootingState = ShootingState.Active;
         else currentShootingState = ShootingState.OnCooldown;
@@ -265,6 +273,8 @@ public class PlayerShooting : MonoBehaviour
                 break;
         }
 
+        if (player.IsLocal) playerHud.ScaleCrosshairShot();
+
         if (!player.IsLocal && NetworkManager.Singleton.Server.IsRunning) NetworkManager.Singleton.ResetPlayersPositions(player.Id);
 
         if (NetworkManager.Singleton.Server.IsRunning) SendPlayerFire();
@@ -279,6 +289,7 @@ public class PlayerShooting : MonoBehaviour
         if (!player.IsLocal && NetworkManager.Singleton.Server.IsRunning) NetworkManager.Singleton.SetAllPlayersPositionsTo(lastShotTick, player.Id);
 
         AttackMelee();
+        if (player.IsLocal) playerHud.ScaleCrosshairShot();
 
         if (!player.IsLocal && NetworkManager.Singleton.Server.IsRunning) NetworkManager.Singleton.ResetPlayersPositions(player.Id);
 
@@ -509,7 +520,7 @@ public class PlayerShooting : MonoBehaviour
         ammunition = activeGun.maxAmmo;
     }
 
-    private void HandleClientReload(int slot, ushort tick)
+    private void HandleClientReload(int slot, uint tick)
     {
         if (tick < lastReloadTick || activeGunSlot != slot) return;
         lastReloadTick = tick;
@@ -564,7 +575,7 @@ public class PlayerShooting : MonoBehaviour
         currentPlayerGunsIndexes[2] = meleeIndex;
     }
 
-    private void HandleServerWeaponSwitch(ushort tick, int ammo, int slot)
+    private void HandleServerWeaponSwitch(uint tick, int ammo, int slot)
     {
         if (tick < lastSlotChangeTick) return;
         print($"Server is telling me to switch to slot {slot}");
@@ -573,14 +584,14 @@ public class PlayerShooting : MonoBehaviour
 
     }
 
-    private void HandleClientWeaponSwitch(ushort tick, int slot)
+    private void HandleClientWeaponSwitch(uint tick, int slot)
     {
         if (tick < lastSlotChangeTick) return;
         print($"Client is telling me to switch to slot {slot}");
         StartSlotSwitch(slot, tick);
     }
 
-    public void StartSlotSwitch(int slotIndex, ushort tick, bool askedByServer = false)
+    public void StartSlotSwitch(int slotIndex, uint tick, bool askedByServer = false)
     {
         if (!currentPlayerGuns[slotIndex] || currentPlayerGuns[slotIndex] == activeGun) return;
         if (currentWeaponState == WeaponState.Reloading || isWaitingForReload) StopReload();
@@ -608,7 +619,11 @@ public class PlayerShooting : MonoBehaviour
         activeGun = currentPlayerGuns[slotIndex];
         ammunition = activeGun.currentAmmo;
 
-        if (player.IsLocal) playerHud.UpdateWeaponOnSlot(slotIndex, activeGun.gunName, activeGun.gunIcon, true);
+        if (player.IsLocal)
+        {
+            playerHud.UpdateWeaponOnSlot(slotIndex, activeGun.gunName, activeGun.gunIcon, true);
+            if (SettingsManager.playerPreferences.crosshairType == 0) playerHud.UpdateCrosshair((int)activeGun.crosshairType, activeGun.crosshairScale, activeGun.crosshairShotScale, activeGun.crosshairShrinkTime);
+        }
 
         if (activeGun.weaponType != WeaponType.melee) SwitchGun(currentPlayerGunsIndexes[slotIndex]);
         else SwitchMelee(currentPlayerGunsIndexes[slotIndex]);
@@ -637,7 +652,7 @@ public class PlayerShooting : MonoBehaviour
         EnableActiveWeapon(WeaponType.melee);
     }
 
-    public void PickUpGun(int slot, int pickedGunIndex, ushort tick)
+    public void PickUpGun(int slot, int pickedGunIndex, uint tick)
     {
         Guns pickedGun = gunsComponents[pickedGunIndex].gunSettings;
         currentPlayerGuns[slot] = pickedGun;
@@ -648,7 +663,7 @@ public class PlayerShooting : MonoBehaviour
         if (NetworkManager.Singleton.Server.IsRunning) SendPickedUpGun(slot, pickedGunIndex);
     }
 
-    public void PickUpMelee(int pickedGunIndex, ushort tick)
+    public void PickUpMelee(int pickedGunIndex, uint tick)
     {
         Guns pickedMelee = meleesComponents[pickedGunIndex].meleeSettings;
         currentPlayerGuns[2] = pickedMelee;
@@ -691,11 +706,7 @@ public class PlayerShooting : MonoBehaviour
             activeGunComponents.gameObject.SetActive(true);
 
             // Places The Arms Targets On The Active Weapon
-            if (player.IsLocal)
-            {
-                rightArmMesh.enabled = !renderArms ? false : activeGunComponents.rightArmTarget;
-                leftArmMesh.enabled = !renderArms ? false : activeGunComponents.leftArmTarget;
-            }
+            if (player.IsLocal) EnableDisableHandsMeshes(renderArms && activeGunComponents.leftArmTarget, renderArms && activeGunComponents.rightArmTarget);
 
             if (activeGunComponents.rightArmTarget) rightArmIk.Target = activeGunComponents.rightArmTarget;
             else rightArmIk.enabled = false;
@@ -713,16 +724,14 @@ public class PlayerShooting : MonoBehaviour
         activeMeleeComponents.gameObject.SetActive(true);
 
         // Places The Arms Targets On The Active Weapon
-        if (player.IsLocal)
-        {
-            rightArmMesh.enabled = !renderArms ? false : activeMeleeComponents.rightArmTarget;
-            leftArmMesh.enabled = !renderArms ? false : activeMeleeComponents.leftArmTarget;
-        }
+        if (player.IsLocal) EnableDisableHandsMeshes(renderArms && activeMeleeComponents.leftArmTarget, renderArms && activeMeleeComponents.rightArmTarget);
+
         if (activeMeleeComponents.rightArmTarget) rightArmIk.Target = activeMeleeComponents.rightArmTarget;
         else rightArmIk.enabled = false;
         if (activeMeleeComponents.leftArmTarget) leftArmIk.Target = activeMeleeComponents.leftArmTarget;
         else leftArmIk.enabled = false;
     }
+
 
     public void DisableAllGuns()
     {
@@ -757,10 +766,10 @@ public class PlayerShooting : MonoBehaviour
         }
     }
 
-    public void EnableDisableHandsMeshes(bool state)
+    public void EnableDisableHandsMeshes(bool leftState, bool rightState)
     {
-        leftArmMesh.enabled = state;
-        rightArmMesh.enabled = state;
+        leftArmMesh.enabled = leftState;
+        rightArmMesh.enabled = rightState;
     }
 
     #region ServerSenders
@@ -769,7 +778,7 @@ public class PlayerShooting : MonoBehaviour
         Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.playerFired);
         message.AddUShort(player.Id);
         message.AddByte((byte)activeGunSlot);
-        message.AddUShort(lastShotTick);
+        message.AddUInt(lastShotTick);
         NetworkManager.Singleton.Server.SendToAll(message);
     }
 
@@ -777,7 +786,7 @@ public class PlayerShooting : MonoBehaviour
     {
         Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.gunChanged);
         message.AddUShort(player.Id);
-        message.AddUShort(lastSlotChangeTick);
+        message.AddUInt(lastSlotChangeTick);
         message.AddUShort((ushort)ammunition);
         message.AddByte((byte)gunSlot);
         NetworkManager.Singleton.Server.SendToAll(message);
@@ -788,7 +797,7 @@ public class PlayerShooting : MonoBehaviour
         Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.gunReloading);
         message.AddUShort(player.Id);
         message.AddByte((byte)activeGunSlot);
-        message.AddUShort(lastReloadTick);
+        message.AddUInt(lastReloadTick);
         NetworkManager.Singleton.Server.SendToAll(message);
     }
 
@@ -798,7 +807,7 @@ public class PlayerShooting : MonoBehaviour
         message.AddUShort(player.Id);
         message.AddByte((byte)slot);
         message.AddByte((byte)pickedGunIndex);
-        message.AddUShort(lastSlotChangeTick);
+        message.AddUInt(lastSlotChangeTick);
         NetworkManager.Singleton.Server.SendToAll(message);
     }
 
@@ -812,7 +821,7 @@ public class PlayerShooting : MonoBehaviour
         message.AddByte((byte)currentPlayerGunsIndexes[2]);
 
         message.AddByte((byte)activeGunSlot);
-        message.AddUShort(lastSlotChangeTick);
+        message.AddUInt(lastSlotChangeTick);
         NetworkManager.Singleton.Server.Send(message, id);
     }
     #endregion
@@ -822,7 +831,7 @@ public class PlayerShooting : MonoBehaviour
     {
         Message message = Message.Create(MessageSendMode.Unreliable, ClientToServerId.fireInput);
         message.AddByte((byte)activeGunSlot);
-        message.AddUShort(lastShotTick);
+        message.AddUInt(lastShotTick);
         NetworkManager.Singleton.Client.Send(message);
     }
 
@@ -830,14 +839,14 @@ public class PlayerShooting : MonoBehaviour
     {
         Message message = Message.Create(MessageSendMode.Unreliable, ClientToServerId.gunReload);
         message.AddByte((byte)activeGunSlot);
-        message.AddUShort(lastReloadTick);
+        message.AddUInt(lastReloadTick);
         NetworkManager.Singleton.Client.Send(message);
     }
 
     public void SendSlotSwitch(int index)
     {
         Message message = Message.Create(MessageSendMode.Unreliable, ClientToServerId.slotChange);
-        message.AddUShort(lastSlotChangeTick);
+        message.AddUInt(lastSlotChangeTick);
         message.AddByte((byte)index);
         NetworkManager.Singleton.Client.Send(message);
     }
@@ -849,7 +858,7 @@ public class PlayerShooting : MonoBehaviour
     {
         if (Player.list.TryGetValue(fromClientId, out Player player))
         {
-            player.playerShooting.HandleClientFired(message.GetByte(), message.GetUShort());
+            player.playerShooting.HandleClientFired(message.GetByte(), message.GetUInt());
         }
     }
 
@@ -858,7 +867,7 @@ public class PlayerShooting : MonoBehaviour
     {
         if (Player.list.TryGetValue(fromClientId, out Player player))
         {
-            player.playerShooting.HandleClientWeaponSwitch(message.GetUShort(), (int)message.GetByte());
+            player.playerShooting.HandleClientWeaponSwitch(message.GetUInt(), (int)message.GetByte());
         }
     }
 
@@ -867,7 +876,7 @@ public class PlayerShooting : MonoBehaviour
     {
         if (Player.list.TryGetValue(fromClientId, out Player player))
         {
-            player.playerShooting.HandleClientReload((int)message.GetByte(), message.GetUShort());
+            player.playerShooting.HandleClientReload((int)message.GetByte(), message.GetUInt());
         }
     }
     #endregion
@@ -880,7 +889,7 @@ public class PlayerShooting : MonoBehaviour
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
             if (player.IsLocal) return;
-            player.playerShooting.HandleClientFired((int)message.GetByte(), message.GetUShort());
+            player.playerShooting.HandleClientFired((int)message.GetByte(), message.GetUInt());
         }
     }
 
@@ -890,7 +899,7 @@ public class PlayerShooting : MonoBehaviour
         if (NetworkManager.Singleton.Server.IsRunning) return;
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
-            player.playerShooting.PickUpGun((int)message.GetByte(), (int)message.GetByte(), message.GetUShort());
+            player.playerShooting.PickUpGun((int)message.GetByte(), (int)message.GetByte(), message.GetUInt());
         }
     }
 
@@ -900,7 +909,7 @@ public class PlayerShooting : MonoBehaviour
         if (NetworkManager.Singleton.Server.IsRunning) return;
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
-            player.playerShooting.HandleClientReload((int)message.GetByte(), message.GetUShort());
+            player.playerShooting.HandleClientReload((int)message.GetByte(), message.GetUInt());
         }
     }
 
@@ -910,7 +919,7 @@ public class PlayerShooting : MonoBehaviour
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
             player.playerShooting.PickSyncedWeapons((int)message.GetByte(), (int)message.GetByte(), (int)message.GetByte());
-            player.playerShooting.StartSlotSwitch((int)message.GetByte(), message.GetUShort());
+            player.playerShooting.StartSlotSwitch((int)message.GetByte(), message.GetUInt());
         }
     }
 
@@ -921,7 +930,7 @@ public class PlayerShooting : MonoBehaviour
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
             if (!player.playerShooting.activeGun) return;
-            player.playerShooting.HandleServerWeaponSwitch(message.GetUShort(), (int)message.GetUShort(), (int)message.GetByte());
+            player.playerShooting.HandleServerWeaponSwitch(message.GetUInt(), (int)message.GetUShort(), (int)message.GetByte());
         }
     }
     #endregion
