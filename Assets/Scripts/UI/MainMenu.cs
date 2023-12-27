@@ -37,7 +37,7 @@ public class MainMenu : SettingsMenu
     [SerializeField] private TMP_InputField lobbyNameInputField;
     [SerializeField] private Slider maxPlayersSlider;
     [SerializeField] private TextMeshProUGUI maxPlayerSliderTxt;
-    [SerializeField] private GameObject lobbyCapsulePrefab;
+    [SerializeField] private LobbyDisplay lobbyCapsulePrefab;
     [SerializeField] private Transform lobbyCapsuleParent;
 
     private List<LobbyDisplay> lobbiesCapsules = new List<LobbyDisplay>();
@@ -174,7 +174,7 @@ public class MainMenu : SettingsMenu
             }
         }
 
-        LobbyDisplay lobbyCapsule = Instantiate(lobbyCapsulePrefab).GetComponent<LobbyDisplay>();
+        LobbyDisplay lobbyCapsule = Instantiate(lobbyCapsulePrefab);
         lobbiesCapsules.Add(lobbyCapsule);
         lobbyCapsule.transform.SetParent(lobbyCapsuleParent);
         lobbyCapsule.transform.localScale = Vector3.one;

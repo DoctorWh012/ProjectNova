@@ -29,10 +29,10 @@ public class ReturnToPool : MonoBehaviour
         switch (objectType)
         {
             case ObjectType.Tracer:
-                PoolingManager.Instance.ReturnBulletTracer(tracerType, this.gameObject);
+                PoolingManager.Singleton.ReturnBulletTracer(tracerType, this.gameObject);
                 break;
             case ObjectType.HitParticle:
-                PoolingManager.Instance.ReturnHitParticle(tracerType, this.gameObject);
+                PoolingManager.Singleton.ReturnHitParticle(tracerType, this.gameObject);
                 break;
         }
     }

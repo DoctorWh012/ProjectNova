@@ -48,13 +48,10 @@ public class HeadBobController : MonoBehaviour
 
     private void CheckMotion()
     {
-        if (Input.GetAxisRaw("Vertical") == 0 && Input.GetAxisRaw("Horizontal") == 0) return;
-        // if (!playerMovement.grounded || playerMovement.isCrouching) return;
+        if (!PlayerHud.Focused || playerMovement.coyoteTimeCounter == 0 || playerMovement.currentMovementState == PlayerMovement.MovementStates.Crouched || playerMovement.horizontalInput == 0 && playerMovement.verticalInput == 0) return;
 
-        if (envCamBob)
-            PlayMotion(FootStepMotion(stepAmplitude));
-        if (gunCambob)
-            PlayGunMotion(FootStepMotion(gunAmplitude));
+        if (envCamBob) PlayMotion(FootStepMotion(stepAmplitude));
+        if (gunCambob) PlayGunMotion(FootStepMotion(gunAmplitude));
     }
 
     private Vector3 FootStepMotion(float amplitude)

@@ -1,5 +1,6 @@
 using Riptide;
 using UnityEngine;
+using System;
 
 /* WORK REMINDER
 
@@ -23,6 +24,10 @@ public class PlayerMovement : MonoBehaviour
 {
     public enum MovementStates { Active, Inactive, Crouched, Wallrunning, GroundSlamming, Dashing }
     private enum AnimationId : byte { Idle = 0, RunForward, RunBackwards, RunLeft, RunRight, Crouch }
+    public MovementStates currentMovementState { get; private set; } = MovementStates.Active;
+    public float coyoteTimeCounter { get; private set; }
+    public float verticalInput { get; private set; }
+    public float horizontalInput { get; private set; }
 
     [Header("Components")]
     [Space(5)]
@@ -63,14 +68,9 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private AudioSource slideAudioSouce;
 
     [Header("Debugging Serialized")]
-    [SerializeField] public MovementStates currentMovementState = MovementStates.Active;
     [SerializeField] private AnimationId currentAnimationId = AnimationId.Idle;
-    [SerializeField] private float coyoteTimeCounter;
 
     // Movement Variables
-    private float verticalInput;
-    private float horizontalInput;
-
     private int availableDashes;
     private float dashTimer;
 
@@ -137,8 +137,16 @@ public class PlayerMovement : MonoBehaviour
             Interpolate();
             return;
         }
+
         PlayerEffects();
-        if (!PlayerHud.Focused) return;
+
+        if (!PlayerHud.Focused)
+        {
+            verticalInput = 0;
+            horizontalInput = 0;
+            jumpBufferCounter = 0;
+            return;
+        }
         GetInput();
     }
 
@@ -151,6 +159,7 @@ public class PlayerMovement : MonoBehaviour
         if (CanJump()) Jump();
         IncreaseGravity();
         ApplyDrag();
+
         if (NetworkManager.Singleton.Server.IsRunning) SendServerMovement(transform.position, rb.velocity, orientation.forward, playerCam.forward, (byte)currentAnimationId);
         else SendClientMovement();
     }
@@ -170,7 +179,7 @@ public class PlayerMovement : MonoBehaviour
         jumpBufferCounter = Input.GetKey(SettingsManager.playerPreferences.jumpKey) ? movementSettings.jumpBufferTime : jumpBufferCounter > 0 ? jumpBufferCounter - Time.deltaTime : 0;
 
         // Crouching / GroundSlam
-        if (Input.GetKey(SettingsManager.playerPreferences.crouchKey) && (coyoteTimeCounter > 0) && jumpBufferCounter == 0) StartCrouch();
+        if (Input.GetKey(SettingsManager.playerPreferences.crouchKey) && coyoteTimeCounter > 0 && jumpBufferCounter == 0) StartCrouch();
         if (Input.GetKeyDown(SettingsManager.playerPreferences.crouchKey) && coyoteTimeCounter == 0) GroundSlam();
         if (Input.GetKeyUp(SettingsManager.playerPreferences.crouchKey)) EndCrouch();
 
@@ -239,7 +248,7 @@ public class PlayerMovement : MonoBehaviour
         airMovementMultiplier = movementSettings.airMoveSpeed * movementSettings.movementMultiplier * movementSettings.mass;
     }
 
-    private void GetSpecials()
+    public void GetSpecials()
     {
         availableDashes = movementSettings.dashQuantity;
         availableGroundSlams = movementSettings.groundSlamQuantity;
@@ -249,25 +258,29 @@ public class PlayerMovement : MonoBehaviour
     private void ApplyMovement(Vector3 trueForward)
     {
         if (currentMovementState == MovementStates.GroundSlamming || currentMovementState == MovementStates.Dashing) return;
-        moveDir = trueForward * verticalInput + orientation.right * horizontalInput;
-
-        if (coyoteTimeCounter > 0) rb.AddForce(moveDir * groundedMovementMultiplier, ForceMode.Force);
-        else rb.AddForce(moveDir * airMovementMultiplier, ForceMode.Force);
 
         // Sticks The Player To The Wall When Wallrunning
         if (currentMovementState == MovementStates.Wallrunning && !(onWallLeft && horizontalInput > 0) && !(onWallRight && horizontalInput < 0) && readyToJump)
             rb.AddForce(-wallNormal * movementSettings.wallStickForce * movementSettings.mass, ForceMode.Force);
 
-
         // Speed Cap
+        float multiplier = currentMovementState == MovementStates.Crouched ? movementSettings.slidingMovementMultiplier : currentMovementState == MovementStates.Wallrunning ? movementSettings.wallRunMoveMultiplier : 1;
         flatVel = new Vector3(rb.velocity.x, 0, rb.velocity.z);
-        float multiplier = currentMovementState != MovementStates.Crouched ? 1 : movementSettings.slidingMovementMultiplier;
 
-        if (flatVel.magnitude > movementSettings.moveSpeed)
+        rb.AddForce(-flatVel * movementSettings.moveSpeed * movementSettings.mass * movementSettings.counterMovement);
+
+        if (flatVel.magnitude > movementSettings.moveSpeed * multiplier)
         {
-            Vector3 limitedVel = flatVel.normalized * movementSettings.moveSpeed * multiplier;
-            rb.velocity = new Vector3(limitedVel.x, rb.velocity.y, limitedVel.z);
+            rb.AddForce(-flatVel * (flatVel.magnitude - movementSettings.moveSpeed) * movementSettings.mass * movementSettings.excessSpeedCounterMovement);
         }
+
+        // Apply Movement Force
+        moveDir = trueForward * verticalInput + orientation.right * horizontalInput;
+
+        if (coyoteTimeCounter > 0) rb.AddForce(moveDir * groundedMovementMultiplier * multiplier, ForceMode.Force);
+        else rb.AddForce(moveDir * airMovementMultiplier, ForceMode.Force);
+
+        playerHud.UpdateSpeedometerText($"Current Speed is {flatVel.magnitude.ToString("0.00")}");
     }
 
     private void ApplyDrag()
@@ -285,7 +298,7 @@ public class PlayerMovement : MonoBehaviour
 
         if (currentMovementState == MovementStates.Wallrunning)
         {
-            rb.AddForce(transform.up * movementSettings.wallJumpUpForce * movementSettings.mass + wallNormal * movementSettings.wallJumpSideForce * movementSettings.mass, ForceMode.Impulse);
+            rb.AddForce((transform.up * movementSettings.wallJumpUpForce * movementSettings.mass) + (wallNormal * movementSettings.wallJumpSideForce * movementSettings.mass), ForceMode.Impulse);
             playerAudioSource.pitch = Utilities.GetRandomPitch(-0.1f, 0.02f);
             playerAudioSource.PlayOneShot(movementSettings.wallrunJumpAudioClip, movementSettings.jumpSoundVolume);
         }
@@ -305,7 +318,8 @@ public class PlayerMovement : MonoBehaviour
             return;
         }
 
-        rb.useGravity = currentMovementState != MovementStates.Wallrunning;
+        rb.useGravity = true;
+        // rb.useGravity = currentMovementState != MovementStates.Wallrunning;
         if (currentMovementState == MovementStates.Wallrunning) rb.AddForce(Vector3.down * movementSettings.wallRunGravity * movementSettings.mass);
         else if (currentMovementState == MovementStates.GroundSlamming) rb.AddForce(Vector3.down * movementSettings.groundSlamGravity * movementSettings.mass);
         else rb.AddForce(Vector3.down * movementSettings.gravity * movementSettings.mass);
@@ -474,7 +488,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void RefilGroundSlam()
     {
-        if (availableGroundSlams >= movementSettings.groundSlamQuantity) return;
+        if (availableGroundSlams >= movementSettings.groundSlamQuantity || currentMovementState == MovementStates.Crouched) return;
 
         groundSlamTimer -= Time.deltaTime;
         playerHud.groundSlamSlider.value = (movementSettings.groundSlamRefilTime - groundSlamTimer) / movementSettings.groundSlamRefilTime;
@@ -501,7 +515,7 @@ public class PlayerMovement : MonoBehaviour
         CancelInvoke("FinishDashing");
         Invoke("FinishDashing", movementSettings.dashDuration);
 
-        rb.velocity = new Vector3(0, rb.velocity.y, 0);
+        // rb.velocity = new Vector3(0, rb.velocity.y, 0);
         rb.AddForce(orientation.forward * movementSettings.dashForce * movementSettings.mass, ForceMode.Impulse);
 
         dashParticles.Play();
@@ -550,7 +564,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void RefilDash()
     {
-        if (availableDashes >= movementSettings.dashQuantity) return;
+        if (availableDashes >= movementSettings.dashQuantity || currentMovementState == MovementStates.Crouched) return;
         dashTimer -= Time.deltaTime;
 
         playerHud.dashSliders[availableDashes].value = (movementSettings.dashRefilTime - dashTimer) / movementSettings.dashRefilTime;
@@ -570,7 +584,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if (Physics.Raycast(groundCheck.position, Vector3.down, movementSettings.groundCheckHeight, groundLayer))
         {
-            if (coyoteTimeCounter != movementSettings.coyoteTime) OnEnterGrounded();
+            if (coyoteTimeCounter == 0) OnEnterGrounded();
             else OnStayGrounded();
 
             coyoteTimeCounter = movementSettings.coyoteTime;
@@ -968,6 +982,26 @@ public class PlayerMovement : MonoBehaviour
         {
             if (player.IsLocal) return;
             player.playerMovement.HandleClientGroundSlam(message.GetBool(), message.GetUInt());
+        }
+    }
+
+    [MessageHandler((ushort)ServerToClientId.playerMovementFreeze)]
+    private static void GetPlayerMovementFreeze(Message message)
+    {
+        if (Player.list.TryGetValue(message.GetUShort(), out Player player))
+        {
+            if (player.IsLocal) player.playerMovement.FreezePlayerMovement();
+            else player.playerMovement.FreezeNetPlayerMovement();
+        }
+    }
+
+    [MessageHandler((ushort)ServerToClientId.playerMovementFree)]
+    private static void GetPlayerMovementFree(Message message)
+    {
+        if (Player.list.TryGetValue(message.GetUShort(), out Player player))
+        {
+            if (player.IsLocal) player.playerMovement.FreePlayerMovement();
+            else player.playerMovement.FreeNetPlayerMovement();
         }
     }
     #endregion

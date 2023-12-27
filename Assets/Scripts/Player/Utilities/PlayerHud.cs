@@ -5,7 +5,7 @@ using Riptide;
 
 /* WORK REMINDER
 
-    Implement Color Customization
+    Implement Crosshair Color Customization
 
 */
 
@@ -18,6 +18,7 @@ public class PlayerHud : SettingsMenu
     [SerializeField] private PlayerHealth playerHealth;
     [SerializeField] private PlayerShooting playerShooting;
 
+    [Header("Colors")]
     [SerializeField] private Color dashAvailableColor;
     [SerializeField] private Color highlitedColor;
     [SerializeField] private Color fadedColor;
@@ -40,18 +41,27 @@ public class PlayerHud : SettingsMenu
 
     [Header("Crosshairs")]
     [SerializeField] private GameObject[] crosshairs;
+    [SerializeField] private Slider reloadSlider;
 
     [Header("UI Texts")]
     [SerializeField] private TextMeshProUGUI mediumBottomText;
-    [SerializeField] private TextMeshProUGUI bigTopText;
-    [SerializeField] private TextMeshProUGUI mediumTopText;
     [SerializeField] private TextMeshProUGUI pingTxt;
+    [SerializeField] private TextMeshProUGUI speedometerText;
 
     [Header("Menus")]
     [SerializeField] private GameObject pauseMenu;
     [SerializeField] private Button respawnBtn;
     [SerializeField] private GameObject settingsMenu;
     [SerializeField] private GameObject gameHud;
+    [SerializeField] private GameObject matchSettingsMenu;
+
+    [Header("Match Settings Menu")]
+    [SerializeField] private Slider matchDurationSlider;
+    [SerializeField] private TextMeshProUGUI matchDurationTxt;
+    [SerializeField] private Slider matchRespawnTimeSlider;
+    [SerializeField] private TextMeshProUGUI matchRespawnTimeTxt;
+    [SerializeField] private GameObject startMatchBtn;
+    [SerializeField] private GameObject cancelMatchBtn;
 
     private int currentCrosshairIndex;
     private Vector3 crosshairScale;
@@ -79,6 +89,10 @@ public class PlayerHud : SettingsMenu
         Focused = true;
 
         AddListenerToSettingsSliders();
+
+        matchDurationSlider.onValueChanged.AddListener(delegate { UpdateSliderDisplayTxt(matchDurationTxt, matchDurationSlider); });
+        matchRespawnTimeSlider.onValueChanged.AddListener(delegate { UpdateSliderDisplayTxt(matchRespawnTimeTxt, matchRespawnTimeSlider); });
+
         ResetWeaponsOnSlots();
         ResetAllUITexts();
         DisableAllMenus();
@@ -97,7 +111,7 @@ public class PlayerHud : SettingsMenu
     private void UpdatePreferences()
     {
         UpdateSettingsValues();
-        if (SettingsManager.playerPreferences.crosshairType == 0) UpdateCrosshair((int)playerShooting.activeGun.crosshairType, playerShooting.activeGun.crosshairScale, playerShooting.activeGun.crosshairShotScale, playerShooting.activeGun.crosshairShrinkTime);
+        if (SettingsManager.playerPreferences.crosshairType == 0 && playerShooting.activeGun) UpdateCrosshair((int)playerShooting.activeGun.crosshairType, playerShooting.activeGun.crosshairScale, playerShooting.activeGun.crosshairShotScale, playerShooting.activeGun.crosshairShrinkTime);
         else UpdateCrosshair((int)CrosshairType.dot, 1, 1, 0);
     }
 
@@ -131,6 +145,22 @@ public class PlayerHud : SettingsMenu
         pauseMenu.SetActive(true);
     }
 
+    public void OpenCloseMatchSettingsMenu()
+    {
+        Focused = !Focused;
+
+        startMatchBtn.SetActive(false);
+        cancelMatchBtn.SetActive(false);
+
+        if (MatchManager.currentMatchState == MatchState.Waiting) startMatchBtn.SetActive(true);
+        else cancelMatchBtn.SetActive(true);
+
+        matchSettingsMenu.SetActive(!Focused);
+
+        Cursor.lockState = Focused ? CursorLockMode.Locked : CursorLockMode.None;
+        Cursor.visible = !Focused;
+    }
+
     public void Respawn()
     {
         if (playerHealth.currentPlayerState == PlayerState.Dead) return;
@@ -153,10 +183,23 @@ public class PlayerHud : SettingsMenu
         NetworkManager.Singleton.Client.Disconnect();
     }
 
+    public void StartMatch()
+    {
+        MatchManager.Singleton.StartMatch(GameMode.FreeForAll, Scenes.MapFacility, (int)matchRespawnTimeSlider.value, (int)matchDurationSlider.value);
+        OpenCloseMatchSettingsMenu();
+    }
+
+    public void CancelMatch()
+    {
+        MatchManager.Singleton.EndMatch();
+        OpenCloseMatchSettingsMenu();
+    }
+
     private void DisableAllMenus()
     {
         pauseMenu.SetActive(false);
         settingsMenu.SetActive(false);
+        matchSettingsMenu.SetActive(false);
     }
     #endregion
 
@@ -177,21 +220,14 @@ public class PlayerHud : SettingsMenu
         mediumBottomText.SetText(text);
     }
 
-    public void UpdateBigTopText(string text)
+    public void UpdateSpeedometerText(string text)
     {
-        bigTopText.SetText(text);
-    }
-
-    public void UpdateMediumTopText(string text)
-    {
-        mediumTopText.SetText(text);
+        speedometerText.SetText(text);
     }
 
     private void ResetAllUITexts()
     {
         mediumBottomText.SetText("");
-        bigTopText.SetText("");
-        mediumTopText.SetText("");
     }
 
     public void HighlightWeaponOnSlot(int slot)
@@ -257,6 +293,17 @@ public class PlayerHud : SettingsMenu
         crosshairShrinkTime = weaponcrosshairShrinkTime;
 
         crosshairs[currentCrosshairIndex].transform.localScale = crosshairScale;
+    }
+
+    public void UpdateReloadSlider(float val)
+    {
+        if (val >= 1)
+        {
+            reloadSlider.value = 0;
+            return;
+        }
+
+        reloadSlider.value = val;
     }
 
     public void ScaleCrosshairShot()

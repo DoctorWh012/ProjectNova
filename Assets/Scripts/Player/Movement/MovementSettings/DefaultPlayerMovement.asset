@@ -13,38 +13,42 @@ MonoBehaviour:
   m_Name: DefaultPlayerMovement
   m_EditorClassIdentifier: 
   mass: 5
-  groundedDrag: 5
-  airDrag: 1
-  gravity: 15
+  groundedDrag: 0
+  airDrag: 0
+  gravity: 20
   footStepSounds: {fileID: 8300000, guid: 55e1fb8562b46564983d6295389941be, type: 3}
   footStepSoundVolume: 0.1
   footStepStartVelocity: 9
   groundCheckPos: {x: 0, y: -0.8, z: 0}
   footStepRate: 3.4
   movementMultiplier: 10
-  moveSpeed: 11
-  airMoveSpeed: 3.5
-  maxSlopeAngle: 45
+  counterMovement: 0.5
+  excessSpeedCounterMovement: 0.2
+  moveSpeed: 6
+  airMoveSpeed: 6
+  maxSlopeAngle: 35
   jumpAudioClip: {fileID: 8300000, guid: 50a15e1f150c09a49ba4520b36ab7e9c, type: 3}
   jumpSoundVolume: 0.4
-  jumpForce: 23
+  jumpForce: 16
   groundCheckHeight: 0.3
   jumpCooldown: 0.3
   coyoteTime: 0.15
   jumpBufferTime: 0.1
   wallrunJumpAudioClip: {fileID: 8300000, guid: 93a6ee0bd8cb40e46bae55997d8d2ff2, type: 3}
   wallJumpSoundVolume: 0.4
+  wallRunMoveMultiplier: 1.5
   wallDistance: 0.7
   wallStickForce: 50
   wallStickUpMultiplier: 0.4
-  wallJumpUpForce: 14
-  wallJumpSideForce: 13
+  wallJumpUpForce: 16
+  wallJumpSideForce: 9
   wallClimbSpeed: 3
   wallRunGravity: 5
   slideAudioClip: {fileID: 8300000, guid: e934febb4fdc72040bb63a514b07b5f0, type: 3}
   slideSoundVolume: 0.4
   crouchedGroundCheckPos: {x: 0, y: -0.4, z: 0}
-  slidingMovementMultiplier: 1.5
+  slidingMovementMultiplier: 2
+  slidingCounterMovement: 0.2
   crouchForce: 20
   slideParticlesThreshold: 5
   groundSlamAudioClip: {fileID: 8300000, guid: 20c6aadf261049841b6ce86b7f724c67, type: 3}

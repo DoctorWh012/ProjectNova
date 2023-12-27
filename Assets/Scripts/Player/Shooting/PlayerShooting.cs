@@ -265,7 +265,7 @@ public class PlayerShooting : MonoBehaviour
         switch (activeGun.weaponType)
         {
             case WeaponType.rifle:
-                Shoot();
+                ShootNoSpread();
                 break;
 
             case WeaponType.shotgun:
@@ -298,7 +298,7 @@ public class PlayerShooting : MonoBehaviour
 
     }
 
-    private void Shoot()
+    private void ShootNoSpread()
     {
         shootingRayHit = FilteredRaycast(playerCam.forward);
 
@@ -358,6 +358,11 @@ public class PlayerShooting : MonoBehaviour
         else ShootingEffects(true, true);
 
         ApplyKnockback();
+    }
+
+    private void ShootWithVariableSpread()
+    {
+
     }
 
     private void AttackMelee()
@@ -422,7 +427,7 @@ public class PlayerShooting : MonoBehaviour
     private void ShootingTracer(bool didHit, bool hasSpread)
     {
         // Get The Tracer From Pool
-        tracer = PoolingManager.Instance.GetBulletTracer(activeGun.tracerType);
+        tracer = PoolingManager.Singleton.GetBulletTracer(activeGun.tracerType);
 
         // Configures Tracer
         tracer.time = activeGun.tracerLasts;
@@ -445,7 +450,7 @@ public class PlayerShooting : MonoBehaviour
 
     private void HitParticle()
     {
-        hitParticle = PoolingManager.Instance.GetHitParticle(activeGun.tracerType);
+        hitParticle = PoolingManager.Singleton.GetHitParticle(activeGun.tracerType);
 
         hitParticle.transform.position = shootingRayHit.point;
         hitParticle.Play();
@@ -539,6 +544,7 @@ public class PlayerShooting : MonoBehaviour
     private void StopReload()
     {
         StopCoroutine(reloadCoroutine);
+        if (player.IsLocal) playerHud.UpdateReloadSlider(0);
         isWaitingForReload = false;
         animator.enabled = true;
         weaponReloadSpinAudioSource.loop = false;
@@ -949,10 +955,12 @@ public class PlayerShooting : MonoBehaviour
         while (currentWeaponState != WeaponState.Idle) yield return null;
         SwitchWeaponState(WeaponState.Reloading);
 
-        if (player.IsLocal) lastReloadTick = NetworkManager.Singleton.serverTick;
-
+        if (player.IsLocal)
+        {
+            lastReloadTick = NetworkManager.Singleton.serverTick;
+            SendReload();
+        }
         if (NetworkManager.Singleton.Server.IsRunning) SendReloading();
-        else if (player.IsLocal) SendReload();
 
         if (activeGun.weaponSpinSound)
         {
@@ -960,17 +968,19 @@ public class PlayerShooting : MonoBehaviour
             weaponReloadSpinAudioSource.loop = true;
             weaponReloadSpinAudioSource.Play();
         }
-
         animator.enabled = false;
 
         Vector3 startingAngle = activeGunComponents.gunModelPos.localEulerAngles;
         float toAngle = startingAngle.x + -360 * times;
         float t = 0;
+        float c = 0;
 
         while (t < duration)
         {
             t += Time.deltaTime;
-            float xRot = Mathf.Lerp(startingAngle.x, toAngle, t / duration);
+            c = t / duration;
+            if (player.IsLocal) playerHud.UpdateReloadSlider(c);
+            float xRot = Mathf.Lerp(startingAngle.x, toAngle, c);
             activeGunComponents.gunModelPos.localEulerAngles = new Vector3(xRot, startingAngle.y, startingAngle.z);
             yield return null;
         }

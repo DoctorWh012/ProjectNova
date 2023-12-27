@@ -97,7 +97,7 @@ public class PlayerHealth : MonoBehaviour
 
         if (NetworkManager.Singleton.Server.IsRunning)
         {
-            Invoke("StartRespawn", scriptablePlayer.respawnTime);
+            Invoke("StartRespawn", MatchManager.respawnTime);
             SendPlayerDied();
         }
     }
@@ -272,6 +272,8 @@ public class PlayerHealth : MonoBehaviour
 
         if (player.IsLocal) playerMovement.FreePlayerMovement();
         else playerMovement.FreeNetPlayerMovement();
+        
+        playerMovement.GetSpecials();
 
         yield return new WaitForSeconds(scriptablePlayer.invincibilityTime);
         shieldsHolder.SetActive(false);

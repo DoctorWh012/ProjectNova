@@ -5,6 +5,8 @@ public class StartMatchBtn : Interactable
     [Header("Components")]
     [SerializeField] private Animator animator;
 
+    private bool canPress = true;
+
     private void Update()
     {
         if (!NetworkManager.Singleton.Server.IsRunning) return;
@@ -13,16 +15,17 @@ public class StartMatchBtn : Interactable
         for (int i = 0; i < players.Count; i++)
         {
             if (players[i].Id != NetworkManager.Singleton.Client.Id) return;
-            if (players[i].playerInteractions.interactTimeCounter > 0)
+            if (players[i].playerInteractions.interactTimeCounter > 0 && canPress)
             {
-                StartMatch();
+                players[i].playerHud.OpenCloseMatchSettingsMenu();
+                canPress = false;
+                Invoke("RestorePress", 0.5f);
             }
         }
     }
 
-    private void StartMatch()
+    private void RestorePress()
     {
-        GameManager.Singleton.LoadScene(Scenes.MapFacility, "StartMatch");
-        GameManager.Singleton.spawnPlayersAfterSceneLoad = true;
+        canPress = true;
     }
 }

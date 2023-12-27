@@ -57,16 +57,6 @@ public class Player : MonoBehaviour
         }
     }
 
-    // Unecessary?
-    private void SendSpawned()
-    {
-        Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.playerSpawned);
-        message.AddUShort(Id);
-        message.AddString(username);
-        message.AddVector3(transform.position);
-        NetworkManager.Singleton.Server.SendToAll(message);
-    }
-
     private void SendPlayersToPlayer(ushort toClientId)
     {
         Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.playerSpawned);

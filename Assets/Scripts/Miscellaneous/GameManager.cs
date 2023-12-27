@@ -35,6 +35,8 @@ public class GameManager : MonoBehaviour
         }
     }
 
+    public static int clientsLoaded { get; private set; }
+
     [Header("Audio")]
     [SerializeField] private AudioMixerGroup masterMixer;
 
@@ -69,12 +71,7 @@ public class GameManager : MonoBehaviour
     #region Spawning
     private void SpawnAllPlayers()
     {
-        print("<color=green> Spawning All Players </color>");
-        foreach (KeyValuePair<ushort, string> players in NetworkManager.Singleton.playersOnLobby)
-        {
-            Player.SpawnPlayer(players.Key, players.Value, Vector3.zero);
-        }
-        print($"Spawned {NetworkManager.Singleton.playersOnLobby.Count} players");
+        foreach (KeyValuePair<ushort, string> players in NetworkManager.Singleton.playersOnLobby) Player.SpawnPlayer(players.Key, players.Value, Vector3.zero);
     }
 
     public void AttemptToSpawnPlayer(ushort id, string username)
@@ -87,8 +84,6 @@ public class GameManager : MonoBehaviour
     public void LoadScene(string sceneName, string caller)
     {
         print($"<color=yellow> Caller {caller} asked to load scene {sceneName}</color>");
-
-        SceneManager.LoadScene(Scenes.LoadingScreen);
 
         StartCoroutine(LoadSceneAsync(sceneName));
         if (NetworkManager.Singleton.Server.IsRunning) SendSceneChanged(sceneName);
@@ -108,31 +103,49 @@ public class GameManager : MonoBehaviour
 
     private IEnumerator LoadSceneAsync(string sceneName)
     {
+        clientsLoaded = 0;
+        SceneManager.LoadScene(Scenes.LoadingScreen);
+
         AsyncOperation sceneLoadingOp = SceneManager.LoadSceneAsync(sceneName);
-        sceneLoadingOp.allowSceneActivation = false;
 
         while (!sceneLoadingOp.isDone) yield return null;
 
-        sceneLoadingOp.allowSceneActivation = true;
         currentScene = sceneName;
-        SteamMatchmaking.SetLobbyData(NetworkManager.Singleton.lobbyId, "map", sceneName);
+        SendClientSceneLoaded();
+        if (NetworkManager.Singleton.Server.IsRunning) SteamMatchmaking.SetLobbyData(NetworkManager.Singleton.lobbyId, "map", sceneName);
     }
 
     #region ServerSenders
     private void SendSceneChanged(string sceneName)
     {
-        Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.SceneChanged);
+        Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.sceneChanged);
         message.AddString(sceneName);
         NetworkManager.Singleton.Server.SendToAll(message);
     }
     #endregion
 
+    #region ClientSenders
+    private void SendClientSceneLoaded()
+    {
+        Message message = Message.Create(MessageSendMode.Reliable, ClientToServerId.playerLoadedScene);
+        NetworkManager.Singleton.Client.Send(message);
+    }
+    #endregion
+
     #region ServerToClientHandlers
-    [MessageHandler((ushort)ServerToClientId.SceneChanged)]
+    [MessageHandler((ushort)ServerToClientId.sceneChanged)]
     private static void ReceiveSceneChanged(Message message)
     {
         if (NetworkManager.Singleton.Server.IsRunning) return;
         GameManager.Singleton.LoadScene(message.GetString(), "ReceiveSceneChanged");
+    }
+    #endregion
+
+    #region ClientToServerHandlers
+    [MessageHandler((ushort)ClientToServerId.playerLoadedScene)]
+    private static void ReceiveClientLoadedScene(ushort fromClientId, Message message)
+    {
+        GameManager.clientsLoaded++;
     }
     #endregion
 }

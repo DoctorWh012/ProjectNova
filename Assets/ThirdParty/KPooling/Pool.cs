@@ -25,7 +25,7 @@ namespace kTools.Pooling
     {
         #region Fields
         readonly T m_Source;
-        readonly Instance<T>[] m_Instances;
+        readonly Singleton<T>[] m_Instances;
         readonly Processor<T> m_Processor;
         #endregion
 
@@ -34,14 +34,14 @@ namespace kTools.Pooling
         {
             // Set data
             m_Source = source;
-            m_Instances = new Instance<T>[instanceCount];
+            m_Instances = new Singleton<T>[instanceCount];
             m_Processor = processor;
 
             // Create instances
             for (int i = 0; i < instanceCount; i++)
             {
                 var obj = processor.CreateInstance(key, source, destroyOnLoad);
-                var instance = new Instance<T>(obj);
+                var instance = new Singleton<T>(obj);
                 instances[i] = instance;
             }
         }
@@ -49,7 +49,7 @@ namespace kTools.Pooling
 
         #region Properties
         public T source => m_Source;
-        public Instance<T>[] instances => m_Instances;
+        public Singleton<T>[] instances => m_Instances;
         public Processor<T> processor => m_Processor;
         #endregion
 
@@ -68,7 +68,7 @@ namespace kTools.Pooling
         #region Instance
         public T GetInstance()
         {
-            Instance<T> value = null;
+            Singleton<T> value = null;
 
             void GetInactiveInstance()
             {

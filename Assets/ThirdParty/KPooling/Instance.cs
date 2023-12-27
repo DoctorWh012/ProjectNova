@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace kTools.Pooling
 {
-    sealed class Instance<T>
+    sealed class Singleton<T>
     {
 #region Fields
         readonly T m_Obj;
@@ -11,7 +11,7 @@ namespace kTools.Pooling
 #endregion
 
 #region Constructors
-        public Instance(T obj)
+        public Singleton(T obj)
         {
             m_Obj = obj;
             SetActive(false);

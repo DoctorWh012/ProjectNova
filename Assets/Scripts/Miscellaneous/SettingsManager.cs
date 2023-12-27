@@ -32,6 +32,7 @@ public class PlayerPreferences
     // Keybinds
     // Interactions
     public KeyCode pauseKey = KeyCode.Escape;
+    public KeyCode scoreboardKey = KeyCode.Tab;
     public KeyCode interactKey;
 
     // Movement

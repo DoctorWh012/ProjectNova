@@ -3,7 +3,24 @@ using kTools.Pooling;
 
 public class PoolingManager : MonoBehaviour
 {
-    public static PoolingManager Instance;
+    private static PoolingManager _singleton;
+    public static PoolingManager Singleton
+    {
+        get { return _singleton; }
+        set
+        {
+            if (_singleton == null)
+            {
+                _singleton = value;
+            }
+
+            else if (_singleton != value)
+            {
+                Debug.Log($"{nameof(PoolingManager)} instance already exists, destroying duplicate");
+                Destroy(value);
+            }
+        }
+    }
     [Header("Pooling Components")]
     [Header("Bullets")]
     [SerializeField] public GameObject yellowBulletPrefab;
@@ -22,7 +39,7 @@ public class PoolingManager : MonoBehaviour
 
     private void Awake()
     {
-        Instance = this;
+        Singleton = this;
     }
 
     private void Start()

@@ -10,12 +10,15 @@ public enum ServerToClientId : ushort
 {
     serverTick = 1,
 
-    SceneChanged,
+    matchTimer,
+    sceneChanged,
 
     playerMovement,
     playerCrouch,
     playerDash,
     playerGroundSlam,
+    playerMovementFreeze,
+    playerMovementFree,
 
     playerSpawned,
 
@@ -35,6 +38,8 @@ public enum ServerToClientId : ushort
 public enum ClientToServerId : ushort
 {
     playerInfo = 1,
+    playerLoadedScene,
+
     playerMovement,
     playerCrouch,
     playerDash,
@@ -54,7 +59,7 @@ public class NetworkManager : MonoBehaviour
     public static NetworkManager Singleton
     {
         get { return _singleton; }
-        private set
+        set
         {
             if (_singleton == null)
             {
@@ -66,11 +71,10 @@ public class NetworkManager : MonoBehaviour
                 Debug.Log($"{nameof(NetworkManager)} instance already exists, destroying duplicate");
                 Destroy(value);
             }
-
         }
     }
 
-    public uint serverTick; //{ get; private set; }
+    public uint serverTick { get; private set; }
     public static uint lagCompensationCacheSize { get; private set; } = 22; //64 ticks every 1000ms
 
     public Client Client { get; private set; }
@@ -86,6 +90,7 @@ public class NetworkManager : MonoBehaviour
 
     public CSteamID lobbyId { get; private set; }
     public Dictionary<ushort, string> playersOnLobby = new Dictionary<ushort, string>();
+    public Dictionary<ushort, Client> clientsOnLobby = new Dictionary<ushort, Client>();
 
     public int maxPlayers;
     public string lobbyName;
@@ -108,7 +113,6 @@ public class NetworkManager : MonoBehaviour
 
         SteamServer steamServer = new SteamServer();
         Server = new Server(steamServer);
-        Server.ClientConnected += ClientJoined;
         Server.ClientDisconnected += ClientLeft;
 
         Client = new Client(new Riptide.Transports.Steam.SteamClient(steamServer));
@@ -127,7 +131,6 @@ public class NetworkManager : MonoBehaviour
         Client.Disconnected -= PlayerDisconnected;
 
         if (Server.IsRunning) Server.Stop();
-        Server.ClientConnected -= ClientJoined;
         Server.ClientDisconnected -= ClientLeft;
         SteamMatchmaking.LeaveLobby(NetworkManager.Singleton.lobbyId);
     }
@@ -172,8 +175,9 @@ public class NetworkManager : MonoBehaviour
         if (Server.IsRunning)
         {
             GameManager.Singleton.LoadScene(Scenes.Lobby, "JoinedServer ServerOn");
-            HandleReceivedPlayerData(Client.Id, SteamFriends.GetPersonaName());
             GameManager.Singleton.spawnPlayersAfterSceneLoad = true;
+            MatchManager.currentMatchState = MatchState.Waiting;
+            HandleReceivedPlayerData(Client.Id, SteamFriends.GetPersonaName());
         }
         else
         {
@@ -182,14 +186,10 @@ public class NetworkManager : MonoBehaviour
         }
     }
 
-    private void ClientJoined(object sender, ServerConnectedEventArgs e)
-    {
-
-    }
-
     private void ClientLeft(object sender, ServerDisconnectedEventArgs e)
     {
         playersOnLobby.Remove(e.Client.Id);
+        MatchManager.Singleton.DestroyPlayerScoreBoardCapsule(e.Client.Id);
         Destroy(Player.list[e.Client.Id].gameObject);
     }
 
@@ -198,8 +198,10 @@ public class NetworkManager : MonoBehaviour
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
 
+        MatchManager.Singleton.EndMatch();
         SteamMatchmaking.LeaveLobby(NetworkManager.Singleton.lobbyId);
         GameManager.Singleton.LoadScene(Scenes.Menu, "PlayerDisconnected");
+        MatchManager.currentMatchState = MatchState.OnMenu;
         playersOnLobby.Clear();
         serverTick = 0;
     }
@@ -207,6 +209,7 @@ public class NetworkManager : MonoBehaviour
     private void HandleReceivedPlayerData(ushort id, string username)
     {
         playersOnLobby.Add(id, username);
+        MatchManager.Singleton.CreatePlayerScoreBoardCapsule(id);
         if (Server.IsRunning && id != Client.Id) GameManager.Singleton.AttemptToSpawnPlayer(id, username);
     }
 
