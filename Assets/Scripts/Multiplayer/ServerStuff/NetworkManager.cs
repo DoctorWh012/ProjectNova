@@ -10,6 +10,9 @@ public enum ServerToClientId : ushort
 {
     serverTick = 1,
 
+    playerInfo,
+
+    scoreBoardChanged,
     matchTimer,
     sceneChanged,
 
@@ -37,7 +40,7 @@ public enum ServerToClientId : ushort
 
 public enum ClientToServerId : ushort
 {
-    playerInfo = 1,
+    clientInfo = 1,
     playerLoadedScene,
 
     playerMovement,
@@ -90,7 +93,6 @@ public class NetworkManager : MonoBehaviour
 
     public CSteamID lobbyId { get; private set; }
     public Dictionary<ushort, string> playersOnLobby = new Dictionary<ushort, string>();
-    public Dictionary<ushort, Client> clientsOnLobby = new Dictionary<ushort, Client>();
 
     public int maxPlayers;
     public string lobbyName;
@@ -118,6 +120,7 @@ public class NetworkManager : MonoBehaviour
         Client = new Client(new Riptide.Transports.Steam.SteamClient(steamServer));
         Client.Connected += JoinedServer;
         Client.Disconnected += PlayerDisconnected;
+        Client.ClientDisconnected += ClientDisconnected;
 
         lobbyCreated = Callback<LobbyCreated_t>.Create(OnLobbyCreated);
         gameLobbyJoinRequested = Callback<GameLobbyJoinRequested_t>.Create(OnGameLobbyJoinRequested);
@@ -129,6 +132,7 @@ public class NetworkManager : MonoBehaviour
         Client.Disconnect();
         Client.Connected -= JoinedServer;
         Client.Disconnected -= PlayerDisconnected;
+        Client.ClientDisconnected -= ClientDisconnected;
 
         if (Server.IsRunning) Server.Stop();
         Server.ClientDisconnected -= ClientLeft;
@@ -170,6 +174,7 @@ public class NetworkManager : MonoBehaviour
     #endregion
 
     #region  Server/Client Event Handlers
+    // Local Player Joined Server
     private void JoinedServer(object sender, EventArgs e)
     {
         if (Server.IsRunning)
@@ -182,17 +187,19 @@ public class NetworkManager : MonoBehaviour
         else
         {
             GameManager.Singleton.LoadScene(SteamMatchmaking.GetLobbyData(lobbyId, "map"), "JoinedServer ServerOff");
-            SendPlayerInfo();
+            SendClientInfo();
         }
     }
 
+    // Non Local Player Left Server
     private void ClientLeft(object sender, ServerDisconnectedEventArgs e)
     {
         playersOnLobby.Remove(e.Client.Id);
-        MatchManager.Singleton.DestroyPlayerScoreBoardCapsule(e.Client.Id);
+        MatchManager.Singleton.IntroducePlayerToMatch(e.Client.Id);
         Destroy(Player.list[e.Client.Id].gameObject);
     }
 
+    // Local Player Disconnected From Server
     private void PlayerDisconnected(object sender, DisconnectedEventArgs e)
     {
         Cursor.lockState = CursorLockMode.None;
@@ -202,17 +209,38 @@ public class NetworkManager : MonoBehaviour
         SteamMatchmaking.LeaveLobby(NetworkManager.Singleton.lobbyId);
         GameManager.Singleton.LoadScene(Scenes.Menu, "PlayerDisconnected");
         MatchManager.currentMatchState = MatchState.OnMenu;
+        MatchManager.Singleton.ClearScoreBoard();
         playersOnLobby.Clear();
+        
         serverTick = 0;
+    }
+
+    // Non Local Player Disconnected From Server
+    private void ClientDisconnected(object sender, ClientDisconnectedEventArgs e)
+    {
+        MatchManager.Singleton.RemovePlayerFromMatch(e.Id);
+        Destroy(Player.list[e.Id].gameObject);
     }
 
     private void HandleReceivedPlayerData(ushort id, string username)
     {
+        print($"Got Player Info For {username}");
+        if (playersOnLobby.ContainsKey(id)) return;
+        print($"Handled Player Info For {username}");
+        
         playersOnLobby.Add(id, username);
-        MatchManager.Singleton.CreatePlayerScoreBoardCapsule(id);
-        if (Server.IsRunning && id != Client.Id) GameManager.Singleton.AttemptToSpawnPlayer(id, username);
-    }
+        MatchManager.Singleton.IntroducePlayerToMatch(id);
 
+        if (!Server.IsRunning || id == Client.Id) return;
+        GameManager.Singleton.AttemptToSpawnPlayer(id, username); // Temp Spawning System
+
+        // Sends Existing Player Info To New Player
+        foreach (KeyValuePair<ushort, string> otherPlayer in playersOnLobby) SendPlayersInfoToPlayer(id, otherPlayer.Key);
+
+        // Sends New Player Info To Existing Players
+        SendPlayerInfo(id);
+
+    }
     #endregion
 
     #region Lobby Management
@@ -229,7 +257,7 @@ public class NetworkManager : MonoBehaviour
 
         SteamMatchmaking.SetLobbyData(lobbyId, "HostCSteamId", SteamUser.GetSteamID().ToString());
         SteamMatchmaking.SetLobbyData(lobbyId, "name", lobbyName);
-        SteamMatchmaking.SetLobbyData(lobbyId, "status", "WIP");
+        SteamMatchmaking.SetLobbyData(lobbyId, "status", MatchManager.currentMatchState.ToString());
         SteamMatchmaking.SetLobbyData(lobbyId, "map", GameManager.Singleton.currentScene);
 
         Server.Start(0, (ushort)maxPlayers);
@@ -255,14 +283,12 @@ public class NetworkManager : MonoBehaviour
     #endregion
 
     #region ClientToServerSenders
-
-    private void SendPlayerInfo()
+    private void SendClientInfo()
     {
-        Message message = Message.Create(MessageSendMode.Reliable, ClientToServerId.playerInfo);
+        Message message = Message.Create(MessageSendMode.Reliable, ClientToServerId.clientInfo);
         message.AddString(SteamFriends.GetPersonaName());
         Client.Send(message);
     }
-
     #endregion
 
     #region ServerToClientSenders
@@ -271,6 +297,23 @@ public class NetworkManager : MonoBehaviour
         Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.serverTick);
         message.AddUInt(serverTick);
         Server.SendToAll(message);
+    }
+
+    private void SendPlayerInfo(ushort id)
+    {
+        Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.playerInfo);
+        message.AddUShort(id);
+        message.AddString(playersOnLobby[id]);
+        Server.SendToAll(message);
+    }
+
+    private void SendPlayersInfoToPlayer(ushort id, ushort otherPlayerId)
+    {
+        print($"Sending {playersOnLobby[otherPlayerId]} data to {playersOnLobby[id]}");
+        Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.playerInfo);
+        message.AddUShort(otherPlayerId);
+        message.AddString(playersOnLobby[otherPlayerId]);
+        Server.Send(message, id);
     }
     #endregion
 
@@ -283,11 +326,18 @@ public class NetworkManager : MonoBehaviour
         uint tick = message.GetUInt();
         if (tick > NetworkManager.Singleton.serverTick) NetworkManager.Singleton.serverTick = tick;
     }
+
+    [MessageHandler((ushort)ServerToClientId.playerInfo)]
+    private static void GetPlayerInfo(Message message)
+    {
+        if (NetworkManager.Singleton.Server.IsRunning) return;
+        NetworkManager.Singleton.HandleReceivedPlayerData(message.GetUShort(), message.GetString());
+    }
     #endregion
 
     #region ClientToServerReceivers
-    [MessageHandler((ushort)ClientToServerId.playerInfo)]
-    private static void GetPlayerInfo(ushort fromClientId, Message message)
+    [MessageHandler((ushort)ClientToServerId.clientInfo)]
+    private static void GetClientInfo(ushort fromClientId, Message message)
     {
         NetworkManager.Singleton.HandleReceivedPlayerData(fromClientId, message.GetString());
     }

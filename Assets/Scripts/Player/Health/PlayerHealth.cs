@@ -98,6 +98,7 @@ public class PlayerHealth : MonoBehaviour
         if (NetworkManager.Singleton.Server.IsRunning)
         {
             Invoke("StartRespawn", MatchManager.respawnTime);
+            MatchManager.Singleton.AddDeathToPlayerScore(player.Id);
             SendPlayerDied();
         }
     }
@@ -272,7 +273,7 @@ public class PlayerHealth : MonoBehaviour
 
         if (player.IsLocal) playerMovement.FreePlayerMovement();
         else playerMovement.FreeNetPlayerMovement();
-        
+
         playerMovement.GetSpecials();
 
         yield return new WaitForSeconds(scriptablePlayer.invincibilityTime);

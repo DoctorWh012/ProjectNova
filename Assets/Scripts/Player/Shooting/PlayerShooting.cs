@@ -492,9 +492,9 @@ public class PlayerShooting : MonoBehaviour
     {
         if (!NetworkManager.Singleton.Server.IsRunning) return;
 
-        Player player = playerHit.GetComponentInParent<Player>();
+        Player hitPlayer = playerHit.GetComponentInParent<Player>();
 
-        if (player.playerHealth.ReceiveDamage(damage * damageMultiplier)) ;
+        if (hitPlayer.playerHealth.ReceiveDamage(damage * damageMultiplier)) MatchManager.Singleton.AddKillToPlayerScore(player.Id);
     }
 
     public void FinishPlayerShooting()
@@ -584,7 +584,6 @@ public class PlayerShooting : MonoBehaviour
     private void HandleServerWeaponSwitch(uint tick, int ammo, int slot)
     {
         if (tick < lastSlotChangeTick) return;
-        print($"Server is telling me to switch to slot {slot}");
         StartSlotSwitch(slot, tick, true);
         ammunition = ammo;
 
@@ -593,7 +592,6 @@ public class PlayerShooting : MonoBehaviour
     private void HandleClientWeaponSwitch(uint tick, int slot)
     {
         if (tick < lastSlotChangeTick) return;
-        print($"Client is telling me to switch to slot {slot}");
         StartSlotSwitch(slot, tick);
     }
 
@@ -601,12 +599,10 @@ public class PlayerShooting : MonoBehaviour
     {
         if (!currentPlayerGuns[slotIndex] || currentPlayerGuns[slotIndex] == activeGun) return;
         if (currentWeaponState == WeaponState.Reloading || isWaitingForReload) StopReload();
-        print($"Passed checks Switching to slot {slotIndex} currently on slot {activeGunSlot}");
 
         SlotSwitch(slotIndex);
 
         lastSlotChangeTick = tick;
-        print($"Was asked to switch to {slotIndex} currently on slot {activeGunSlot}");
 
         if (NetworkManager.Singleton.Server.IsRunning) SendGunSwitch(slotIndex);
         else if (player.IsLocal && !askedByServer) SendSlotSwitch(slotIndex);

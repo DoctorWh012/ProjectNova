@@ -9,7 +9,7 @@ public class PlayerScoreCapsule : MonoBehaviour
 
     [Header("Components")]
     [SerializeField] private TextMeshProUGUI playerNameTxt;
-    [SerializeField] private TextMeshProUGUI playerKDTxt;
+    [SerializeField] public TextMeshProUGUI playerKDTxt;
     [SerializeField] public TextMeshProUGUI playerPingTxt;
 
     private ushort playerId;

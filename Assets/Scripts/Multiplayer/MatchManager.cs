@@ -23,6 +23,12 @@ public enum MatchState : byte
 
 */
 
+public class KDRatio
+{
+    public int kills;
+    public int deaths;
+}
+
 public class MatchManager : MonoBehaviour
 {
     private static MatchManager _singleton;
@@ -62,6 +68,8 @@ public class MatchManager : MonoBehaviour
     [SerializeField] private int matchWarmUpTime;
 
     private Dictionary<ushort, PlayerScoreCapsule> scoreCapsules = new System.Collections.Generic.Dictionary<ushort, PlayerScoreCapsule>();
+    private Dictionary<ushort, KDRatio> playersKDRatio = new Dictionary<ushort, KDRatio>();
+
     private float matchTime;
     private float timer;
 
@@ -73,16 +81,42 @@ public class MatchManager : MonoBehaviour
     private void Start()
     {
         ResetAllUITexts();
+        OpenCloseScoreBoard(false);
     }
 
     private void Update()
     {
-        if (currentMatchState == MatchState.OnMenu) return;
+        if (!NetworkManager.Singleton.Client.IsConnected) return;
 
         if (Input.GetKeyDown(SettingsManager.playerPreferences.scoreboardKey)) OpenCloseScoreBoard(true);
         if (Input.GetKeyUp(SettingsManager.playerPreferences.scoreboardKey)) OpenCloseScoreBoard(false);
 
         if (NetworkManager.Singleton.Server.IsRunning) AssignPingToCapsules();
+    }
+
+    public void IntroducePlayerToMatch(ushort id)
+    {
+        CreatePlayerScoreBoardCapsule(id);
+        playersKDRatio.Add(id, new KDRatio());
+        UpdateScoreBoardCapsules(id);
+    }
+
+    public void RemovePlayerFromMatch(ushort id)
+    {
+        DestroyPlayerScoreBoardCapsule(id);
+        playersKDRatio.Remove(id);
+    }
+
+    public void AddKillToPlayerScore(ushort id)
+    {
+        playersKDRatio[id].kills++;
+        UpdateScoreBoardCapsules(id);
+    }
+
+    public void AddDeathToPlayerScore(ushort id)
+    {
+        playersKDRatio[id].deaths++;
+        UpdateScoreBoardCapsules(id);
     }
 
     #region Scoreboard
@@ -93,10 +127,37 @@ public class MatchManager : MonoBehaviour
 
     private void AssignPingToCapsules()
     {
-        foreach (Connection clients in NetworkManager.Singleton.Server.Clients) scoreCapsules[clients.Id].playerPingTxt.SetText(clients.SmoothRTT.ToString());
+        foreach (Connection clients in NetworkManager.Singleton.Server.Clients)
+        {
+            if (!scoreCapsules.ContainsKey(clients.Id)) return;
+            scoreCapsules[clients.Id].playerPingTxt.SetText(clients.SmoothRTT.ToString());
+        }
     }
 
-    public void CreatePlayerScoreBoardCapsule(ushort id)
+    private void HandleScoreboardChange(ushort id, int kills, int deaths)
+    {
+        playersKDRatio[id].kills = kills;
+        playersKDRatio[id].deaths = deaths;
+        scoreCapsules[id].playerKDTxt.SetText($"{playersKDRatio[id].kills} / {playersKDRatio[id].deaths}");
+    }
+
+    public void UpdateScoreBoardCapsules(ushort id)
+    {
+        scoreCapsules[id].playerKDTxt.SetText($"{playersKDRatio[id].kills} / {playersKDRatio[id].deaths}");
+        SendScoreBoardChanged(id);
+    }
+
+    private void ResetScoreBoard()
+    {
+        foreach (KeyValuePair<ushort, KDRatio> playerKD in playersKDRatio)
+        {
+            playerKD.Value.kills = 0;
+            playerKD.Value.deaths = 0;
+            UpdateScoreBoardCapsules(playerKD.Key);
+        }
+    }
+
+    private void CreatePlayerScoreBoardCapsule(ushort id)
     {
         PlayerScoreCapsule scoreCapsule = Instantiate(playerScoreCapsulePrefab);
         scoreCapsules.Add(id, scoreCapsule);
@@ -106,10 +167,21 @@ public class MatchManager : MonoBehaviour
         scoreCapsule.SetUpCapsule(id, NetworkManager.Singleton.playersOnLobby[id]);
     }
 
-    public void DestroyPlayerScoreBoardCapsule(ushort id)
+    private void DestroyPlayerScoreBoardCapsule(ushort id)
     {
         Destroy(scoreCapsules[id].gameObject);
         scoreCapsules.Remove(id);
+    }
+
+    private void DestroyAllPlayersScoreBoardCapsules()
+    {
+        foreach (ushort id in scoreCapsules.Keys) DestroyPlayerScoreBoardCapsule(id);
+    }
+
+    public void ClearScoreBoard()
+    {
+        DestroyAllPlayersScoreBoardCapsules();
+        playersKDRatio.Clear();
     }
     #endregion
 
@@ -133,6 +205,7 @@ public class MatchManager : MonoBehaviour
         StopAllCoroutines();
         currentMatchState = MatchState.Waiting;
         ResetAllUITexts();
+
     }
 
     private void StartFreeForAllMatch()
@@ -162,6 +235,15 @@ public class MatchManager : MonoBehaviour
         message.AddString(text);
         NetworkManager.Singleton.Server.SendToAll(message);
     }
+
+    private void SendScoreBoardChanged(ushort id)
+    {
+        Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.scoreBoardChanged);
+        message.AddUShort(id);
+        message.AddUShort((ushort)playersKDRatio[id].kills);
+        message.AddUShort((ushort)playersKDRatio[id].deaths);
+        NetworkManager.Singleton.Server.SendToAll(message);
+    }
     #endregion
 
     #region ServerToClientHandlers
@@ -171,6 +253,13 @@ public class MatchManager : MonoBehaviour
         if (NetworkManager.Singleton.Server.IsRunning) return;
         MatchManager.Singleton.StopAllCoroutines();
         MatchManager.Singleton.StartCoroutine(MatchManager.Singleton.MatchTimer(message.GetFloat(), message.GetString()));
+    }
+
+    [MessageHandler((ushort)ServerToClientId.scoreBoardChanged)]
+    private static void GetScoreboardChange(Message message)
+    {
+        if (NetworkManager.Singleton.Server.IsRunning) return;
+        MatchManager.Singleton.HandleScoreboardChange(message.GetUShort(), message.GetUShort(), message.GetUShort());
     }
     #endregion
 
@@ -232,6 +321,7 @@ public class MatchManager : MonoBehaviour
         }
         ResetAllUITexts();
 
+        ResetScoreBoard();
         GameManager.Singleton.LoadScene(Scenes.Lobby, "Match");
         GameManager.Singleton.spawnPlayersAfterSceneLoad = true;
         currentMatchState = MatchState.Waiting;
