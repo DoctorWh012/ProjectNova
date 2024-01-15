@@ -3,10 +3,10 @@ using Riptide;
 
 public class GunSpawnManager : MonoBehaviour
 {
-    private static GunSpawnManager Instance;
+    public static GunSpawnManager Instance;
 
     [Header("Components")]
-    [SerializeField] GunSpawn[] weaponSpawners;
+    [SerializeField] private GunSpawn[] weaponSpawners;
 
     private void Awake()
     {
@@ -17,6 +17,11 @@ public class GunSpawnManager : MonoBehaviour
     private void AssignIdToSpawners()
     {
         for (int i = 0; i < weaponSpawners.Length; i++) weaponSpawners[i].weaponSpawnerId = i;
+    }
+
+    public void SendWeaponsSpawnersDataToPlayer(ushort id)
+    {
+        foreach (GunSpawn weaponSpawner in weaponSpawners) weaponSpawner.SendWeaponSpawnerDataToPlayer(id);
     }
 
     private void HandleServerWeaponSpawn(int spawnerId, int weaponId, uint tick)

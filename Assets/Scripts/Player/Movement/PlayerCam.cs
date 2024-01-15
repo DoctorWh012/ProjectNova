@@ -1,7 +1,5 @@
 using UnityEngine;
 using System.Collections;
-using System.IO;
-using Riptide;
 
 public class PlayerCam : MonoBehaviour
 {

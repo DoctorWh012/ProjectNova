@@ -14,6 +14,7 @@ public class PlayerHealth : MonoBehaviour
 {
     [Header("Components")]
     [SerializeField] private Player player;
+    [SerializeField] private GameObject playerCamera;
     [SerializeField] private AudioSource playerAudioSource;
     [SerializeField] private PlayerHud playerHud;
     [SerializeField] private PlayerShooting playerShooting;
@@ -87,7 +88,12 @@ public class PlayerHealth : MonoBehaviour
         playerAudioSource.pitch = Utilities.GetRandomPitch();
         playerAudioSource.PlayOneShot(scriptablePlayer.playerDieAudio, scriptablePlayer.playerDieAudioVolume);
 
-        if (player.IsLocal) playerMovement.FreezePlayerMovement();
+        if (player.IsLocal)
+        {
+            playerCamera.SetActive(false);
+            SpectateCameraManager.Instance.EnableSpectateMode();
+            playerMovement.FreezePlayerMovement();
+        }
         else playerMovement.FreezeNetPlayerMovement();
 
         EnableDisablePlayerColliders(false);
@@ -255,6 +261,7 @@ public class PlayerHealth : MonoBehaviour
     {
         if (currentPlayerState != PlayerState.Dead) yield break;
         currentPlayerState = PlayerState.Invincible;
+
         shieldsHolder.SetActive(true);
         shieldAnimator.Play("ShieldRaise");
 
@@ -271,7 +278,12 @@ public class PlayerHealth : MonoBehaviour
         EnableDisablePlayerColliders(true);
         EnableDisableModels(true);
 
-        if (player.IsLocal) playerMovement.FreePlayerMovement();
+        if (player.IsLocal)
+        {
+            playerCamera.SetActive(true);
+            SpectateCameraManager.Instance.DisableSpectateMode();
+            playerMovement.FreePlayerMovement();
+        }
         else playerMovement.FreeNetPlayerMovement();
 
         playerMovement.GetSpecials();

@@ -36,19 +36,12 @@ public class GunSpawn : Interactable
     {
         idText.SetText($"#{weaponSpawnerId}");
 
-        NetworkManager.Singleton.Server.ClientConnected += SendWeaponSpawnerDataToPlayer;
-
         HideAllWeapons();
         if (NetworkManager.Singleton.Server.IsRunning)
         {
             if (spawnSpecificWeapon) InvokeRepeating("FixedWeaponSpawn", weaponChangeDelay, weaponChangeDelay);
             else InvokeRepeating("SpawnWeapon", weaponChangeDelay, weaponChangeDelay);
         }
-    }
-
-    private void OnApplicationQuit()
-    {
-        NetworkManager.Singleton.Server.ClientConnected -= SendWeaponSpawnerDataToPlayer;
     }
 
     private void Update()
@@ -130,14 +123,14 @@ public class GunSpawn : Interactable
         NetworkManager.Singleton.Server.SendToAll(message);
     }
 
-    private void SendWeaponSpawnerDataToPlayer(object sender, ServerConnectedEventArgs e)
+    public void SendWeaponSpawnerDataToPlayer(ushort id)
     {
         if (!spawnedWeaponSettings) return;
         Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.weaponSpawned);
         message.AddByte((byte)weaponSpawnerId);
         message.AddByte((byte)spawnedWeaponId);
         message.AddUInt(NetworkManager.Singleton.serverTick);
-        NetworkManager.Singleton.Server.Send(message, e.Client.Id);
+        NetworkManager.Singleton.Server.Send(message, id);
     }
 
     private void SendWeaponDespawned()

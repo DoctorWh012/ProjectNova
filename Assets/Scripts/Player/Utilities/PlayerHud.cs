@@ -2,6 +2,7 @@ using UnityEngine;
 using TMPro;
 using UnityEngine.UI;
 using Riptide;
+using Steamworks;
 
 /* WORK REMINDER
 
@@ -181,11 +182,12 @@ public class PlayerHud : SettingsMenu
     {
         if (NetworkManager.Singleton.Server.IsRunning) NetworkManager.Singleton.Server.Stop();
         NetworkManager.Singleton.Client.Disconnect();
+        SteamMatchmaking.LeaveLobby(NetworkManager.Singleton.lobbyId);
     }
 
     public void StartMatch()
     {
-        MatchManager.Singleton.StartMatch(GameMode.FreeForAll, Scenes.MapFacility, (int)matchRespawnTimeSlider.value, (int)matchDurationSlider.value);
+        MatchManager.Singleton.StartMatch(GameMode.FreeForAll, GameManager.facilityScene, (int)matchRespawnTimeSlider.value, (int)matchDurationSlider.value);
         OpenCloseMatchSettingsMenu();
     }
 

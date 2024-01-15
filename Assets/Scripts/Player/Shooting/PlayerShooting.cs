@@ -148,29 +148,18 @@ public class PlayerShooting : MonoBehaviour
 
     private void Start()
     {
-        if (player.IsLocal)
-        {
-            if (!NetworkManager.Singleton.Server.IsRunning)
-            {
-                PickStartingWeapons();
-                return;
-            }
-            else GetPreferences();
-        }
-
         PickStartingWeapons();
-        Player.clientSpawned += SendWeaponSync;
+        if (player.IsLocal) GetPreferences();
+
     }
 
     private void OnDestroy()
     {
-        Player.clientSpawned -= SendWeaponSync;
         SettingsManager.updatedPlayerPrefs -= GetPreferences;
     }
 
     private void OnApplicationQuit()
     {
-        Player.clientSpawned -= SendWeaponSync;
         SettingsManager.updatedPlayerPrefs -= GetPreferences;
     }
 
@@ -556,6 +545,7 @@ public class PlayerShooting : MonoBehaviour
     #region GunSwitching
     public void PickStartingWeapons()
     {
+        print("<color=green> PICKSTARTINGWEAPON</color>");
         if (player.IsLocal) playerHud.ResetWeaponsOnSlots();
 
         for (int i = 0; i < currentPlayerGuns.Length; i++)
@@ -813,9 +803,8 @@ public class PlayerShooting : MonoBehaviour
         NetworkManager.Singleton.Server.SendToAll(message);
     }
 
-    private void SendWeaponSync(ushort id)
+    public void SendWeaponSync(ushort id)
     {
-        if (!player) return;
         Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.weaponSync);
         message.AddUShort(player.Id);
         message.AddByte((byte)currentPlayerGunsIndexes[0]);
@@ -918,8 +907,10 @@ public class PlayerShooting : MonoBehaviour
     [MessageHandler((ushort)ServerToClientId.weaponSync)]
     private static void SyncWeapons(Message message)
     {
+        print("<color=blue> Got Weapon Sync</color>");
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
+            print("<color=blue> Got Weapon Sync And Player Exists</color>");
             player.playerShooting.PickSyncedWeapons((int)message.GetByte(), (int)message.GetByte(), (int)message.GetByte());
             player.playerShooting.StartSlotSwitch((int)message.GetByte(), message.GetUInt());
         }

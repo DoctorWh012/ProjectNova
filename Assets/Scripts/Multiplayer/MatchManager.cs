@@ -1,10 +1,46 @@
+using System;
 using UnityEngine;
 using Riptide;
 using TMPro;
-using UnityEngine.SceneManagement;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
+using Steamworks;
 
+[Serializable]
+public class PlayerData : IMessageSerializable
+{
+    public string playerName;
+
+    public bool onQueue;
+
+    public int kills;
+    public int deaths;
+    public PlayerScoreCapsule scoreCapsule;
+
+    public PlayerData(string name)
+    {
+        playerName = name;
+    }
+    public PlayerData() { }
+
+    public void Deserialize(Message message)
+    {
+        playerName = message.GetString();
+        onQueue = message.GetBool();
+
+        kills = (int)message.GetUShort();
+        deaths = (int)message.GetUShort();
+    }
+
+    public void Serialize(Message message)
+    {
+        message.AddString(playerName);
+        message.AddBool(onQueue);
+        message.AddUShort((ushort)kills);
+        message.AddUShort((ushort)deaths);
+    }
+}
 public enum GameMode : byte
 {
     FreeForAll
@@ -12,7 +48,6 @@ public enum GameMode : byte
 
 public enum MatchState : byte
 {
-    OnMenu,
     Waiting,
     Ongoing,
 }
@@ -22,12 +57,6 @@ public enum MatchState : byte
     Wait for players to load in to start unfreeze countdown
 
 */
-
-public class KDRatio
-{
-    public int kills;
-    public int deaths;
-}
 
 public class MatchManager : MonoBehaviour
 {
@@ -50,9 +79,11 @@ public class MatchManager : MonoBehaviour
         }
     }
 
+    public static Dictionary<ushort, PlayerData> playersOnLobby = new Dictionary<ushort, PlayerData>(); // NEEDS CLEARING
+    public static int matchingPlayers;
     public static int respawnTime { get; private set; }
     public static GameMode currentGamemode { get; private set; }
-    public static MatchState currentMatchState = MatchState.OnMenu;
+    public static MatchState currentMatchState = MatchState.Waiting;
 
     [Header("Prefabs")]
     [SerializeField] private PlayerScoreCapsule playerScoreCapsulePrefab;
@@ -67,11 +98,11 @@ public class MatchManager : MonoBehaviour
     [SerializeField] private int preMatchStartTime;
     [SerializeField] private int matchWarmUpTime;
 
-    private Dictionary<ushort, PlayerScoreCapsule> scoreCapsules = new System.Collections.Generic.Dictionary<ushort, PlayerScoreCapsule>();
-    private Dictionary<ushort, KDRatio> playersKDRatio = new Dictionary<ushort, KDRatio>();
-
+    [SerializeField] private List<PlayerData> playerDataDebug = new List<PlayerData>();
+    [SerializeField] private MatchState matchStateDebug = currentMatchState;
     private float matchTime;
     private float timer;
+    private string timerEndText = "";
 
     private void Awake()
     {
@@ -94,29 +125,38 @@ public class MatchManager : MonoBehaviour
         if (NetworkManager.Singleton.Server.IsRunning) AssignPingToCapsules();
     }
 
-    public void IntroducePlayerToMatch(ushort id)
+    public void IntroducePlayerToMatch(ushort id, string name)
     {
+        playersOnLobby.Add(id, new PlayerData(name));
+
         CreatePlayerScoreBoardCapsule(id);
-        playersKDRatio.Add(id, new KDRatio());
-        UpdateScoreBoardCapsules(id);
+        UpdateScoreBoardCapsule(id);
+
+        if (!NetworkManager.Singleton.Server.IsRunning) return;
+
+        playersOnLobby[id].onQueue = currentMatchState == MatchState.Ongoing;
+
+        playerDataDebug.Add(playersOnLobby[id]);
     }
 
     public void RemovePlayerFromMatch(ushort id)
     {
+        playerDataDebug.Remove(playersOnLobby[id]);
+
         DestroyPlayerScoreBoardCapsule(id);
-        playersKDRatio.Remove(id);
+        playersOnLobby.Remove(id);
+
     }
 
-    public void AddKillToPlayerScore(ushort id)
+    public void RemoveAllPlayersFromMatch()
     {
-        playersKDRatio[id].kills++;
-        UpdateScoreBoardCapsules(id);
-    }
+        foreach (ushort id in playersOnLobby.Keys.ToList())
+        {
+            playerDataDebug.Remove(playersOnLobby[id]);
 
-    public void AddDeathToPlayerScore(ushort id)
-    {
-        playersKDRatio[id].deaths++;
-        UpdateScoreBoardCapsules(id);
+            DestroyPlayerScoreBoardCapsule(id);
+            playersOnLobby.Remove(id);
+        }
     }
 
     #region Scoreboard
@@ -129,59 +169,64 @@ public class MatchManager : MonoBehaviour
     {
         foreach (Connection clients in NetworkManager.Singleton.Server.Clients)
         {
-            if (!scoreCapsules.ContainsKey(clients.Id)) return;
-            scoreCapsules[clients.Id].playerPingTxt.SetText(clients.SmoothRTT.ToString());
+            if (!playersOnLobby.ContainsKey(clients.Id)) return;
+            playersOnLobby[clients.Id].scoreCapsule.playerPingTxt.SetText(clients.SmoothRTT.ToString());
         }
+    }
+
+    public void AddKillToPlayerScore(ushort id)
+    {
+        playersOnLobby[id].kills++;
+        UpdateScoreBoardCapsule(id);
+    }
+
+    public void AddDeathToPlayerScore(ushort id)
+    {
+        playersOnLobby[id].deaths++;
+        UpdateScoreBoardCapsule(id);
     }
 
     private void HandleScoreboardChange(ushort id, int kills, int deaths)
     {
-        playersKDRatio[id].kills = kills;
-        playersKDRatio[id].deaths = deaths;
-        scoreCapsules[id].playerKDTxt.SetText($"{playersKDRatio[id].kills} / {playersKDRatio[id].deaths}");
+        if (!playersOnLobby.ContainsKey(id)) return;
+
+        playersOnLobby[id].kills = kills;
+        playersOnLobby[id].deaths = deaths;
+        playersOnLobby[id].scoreCapsule.playerKDTxt.SetText($"{playersOnLobby[id].kills} / {playersOnLobby[id].deaths}");
     }
 
-    public void UpdateScoreBoardCapsules(ushort id)
+    public void UpdateScoreBoardCapsule(ushort id)
     {
-        scoreCapsules[id].playerKDTxt.SetText($"{playersKDRatio[id].kills} / {playersKDRatio[id].deaths}");
-        SendScoreBoardChanged(id);
+        if (!playersOnLobby.ContainsKey(id)) return;
+
+        playersOnLobby[id].scoreCapsule.playerKDTxt.SetText($"{playersOnLobby[id].kills} / {playersOnLobby[id].deaths}");
+
+        if (NetworkManager.Singleton.Server.IsRunning) SendScoreBoardChanged(id);
     }
 
     private void ResetScoreBoard()
     {
-        foreach (KeyValuePair<ushort, KDRatio> playerKD in playersKDRatio)
+        foreach (KeyValuePair<ushort, PlayerData> playerKD in playersOnLobby)
         {
             playerKD.Value.kills = 0;
             playerKD.Value.deaths = 0;
-            UpdateScoreBoardCapsules(playerKD.Key);
+            UpdateScoreBoardCapsule(playerKD.Key);
         }
     }
 
     private void CreatePlayerScoreBoardCapsule(ushort id)
     {
         PlayerScoreCapsule scoreCapsule = Instantiate(playerScoreCapsulePrefab);
-        scoreCapsules.Add(id, scoreCapsule);
         scoreCapsule.transform.SetParent(scoreboardCapsulesHolder);
         scoreCapsule.transform.localScale = Vector3.one;
 
-        scoreCapsule.SetUpCapsule(id, NetworkManager.Singleton.playersOnLobby[id]);
+        scoreCapsule.SetUpCapsule(id, playersOnLobby[id].playerName);
+        playersOnLobby[id].scoreCapsule = scoreCapsule;
     }
 
     private void DestroyPlayerScoreBoardCapsule(ushort id)
     {
-        Destroy(scoreCapsules[id].gameObject);
-        scoreCapsules.Remove(id);
-    }
-
-    private void DestroyAllPlayersScoreBoardCapsules()
-    {
-        foreach (ushort id in scoreCapsules.Keys) DestroyPlayerScoreBoardCapsule(id);
-    }
-
-    public void ClearScoreBoard()
-    {
-        DestroyAllPlayersScoreBoardCapsules();
-        playersKDRatio.Clear();
+        Destroy(playersOnLobby[id].scoreCapsule.gameObject);
     }
     #endregion
 
@@ -191,21 +236,28 @@ public class MatchManager : MonoBehaviour
         bigTopText.SetText("");
     }
 
-    public void StartMatch(GameMode gamemode, string map, int respawnT, int matchDuration)
+    private void ChangeMatchStatus(MatchState state)
+    {
+        currentMatchState = state;
+        matchStateDebug = currentMatchState;
+        SteamMatchmaking.SetLobbyData(NetworkManager.Singleton.lobbyId, "status", currentMatchState.ToString());
+    }
+
+    public void StartMatch(GameMode gamemode, Scenes scene, int respawnT, int matchDuration)
     {
         currentGamemode = gamemode;
         respawnTime = respawnT;
         matchTime = matchDuration;
 
-        StartCoroutine(Match(map));
+        StartCoroutine(Match(scene));
     }
 
     public void EndMatch()
     {
-        StopAllCoroutines();
-        currentMatchState = MatchState.Waiting;
+        // NEEDS REWORK
         ResetAllUITexts();
-
+        StopAllCoroutines();
+        ChangeMatchStatus(MatchState.Waiting);
     }
 
     private void StartFreeForAllMatch()
@@ -228,20 +280,28 @@ public class MatchManager : MonoBehaviour
         NetworkManager.Singleton.Server.SendToAll(message);
     }
 
-    private void SendMatchTimer(float time, string text)
+    private void SendMatchTimer()
     {
         Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.matchTimer);
-        message.AddFloat(time);
-        message.AddString(text);
+        message.AddFloat(timer);
+        message.AddString(timerEndText);
         NetworkManager.Singleton.Server.SendToAll(message);
+    }
+
+    public void SendMatchTimerToPlayer(ushort id)
+    {
+        Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.matchTimer);
+        message.AddFloat(timer);
+        message.AddString(timerEndText);
+        NetworkManager.Singleton.Server.Send(message, id);
     }
 
     private void SendScoreBoardChanged(ushort id)
     {
         Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.scoreBoardChanged);
         message.AddUShort(id);
-        message.AddUShort((ushort)playersKDRatio[id].kills);
-        message.AddUShort((ushort)playersKDRatio[id].deaths);
+        message.AddUShort((ushort)playersOnLobby[id].kills);
+        message.AddUShort((ushort)playersOnLobby[id].deaths);
         NetworkManager.Singleton.Server.SendToAll(message);
     }
     #endregion
@@ -263,9 +323,9 @@ public class MatchManager : MonoBehaviour
     }
     #endregion
 
-    private IEnumerator Match(string map)
+    private IEnumerator Match(Scenes scene)
     {
-        currentMatchState = MatchState.Ongoing;
+        ChangeMatchStatus(MatchState.Ongoing);
 
         // Configures The Match For The Selected Gamemode
         switch (currentGamemode)
@@ -277,33 +337,35 @@ public class MatchManager : MonoBehaviour
 
         // Pre Match Start Countdown
         timer = preMatchStartTime;
-        SendMatchTimer(preMatchStartTime, "Starting...");
+        timerEndText = "Starting...";
+        SendMatchTimer();
         while (timer > 0)
         {
             timer -= Time.deltaTime;
-            bigTopText.SetText(timer > 1 ? timer.ToString("#") : "Starting...");
+            bigTopText.SetText(timer > 1 ? timer.ToString("#") : timerEndText);
             yield return null;
         }
         ResetAllUITexts();
+        matchingPlayers = playersOnLobby.Count;
 
         // Loads the map
-        GameManager.Singleton.LoadScene(map, "Match");
-        GameManager.Singleton.spawnPlayersAfterSceneLoad = true;
+        GameManager.Singleton.LoadScene(scene, "Match");
+        ResetScoreBoard();
 
         // Should wait for all players to load In
-        while (SceneManager.GetActiveScene().name != map) yield return null;
         bigTopText.SetText("Waiting For Players To Load In...");
-        while (GameManager.clientsLoaded != NetworkManager.Singleton.playersOnLobby.Count) yield return null;
+        while (GameManager.playersLoadedScene < matchingPlayers) yield return null;
 
         foreach (Player player in Player.list.Values) SendPlayerMovementFreeze(player.Id);
 
         // Match Warm Up Countdown
         timer = matchWarmUpTime;
-        SendMatchTimer(matchWarmUpTime, "Go!");
+        timerEndText = "Go!";
+        SendMatchTimer();
         while (timer > 0)
         {
             timer -= Time.deltaTime;
-            bigTopText.SetText(timer > 1 ? timer.ToString("#") : "Go!");
+            bigTopText.SetText(timer > 1 ? timer.ToString("#") : timerEndText);
             yield return null;
         }
         ResetAllUITexts();
@@ -312,19 +374,20 @@ public class MatchManager : MonoBehaviour
 
         // Match Countdown
         timer = matchTime;
-        SendMatchTimer(matchTime, "Ending!");
+        timerEndText = "Ending!";
+        SendMatchTimer();
         while (timer > 0)
         {
             timer -= Time.deltaTime;
-            bigTopText.SetText(timer > 1 ? timer.ToString("#") : "Ending!");
+            bigTopText.SetText(timer > 1 ? timer.ToString("#") : timerEndText);
             yield return null;
         }
         ResetAllUITexts();
 
         ResetScoreBoard();
-        GameManager.Singleton.LoadScene(Scenes.Lobby, "Match");
-        GameManager.Singleton.spawnPlayersAfterSceneLoad = true;
-        currentMatchState = MatchState.Waiting;
+        GameManager.Singleton.LoadScene(GameManager.lobbyScene, "Match");
+        ChangeMatchStatus(MatchState.Waiting);
+        foreach (PlayerData playerData in playersOnLobby.Values) playerData.onQueue = false;
     }
 
     private IEnumerator MatchTimer(float time, string text)

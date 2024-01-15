@@ -63,6 +63,9 @@ public class MainMenu : SettingsMenu
 
     private void Start()
     {
+        Cursor.lockState = CursorLockMode.None;
+        Cursor.visible = true;
+        
         AddListenerToSettingsSliders();
 
         maxPlayersSlider.onValueChanged.AddListener(delegate { UpdateSliderDisplayTxt(maxPlayerSliderTxt, maxPlayersSlider); });

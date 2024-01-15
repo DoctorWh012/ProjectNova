@@ -106,7 +106,7 @@ public class PlayerMovement : MonoBehaviour
     private uint lastReceivedDashTick;
 
     // Lag Compensation
-    private Vector3 playerCharacterDefaultPos = new Vector3(0, -1, 0);
+    private Vector3 playerCharacterDefaultPos = new Vector3(0, 0, 0);
     public SimulationState[] playerSimulationState = new SimulationState[NetworkManager.lagCompensationCacheSize];
 
     // Interpolation
