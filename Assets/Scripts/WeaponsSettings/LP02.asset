@@ -27,18 +27,20 @@ MonoBehaviour:
   reloadTime: 1
   reloadSpins: 2
   maxAmmo: 2
-  currentAmmo: 1
-  knockbackForce: 1
+  currentAmmo: 2
+  screenShakeData: {fileID: 11400000, guid: 7614436c2c7fae248af77b875f935958, type: 2}
+  knockbackForce: 1.1
   knockbackMaxHitDistance: 3
   weaponHum: {fileID: 0}
   weaponPickupSound: {fileID: 8300000, guid: d5569ed4a10935d46be5ad4b9f4da396, type: 3}
   weaponSpinSound: {fileID: 8300000, guid: 2bcd552318991af4f91eac08804a20a4, type: 3}
   weaponReloadSound: {fileID: 8300000, guid: d3e77d5d17a857c409a0bdda6fd9cf06, type: 3}
-  weaponShootingSoundVolume: 0.085
+  weaponShootingSoundVolume: 0.6
   weaponShootingSounds:
   - {fileID: 8300000, guid: 3bcc06d0c9e5e464f891b37cfaddc75a, type: 3}
   tracerType: 1
-  tracerLasts: 0.1
+  tracerLasts: 0.15
+  tracerWidth: 0.2
   canAim: 0
   scopeFov: 0
   isShotgun: 1

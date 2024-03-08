@@ -1,23 +1,46 @@
 using System.Collections.Generic;
+using System.Collections;
 using UnityEngine;
+using TMPro;
 
 public class SpectateCameraManager : MonoBehaviour
 {
-    public static SpectateCameraManager Instance;
+    private static SpectateCameraManager _singleton;
+    public static SpectateCameraManager Singleton
+    {
+        get { return _singleton; }
+        set
+        {
+            if (_singleton == null)
+            {
+                _singleton = value;
+            }
+
+            else if (_singleton != value)
+            {
+                Debug.Log($"{nameof(SpectateCameraManager)} instance already exists, destroying duplicate");
+                Destroy(value);
+            }
+        }
+    }
 
     public static Transform activeCameraTransform;
     public static List<GameObject> availableCameras = new List<GameObject>();
 
     [Header("Components")]
-    [SerializeField] private GameObject mapCamera;
+    [SerializeField] public GameObject mapCamera;
+
+    [Header("Menus")]
+    [SerializeField] private GameObject deathScreen;
+    [SerializeField] private TextMeshProUGUI deathRespawnTxt;
+
     public Transform playerCamera;
     public int atCamerasIndex = 0;
     public bool spectating;
 
     private void Awake()
     {
-        Instance = this;
-        mapCamera.SetActive(true);
+        Singleton = this;
     }
 
     private void Update()
@@ -26,6 +49,18 @@ public class SpectateCameraManager : MonoBehaviour
 
         if (Input.GetKeyDown(SettingsManager.playerPreferences.fireBtn)) SpectateNext();
         if (Input.GetKeyDown(SettingsManager.playerPreferences.altFireBtn)) SpectatePrevious();
+    }
+
+    public void EnableDeathSpectateMode(ushort? id, float respawnTime)
+    {
+        deathScreen.SetActive(true);
+        if (id != null) atCamerasIndex = GetCameraOfPlayer((ushort)id);
+        StartCoroutine(RespawnTimer(respawnTime));
+
+        spectating = true;
+        mapCamera.SetActive(true);
+        if (availableCameras.Count > atCamerasIndex) availableCameras[atCamerasIndex].SetActive(true);
+        activeCameraTransform = mapCamera.transform;
     }
 
     public void EnableSpectateMode()
@@ -39,6 +74,7 @@ public class SpectateCameraManager : MonoBehaviour
 
     public void DisableSpectateMode()
     {
+        deathScreen.SetActive(false);
         spectating = false;
         mapCamera.SetActive(false);
         activeCameraTransform = playerCamera;
@@ -59,5 +95,22 @@ public class SpectateCameraManager : MonoBehaviour
         availableCameras[atCamerasIndex].SetActive(false);
         atCamerasIndex = (atCamerasIndex - 1 + availableCameras.Count) % (availableCameras.Count);
         availableCameras[atCamerasIndex].SetActive(true);
+    }
+
+    private int GetCameraOfPlayer(ushort id)
+    {
+        for (int i = 0; i < availableCameras.Count; i++) if (availableCameras[i] == Player.list[id].spectatorCamBrain) return i;
+        return 0;
+    }
+
+    private IEnumerator RespawnTimer(float time)
+    {
+        float timer = time;
+        while (timer > 0)
+        {
+            timer -= Time.deltaTime;
+            deathRespawnTxt.SetText(timer > 1 ? $"Respawning in [{timer.ToString("#")}] seconds" : "Respawning in [1] second");
+            yield return null;
+        }
     }
 }

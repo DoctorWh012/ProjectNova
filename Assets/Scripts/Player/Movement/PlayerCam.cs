@@ -44,7 +44,7 @@ public class PlayerCam : MonoBehaviour
 
     private void Update()
     {
-        if (!PlayerHud.Focused) return;
+        if (!GameManager.Focused) return;
         GetInput();
         MoveCam();
     }

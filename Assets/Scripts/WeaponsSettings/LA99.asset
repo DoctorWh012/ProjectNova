@@ -21,14 +21,15 @@ MonoBehaviour:
   crosshairScale: 0.6
   crosshairShotScale: 1.7
   crosshairShrinkTime: 0.5
-  damage: 10
+  damage: 20
   range: 100
   fireRate: 10
   reloadTime: 4
   reloadSpins: 2
   maxAmmo: 100
-  currentAmmo: 77
-  knockbackForce: 3
+  currentAmmo: 100
+  screenShakeData: {fileID: 11400000, guid: 29300a2d2354f4b4f92e3fa762f830f7, type: 2}
+  knockbackForce: 4
   knockbackMaxHitDistance: 100
   weaponHum: {fileID: 0}
   weaponPickupSound: {fileID: 8300000, guid: d5569ed4a10935d46be5ad4b9f4da396, type: 3}
@@ -40,6 +41,7 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 3a971ef14791b494f867f23705928aaa, type: 3}
   tracerType: 0
   tracerLasts: 0.056
+  tracerWidth: 1.2
   canAim: 0
   scopeFov: 52
   isShotgun: 0

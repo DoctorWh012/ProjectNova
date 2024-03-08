@@ -1,9 +1,12 @@
-using System;
 using System.Collections;
-using UnityEngine.SceneManagement;
+using System.Collections.Generic;
 using UnityEngine;
-using Riptide;
+using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 using UnityEngine.Audio;
+using TMPro;
+using Riptide;
+using Steamworks;
 
 public class Scenes : IMessageSerializable
 {
@@ -35,9 +38,10 @@ public class Scenes : IMessageSerializable
     }
 }
 
-
-public class GameManager : MonoBehaviour
+public class GameManager : SettingsMenu
 {
+    public static bool Focused { get; private set; } = true;
+
     private static GameManager _singleton;
     public static GameManager Singleton
     {
@@ -65,8 +69,27 @@ public class GameManager : MonoBehaviour
     public static Scenes currentScene;
     public static int playersLoadedScene;
 
+    [Header("UI")]
+    [SerializeField] private GameObject matchSettingsMenu;
+    [SerializeField] private GameObject settingsMenu;
+    [SerializeField] private GameObject pauseMenu;
+    [SerializeField] private Button respawnBtn;
+    [SerializeField] private KillFeedDisplay killFeedDisplayPrefab;
+    [SerializeField] private Transform killFeedParent;
+    [SerializeField] private float killFeedDisplayTime;
+
+    [Header("Match Settings Menu")]
+    [SerializeField] private Slider matchDurationSlider;
+    [SerializeField] private TextMeshProUGUI matchDurationTxt;
+    [SerializeField] private Slider matchRespawnTimeSlider;
+    [SerializeField] private TextMeshProUGUI matchRespawnTimeTxt;
+    [SerializeField] private GameObject startMatchBtn;
+    [SerializeField] private GameObject cancelMatchBtn;
+
     [Header("Audio")]
     [SerializeField] private AudioMixerGroup masterMixer;
+
+    private List<KillFeedDisplay> killFeedDisplayList = new List<KillFeedDisplay>();
 
     private void Awake()
     {
@@ -75,7 +98,17 @@ public class GameManager : MonoBehaviour
 
     private void Start()
     {
+        Focused = true;
+
         SettingsManager.updatedPlayerPrefs += GetPreferences;
+        AddListenerToSettingsSliders();
+
+        matchDurationSlider.onValueChanged.AddListener(delegate { UpdateSliderDisplayTxt(matchDurationTxt, matchDurationSlider); });
+        matchRespawnTimeSlider.onValueChanged.AddListener(delegate { UpdateSliderDisplayTxt(matchRespawnTimeTxt, matchRespawnTimeSlider); });
+
+        SettingsManager.VerifyJson();
+        GetPreferences();
+        DisableAllMenus();
     }
 
     private void OnApplicationQuit()
@@ -83,9 +116,132 @@ public class GameManager : MonoBehaviour
         SettingsManager.updatedPlayerPrefs -= GetPreferences;
     }
 
+    private void OnDestroy()
+    {
+        SettingsManager.updatedPlayerPrefs -= GetPreferences;
+    }
+
+    private void Update()
+    {
+        if (!NetworkManager.Singleton.Client.IsConnected) return;
+        if (Input.GetKeyDown(SettingsManager.playerPreferences.pauseKey)) PauseUnpause();
+    }
+
+    #region Menus
+    public void PauseUnpause()
+    {
+        Focused = !Focused;
+        DisableAllMenus();
+        pauseMenu.SetActive(!Focused);
+
+        Cursor.lockState = Focused ? CursorLockMode.Locked : CursorLockMode.None;
+        Cursor.visible = !Focused;
+    }
+
+    public void OpenSettingsMenu()
+    {
+        DisableAllMenus();
+        settingsMenu.SetActive(true);
+
+        GetAvailableResolutions();
+
+        UpdateSettingsValues();
+        DisableAllSettingsMenus();
+        EnterGeneralMenu();
+    }
+
+    public void ReturnToPauseMenu()
+    {
+        DisableAllMenus();
+        pauseMenu.SetActive(true);
+    }
+
+    public void OpenCloseMatchSettingsMenu()
+    {
+        Focused = !Focused;
+
+        startMatchBtn.SetActive(false);
+        cancelMatchBtn.SetActive(false);
+
+        if (MatchManager.currentMatchState == MatchState.Waiting) startMatchBtn.SetActive(true);
+        else cancelMatchBtn.SetActive(true);
+
+        matchSettingsMenu.SetActive(!Focused);
+
+        Cursor.lockState = Focused ? CursorLockMode.Locked : CursorLockMode.None;
+        Cursor.visible = !Focused;
+    }
+
+    public void Respawn()
+    {
+        if (!Player.list.TryGetValue(NetworkManager.Singleton.Client.Id, out Player player)) return;
+        if (player.playerHealth.currentPlayerState == PlayerState.Dead) return;
+
+        if (NetworkManager.Singleton.Server.IsRunning) player.playerHealth.InstaKill();
+        else SendSuicideMessage();
+
+        respawnBtn.interactable = false;
+        Invoke("EnableRespawnBtn", 10f);
+    }
+
+    private void EnableRespawnBtn()
+    {
+        respawnBtn.interactable = true;
+    }
+
+    public void ExitMatch()
+    {
+        if (NetworkManager.Singleton.Server.IsRunning) NetworkManager.Singleton.Server.Stop();
+        NetworkManager.Singleton.Client.Disconnect();
+        SteamMatchmaking.LeaveLobby(NetworkManager.Singleton.lobbyId);
+    }
+
+    public void StartMatch()
+    {
+        MatchManager.Singleton.StartMatch(GameMode.FreeForAll, GameManager.facilityScene, (int)matchRespawnTimeSlider.value, (int)matchDurationSlider.value);
+        OpenCloseMatchSettingsMenu();
+    }
+
+    public void CancelMatch()
+    {
+        MatchManager.Singleton.EndMatch();
+        OpenCloseMatchSettingsMenu();
+    }
+
+    private void DisableAllMenus()
+    {
+        pauseMenu.SetActive(false);
+        settingsMenu.SetActive(false);
+        matchSettingsMenu.SetActive(false);
+    }
+    #endregion
+
+    #region KillFeed
+    public void SpawnKillFeedCapsule(string killer, Sprite killMethod, string victim)
+    {
+        KillFeedDisplay killFeedCapsule = Instantiate(killFeedDisplayPrefab);
+        killFeedDisplayList.Add(killFeedCapsule);
+        killFeedCapsule.transform.SetParent(killFeedParent);
+        killFeedCapsule.transform.localScale = Vector3.one;
+
+        killFeedCapsule.killerTxt.SetText(killer);
+        killFeedCapsule.killMethodImg.sprite = killMethod;
+        killFeedCapsule.victimTxt.SetText(victim);
+
+        Invoke("RemoveOldKillCapsule", killFeedDisplayTime);
+    }
+
+    private void RemoveOldKillCapsule()
+    {
+        Destroy(killFeedDisplayList[0].gameObject);
+        killFeedDisplayList.Remove(killFeedDisplayList[0]);
+    }
+    #endregion
+
     #region Preferences
     private void GetPreferences()
     {
+        UpdateSettingsValues();
         masterMixer.audioMixer.SetFloat("MasterVolume", Utilities.VolumeToDB(SettingsManager.playerPreferences.masterVolume));
         masterMixer.audioMixer.SetFloat("MusicVolume", Utilities.VolumeToDB(SettingsManager.playerPreferences.musicVolume));
     }
@@ -110,7 +266,7 @@ public class GameManager : MonoBehaviour
         foreach (Player otherPlayer in Player.list.Values)
         {
             otherPlayer.SendPlayersToPlayer(id);
-            otherPlayer.playerShooting.SendWeaponSync(id); // BROKEN
+            otherPlayer.playerShooting.SendWeaponSync(id); // BROKEN / IS it?
         }
 
         GunSpawnManager.Instance.SendWeaponsSpawnersDataToPlayer(id);
@@ -141,6 +297,7 @@ public class GameManager : MonoBehaviour
 
         currentScene = scene;
         SendClientSceneLoaded();
+        SpectateCameraManager.Singleton.mapCamera = FindObjectOfType<Camera>().gameObject;
 
         print($"<color=yellow>Loaded Scene</color>");
         print($"<color=yellow>{new string('-', 30)}</color>");
@@ -169,6 +326,12 @@ public class GameManager : MonoBehaviour
         Message message = Message.Create(MessageSendMode.Reliable, ClientToServerId.playerLoadedScene);
         NetworkManager.Singleton.Client.Send(message);
     }
+
+    private void SendSuicideMessage()
+    {
+        Message message = Message.Create(MessageSendMode.Reliable, ClientToServerId.playerSuicide);
+        NetworkManager.Singleton.Client.Send(message);
+    }
     #endregion
 
     #region ServerToClientHandlers
@@ -185,6 +348,15 @@ public class GameManager : MonoBehaviour
     private static void ReceiveClientLoadedScene(ushort fromClientId, Message message)
     {
         GameManager.Singleton.HandlePlayerLoadedScene(fromClientId);
+    }
+
+    [MessageHandler((ushort)ClientToServerId.playerSuicide)]
+    private static void ReceiveSuicide(ushort fromClientId, Message message)
+    {
+        if (Player.list.TryGetValue(fromClientId, out Player player))
+        {
+            player.playerHealth.InstaKill();
+        }
     }
     #endregion
 }

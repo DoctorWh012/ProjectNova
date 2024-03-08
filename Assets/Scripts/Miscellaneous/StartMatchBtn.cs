@@ -17,7 +17,7 @@ public class StartMatchBtn : Interactable
             if (players[i].Id != NetworkManager.Singleton.Client.Id) return;
             if (players[i].playerInteractions.interactTimeCounter > 0 && canPress)
             {
-                players[i].playerHud.OpenCloseMatchSettingsMenu();
+                GameManager.Singleton.OpenCloseMatchSettingsMenu();
                 canPress = false;
                 Invoke("RestorePress", 0.5f);
             }

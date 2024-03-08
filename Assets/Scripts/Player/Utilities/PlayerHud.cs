@@ -1,8 +1,7 @@
 using UnityEngine;
-using TMPro;
 using UnityEngine.UI;
-using Riptide;
-using Steamworks;
+using TMPro;
+using DG.Tweening;
 
 /* WORK REMINDER
 
@@ -10,10 +9,8 @@ using Steamworks;
 
 */
 
-public class PlayerHud : SettingsMenu
+public class PlayerHud : MonoBehaviour
 {
-    public static bool Focused { get; private set; } = true;
-
     [Header("Components")]
     [SerializeField] private ScriptablePlayer playerSettings;
     [SerializeField] private PlayerHealth playerHealth;
@@ -42,6 +39,7 @@ public class PlayerHud : SettingsMenu
 
     [Header("Crosshairs")]
     [SerializeField] private GameObject[] crosshairs;
+    [SerializeField] private Image[] hitmarkers;
     [SerializeField] private Slider reloadSlider;
 
     [Header("UI Texts")]
@@ -50,19 +48,7 @@ public class PlayerHud : SettingsMenu
     [SerializeField] private TextMeshProUGUI speedometerText;
 
     [Header("Menus")]
-    [SerializeField] private GameObject pauseMenu;
-    [SerializeField] private Button respawnBtn;
-    [SerializeField] private GameObject settingsMenu;
     [SerializeField] private GameObject gameHud;
-    [SerializeField] private GameObject matchSettingsMenu;
-
-    [Header("Match Settings Menu")]
-    [SerializeField] private Slider matchDurationSlider;
-    [SerializeField] private TextMeshProUGUI matchDurationTxt;
-    [SerializeField] private Slider matchRespawnTimeSlider;
-    [SerializeField] private TextMeshProUGUI matchRespawnTimeTxt;
-    [SerializeField] private GameObject startMatchBtn;
-    [SerializeField] private GameObject cancelMatchBtn;
 
     private int currentCrosshairIndex;
     private Vector3 crosshairScale;
@@ -70,142 +56,36 @@ public class PlayerHud : SettingsMenu
     private float crosshairShrinkTime;
     private float crosshairShrinkTimer;
 
-    private void Awake()
+    private void Start()
     {
-        SettingsManager.updatedPlayerPrefs += UpdatePreferences;
+        SettingsManager.updatedPlayerPrefs += GetPreferences;
+        ResetWeaponsOnSlots();
+        ResetAllUITexts();
     }
 
     private void OnApplicationQuit()
     {
-        SettingsManager.updatedPlayerPrefs -= UpdatePreferences;
+        SettingsManager.updatedPlayerPrefs -= GetPreferences;
     }
 
     private void OnDestroy()
     {
-        SettingsManager.updatedPlayerPrefs -= UpdatePreferences;
-    }
-
-    private void Start()
-    {
-        Focused = true;
-
-        AddListenerToSettingsSliders();
-
-        matchDurationSlider.onValueChanged.AddListener(delegate { UpdateSliderDisplayTxt(matchDurationTxt, matchDurationSlider); });
-        matchRespawnTimeSlider.onValueChanged.AddListener(delegate { UpdateSliderDisplayTxt(matchRespawnTimeTxt, matchRespawnTimeSlider); });
-
-        ResetWeaponsOnSlots();
-        ResetAllUITexts();
-        DisableAllMenus();
-
-        SettingsManager.VerifyJson();
-        UpdatePreferences();
+        SettingsManager.updatedPlayerPrefs -= GetPreferences;
     }
 
     private void Update()
     {
-        if (Input.GetKeyDown(SettingsManager.playerPreferences.pauseKey)) PauseUnpause();
         ScaleDownCrosshair();
         pingTxt.SetText($"Ping: {NetworkManager.Singleton.Client.RTT}");
     }
 
-    private void UpdatePreferences()
+    #region GameUi
+    private void GetPreferences()
     {
-        UpdateSettingsValues();
         if (SettingsManager.playerPreferences.crosshairType == 0 && playerShooting.activeGun) UpdateCrosshair((int)playerShooting.activeGun.crosshairType, playerShooting.activeGun.crosshairScale, playerShooting.activeGun.crosshairShotScale, playerShooting.activeGun.crosshairShrinkTime);
         else UpdateCrosshair((int)CrosshairType.dot, 1, 1, 0);
     }
 
-    #region Menus
-    public void PauseUnpause()
-    {
-        Focused = !Focused;
-        DisableAllMenus();
-        pauseMenu.SetActive(!Focused);
-        gameHud.SetActive(Focused);
-
-        Cursor.lockState = Focused ? CursorLockMode.Locked : CursorLockMode.None;
-        Cursor.visible = !Focused;
-    }
-
-    public void OpenSettingsMenu()
-    {
-        DisableAllMenus();
-        settingsMenu.SetActive(true);
-
-        GetAvailableResolutions();
-
-        UpdateSettingsValues();
-        DisableAllSettingsMenus();
-        EnterGeneralMenu();
-    }
-
-    public void ReturnToPauseMenu()
-    {
-        DisableAllMenus();
-        pauseMenu.SetActive(true);
-    }
-
-    public void OpenCloseMatchSettingsMenu()
-    {
-        Focused = !Focused;
-
-        startMatchBtn.SetActive(false);
-        cancelMatchBtn.SetActive(false);
-
-        if (MatchManager.currentMatchState == MatchState.Waiting) startMatchBtn.SetActive(true);
-        else cancelMatchBtn.SetActive(true);
-
-        matchSettingsMenu.SetActive(!Focused);
-
-        Cursor.lockState = Focused ? CursorLockMode.Locked : CursorLockMode.None;
-        Cursor.visible = !Focused;
-    }
-
-    public void Respawn()
-    {
-        if (playerHealth.currentPlayerState == PlayerState.Dead) return;
-
-        if (NetworkManager.Singleton.Server.IsRunning) playerHealth.InstaKill();
-        else SendSuicideMessage();
-
-        respawnBtn.interactable = false;
-        Invoke("EnableRespawnBtn", 10f);
-    }
-
-    private void EnableRespawnBtn()
-    {
-        respawnBtn.interactable = true;
-    }
-
-    public void ExitMatch()
-    {
-        if (NetworkManager.Singleton.Server.IsRunning) NetworkManager.Singleton.Server.Stop();
-        NetworkManager.Singleton.Client.Disconnect();
-        SteamMatchmaking.LeaveLobby(NetworkManager.Singleton.lobbyId);
-    }
-
-    public void StartMatch()
-    {
-        MatchManager.Singleton.StartMatch(GameMode.FreeForAll, GameManager.facilityScene, (int)matchRespawnTimeSlider.value, (int)matchDurationSlider.value);
-        OpenCloseMatchSettingsMenu();
-    }
-
-    public void CancelMatch()
-    {
-        MatchManager.Singleton.EndMatch();
-        OpenCloseMatchSettingsMenu();
-    }
-
-    private void DisableAllMenus()
-    {
-        pauseMenu.SetActive(false);
-        settingsMenu.SetActive(false);
-        matchSettingsMenu.SetActive(false);
-    }
-    #endregion
-
-    #region GameUi
     public void UpdateHealthDisplay(float health)
     {
         healthText.SetText($"{health.ToString("#")}%");
@@ -326,24 +206,16 @@ public class PlayerHud : SettingsMenu
     {
         for (int i = 0; i < crosshairs.Length; i++) crosshairs[i].SetActive(false);
     }
-    #endregion
 
-    #region ClientToServerSenders
-    private void SendSuicideMessage()
+    public void FadeHitmarker(bool special, float fadeTime)
     {
-        Message message = Message.Create(MessageSendMode.Reliable, ClientToServerId.playerSuicide);
-        NetworkManager.Singleton.Client.Send(message);
-    }
-    #endregion
+        int index;
+        index = special ? (currentCrosshairIndex == 1 ? 3 : 2) : (currentCrosshairIndex == 1 ? 1 : 0);
 
-    #region ClientToServerHandlers
-    [MessageHandler((ushort)ClientToServerId.playerSuicide)]
-    private static void ReceiveSuicide(ushort fromClientId, Message message)
-    {
-        if (Player.list.TryGetValue(fromClientId, out Player player))
-        {
-            player.playerHealth.InstaKill();
-        }
+        hitmarkers[index].DOComplete();
+        hitmarkers[index].transform.DOComplete();
+        hitmarkers[index].DOFade(1, fadeTime).OnComplete(() => hitmarkers[index].DOFade(0, fadeTime));
+        hitmarkers[index].transform.DOPunchScale(Vector3.one, fadeTime * 2, 0);
     }
     #endregion
 }

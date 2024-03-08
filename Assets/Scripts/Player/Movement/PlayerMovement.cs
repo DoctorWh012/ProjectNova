@@ -1,6 +1,5 @@
 using Riptide;
 using UnityEngine;
-using System;
 
 /* WORK REMINDER
 
@@ -140,7 +139,7 @@ public class PlayerMovement : MonoBehaviour
 
         PlayerEffects();
 
-        if (!PlayerHud.Focused)
+        if (!GameManager.Focused)
         {
             verticalInput = 0;
             horizontalInput = 0;
@@ -276,7 +275,8 @@ public class PlayerMovement : MonoBehaviour
 
         // Apply Movement Force
         moveDir = trueForward * verticalInput + orientation.right * horizontalInput;
-
+        moveDir = moveDir.sqrMagnitude > 0 ? moveDir.normalized : moveDir;
+        
         if (coyoteTimeCounter > 0) rb.AddForce(moveDir * groundedMovementMultiplier * multiplier, ForceMode.Force);
         else rb.AddForce(moveDir * airMovementMultiplier, ForceMode.Force);
 
@@ -516,7 +516,7 @@ public class PlayerMovement : MonoBehaviour
         Invoke("FinishDashing", movementSettings.dashDuration);
 
         // rb.velocity = new Vector3(0, rb.velocity.y, 0);
-        rb.AddForce(orientation.forward * movementSettings.dashForce * movementSettings.mass, ForceMode.Impulse);
+        rb.AddForce(moveDir * movementSettings.dashForce * movementSettings.mass, ForceMode.Impulse);
 
         dashParticles.Play();
 

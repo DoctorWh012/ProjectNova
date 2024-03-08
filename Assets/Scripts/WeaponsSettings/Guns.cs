@@ -1,4 +1,6 @@
 using UnityEngine;
+using FirstGearGames.SmoothCameraShaker;
+
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
@@ -50,7 +52,7 @@ public class Guns : ScriptableObject
 
     [Header("Damage")]
     [SerializeField] public int damage;
-    [Range(1, 255)] public int range;
+    [SerializeField, Range(1, 255)] public int range;
     [SerializeField] public float fireRate;
 
     [Header("Reload")]
@@ -60,6 +62,7 @@ public class Guns : ScriptableObject
     [HideInInspector] public int currentAmmo;
 
     [Header("Recoil")]
+    [SerializeField] public ShakeData screenShakeData;
     [SerializeField] public float knockbackForce;
     [SerializeField] public float knockbackMaxHitDistance;
 
@@ -68,18 +71,17 @@ public class Guns : ScriptableObject
     [SerializeField] public AudioClip weaponPickupSound;
     [SerializeField] public AudioClip weaponSpinSound;
     [SerializeField] public AudioClip weaponReloadSound;
-    [Range(0, 1)]
-    [SerializeField] public float weaponShootingSoundVolume = 1;
+    [SerializeField, Range(0, 1)] public float weaponShootingSoundVolume = 1;
     [SerializeField] public AudioClip[] weaponShootingSounds;
 
     [Header("Tracer")]
     [SerializeField] public TracerType tracerType;
     [SerializeField] public float tracerLasts;
+    [SerializeField] public float tracerWidth;
 
     [Header("Aiming")]
     [SerializeField] public bool canAim;
-    [HideInInspector]
-    [Range(1, 120)] public float scopeFov;
+    [HideInInspector, Range(1, 120)] public float scopeFov;
 
     [Header("Shotgun")]
     [SerializeField] public bool isShotgun;

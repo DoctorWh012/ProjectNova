@@ -65,7 +65,7 @@ public class MainMenu : SettingsMenu
     {
         Cursor.lockState = CursorLockMode.None;
         Cursor.visible = true;
-        
+
         AddListenerToSettingsSliders();
 
         maxPlayersSlider.onValueChanged.AddListener(delegate { UpdateSliderDisplayTxt(maxPlayerSliderTxt, maxPlayersSlider); });
@@ -190,10 +190,7 @@ public class MainMenu : SettingsMenu
 
     private void DestroyLobbiesCapsules()
     {
-        for (int i = 0; i < lobbiesCapsules.Count; i++)
-        {
-            Destroy(lobbiesCapsules[i].gameObject);
-        }
+        for (int i = 0; i < lobbiesCapsules.Count; i++) Destroy(lobbiesCapsules[i].gameObject);
         lobbiesCapsules.Clear();
     }
 

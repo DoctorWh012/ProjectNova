@@ -9,6 +9,6 @@ public class DamageOnCollision : MonoBehaviour
     {
         if (!other.gameObject.CompareTag("Player") || !NetworkManager.Singleton.Server.IsRunning) return;
 
-        other.gameObject.GetComponent<Player>().playerHealth.ReceiveDamage(damage);
+        other.gameObject.GetComponent<Player>().playerHealth.ReceiveDamage(damage, null);
     }
 }

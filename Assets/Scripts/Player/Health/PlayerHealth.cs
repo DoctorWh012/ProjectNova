@@ -23,6 +23,7 @@ public class PlayerHealth : MonoBehaviour
     [SerializeField] private Collider[] colliders;
 
     [Header("Particles/Effects")]
+    [SerializeField] private Sprite suicideIcon;
     [SerializeField] private ParticleSystem hurtEffect;
     [SerializeField] private ParticleSystem hurtParticles;
     [SerializeField] private ParticleSystem deathParticles;
@@ -48,11 +49,14 @@ public class PlayerHealth : MonoBehaviour
             // Taking Damage
             if (value < _currentHealth)
             {
-                if (player.IsLocal) hurtEffect.Play();
+                if (player.IsLocal)
+                {
+                    hurtEffect.Play();
+                    playerAudioSource.pitch = Utilities.GetRandomPitch();
+                    playerAudioSource.PlayOneShot(scriptablePlayer.playerHurtAudio, scriptablePlayer.playerHurtAudioVolume);
+                }
                 else hurtParticles.Play();
 
-                playerAudioSource.pitch = Utilities.GetRandomPitch();
-                playerAudioSource.PlayOneShot(scriptablePlayer.playerHurtAudio, scriptablePlayer.playerHurtAudioVolume);
             }
 
             // Healing
@@ -77,10 +81,13 @@ public class PlayerHealth : MonoBehaviour
         currentHealth = scriptablePlayer.maxHealth;
     }
 
-    private void Die()
+    private void Die(ushort? id)
     {
         if (currentPlayerState == PlayerState.Dead) return;
         currentPlayerState = PlayerState.Dead;
+
+        if (id != null) GameManager.Singleton.SpawnKillFeedCapsule(Player.list[(ushort)id].username, Player.list[(ushort)id].playerShooting.activeGun.gunIcon, player.username);
+        else GameManager.Singleton.SpawnKillFeedCapsule("", suicideIcon, player.username);
 
         shieldsHolder.SetActive(false);
         StopAllCoroutines();
@@ -91,7 +98,7 @@ public class PlayerHealth : MonoBehaviour
         if (player.IsLocal)
         {
             playerCamera.SetActive(false);
-            SpectateCameraManager.Instance.EnableSpectateMode();
+            SpectateCameraManager.Singleton.EnableDeathSpectateMode(id, MatchManager.respawnTime);
             playerMovement.FreezePlayerMovement();
         }
         else playerMovement.FreezeNetPlayerMovement();
@@ -105,7 +112,7 @@ public class PlayerHealth : MonoBehaviour
         {
             Invoke("StartRespawn", MatchManager.respawnTime);
             MatchManager.Singleton.AddDeathToPlayerScore(player.Id);
-            SendPlayerDied();
+            SendPlayerDied(id);
         }
     }
 
@@ -114,12 +121,12 @@ public class PlayerHealth : MonoBehaviour
         StartCoroutine(Respawn());
     }
 
-    private void HandleServerPlayerDied(uint tick)
+    private void HandleServerPlayerDied(bool wasKilled, ushort killerId, uint tick)
     {
         if (tick <= lastReceivedDiedTick) return;
         lastReceivedDiedTick = tick;
 
-        Die();
+        Die(wasKilled ? (ushort?)killerId : null);
     }
 
     private void HandleServerPlayerRespawned(Vector3 pos, uint tick)
@@ -131,14 +138,14 @@ public class PlayerHealth : MonoBehaviour
         StartRespawn();
     }
 
-    public bool ReceiveDamage(float damage)
+    public bool ReceiveDamage(float damage, ushort? id)
     {
         if (currentPlayerState == PlayerState.Dead || currentPlayerState == PlayerState.Invincible) return false;
         currentHealth -= damage;
 
         if (currentHealth <= 0)
         {
-            Die();
+            Die(id);
             return true;
         }
         return false;
@@ -149,10 +156,10 @@ public class PlayerHealth : MonoBehaviour
         if (currentPlayerState == PlayerState.Dead) return;
 
         currentHealth -= currentHealth;
-        Die();
+        Die(null);
     }
 
-    private void RecoverHealth(float healAmount)
+    public void RecoverHealth(float healAmount)
     {
         if (currentPlayerState == PlayerState.Dead) return;
 
@@ -198,10 +205,15 @@ public class PlayerHealth : MonoBehaviour
     }
 
     #region  ServerSenders
-    private void SendPlayerDied()
+    private void SendPlayerDied(ushort? id)
     {
         Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.playerDied);
         message.AddUShort(player.Id);
+
+        bool wasKilled = id != null;
+        message.AddBool(wasKilled);
+        message.AddUShort(wasKilled ? (ushort)id : (ushort)0);
+
         message.AddUInt(NetworkManager.Singleton.serverTick);
         NetworkManager.Singleton.Server.SendToAll(message);
     }
@@ -232,7 +244,7 @@ public class PlayerHealth : MonoBehaviour
         if (NetworkManager.Singleton.Server.IsRunning) return;
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
-            player.playerHealth.HandleServerPlayerDied(message.GetUInt());
+            player.playerHealth.HandleServerPlayerDied(message.GetBool(), message.GetUShort(), message.GetUInt());
         }
     }
 
@@ -281,7 +293,7 @@ public class PlayerHealth : MonoBehaviour
         if (player.IsLocal)
         {
             playerCamera.SetActive(true);
-            SpectateCameraManager.Instance.DisableSpectateMode();
+            SpectateCameraManager.Singleton.DisableSpectateMode();
             playerMovement.FreePlayerMovement();
         }
         else playerMovement.FreeNetPlayerMovement();

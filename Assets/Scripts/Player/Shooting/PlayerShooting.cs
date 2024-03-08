@@ -2,6 +2,8 @@ using Riptide;
 using UnityEngine;
 using System.Collections;
 using DitzelGames.FastIK;
+using DG.Tweening;
+using FirstGearGames.SmoothCameraShaker;
 
 /* WORK REMINDER
 
@@ -76,6 +78,7 @@ public class PlayerShooting : MonoBehaviour
 
     [Header("Audio")]
     [Space(5)]
+    [SerializeField] private AudioSource playerAudioSource;
     [SerializeField] private AudioSource weaponAudioSource;
     [SerializeField] private AudioSource weaponHumAudioSource;
     [SerializeField] private AudioSource weaponReloadSpinAudioSource;
@@ -150,7 +153,6 @@ public class PlayerShooting : MonoBehaviour
     {
         PickStartingWeapons();
         if (player.IsLocal) GetPreferences();
-
     }
 
     private void OnDestroy()
@@ -178,7 +180,7 @@ public class PlayerShooting : MonoBehaviour
 
     private void Update()
     {
-        if (playerHealth.currentPlayerState == PlayerState.Dead || !player.IsLocal || !PlayerHud.Focused) return;
+        if (playerHealth.currentPlayerState == PlayerState.Dead || !player.IsLocal || !GameManager.Focused) return;
 
         GetInput();
         CheckWeaponTilt();
@@ -262,7 +264,11 @@ public class PlayerShooting : MonoBehaviour
                 break;
         }
 
-        if (player.IsLocal) playerHud.ScaleCrosshairShot();
+        if (player.IsLocal)
+        {
+            if (activeGun.screenShakeData) CameraShakerHandler.ShakeAll(activeGun.screenShakeData);
+            playerHud.ScaleCrosshairShot();
+        }
 
         if (!player.IsLocal && NetworkManager.Singleton.Server.IsRunning) NetworkManager.Singleton.ResetPlayersPositions(player.Id);
 
@@ -420,18 +426,17 @@ public class PlayerShooting : MonoBehaviour
 
         // Configures Tracer
         tracer.time = activeGun.tracerLasts;
+        tracer.transform.DOComplete();
         tracer.transform.gameObject.layer = player.IsLocal ? playerLayer : NetPlayerLayer;
+        tracer.transform.position = barrelTip.position;
         tracer.Clear();
-        tracer.AddPosition(barrelTip.position);
 
-        // Moves Tracer
-        if (didHit) tracer.transform.position = shootingRayHit.point;
 
-        else
-        {
-            if (hasSpread) tracer.transform.position = (dirSpread.normalized * activeGun.range) + barrelTip.position;
-            else tracer.transform.position = (playerCam.forward * activeGun.range) + barrelTip.position;
-        }
+        Vector3 endPos = didHit ? shootingRayHit.point : hasSpread ? (dirSpread.normalized * activeGun.range) + barrelTip.position : playerCam.forward * activeGun.range + barrelTip.position;
+
+        float duration = Vector3.Distance(tracer.transform.position, endPos) / 24f;
+        tracer.transform.DOMove(endPos, activeGun.tracerLasts).SetEase(Ease.Linear);
+        tracer.DOResize(activeGun.tracerWidth, 0, 0.5f);
 
         // Returns Tracer To Pool After It's Used
         tracer.GetComponent<ReturnToPool>().ReturnToPoolIn(activeGun.tracerLasts);
@@ -456,6 +461,23 @@ public class PlayerShooting : MonoBehaviour
             if (col.CompareTag(scriptablePlayer.bodyPartHitTagMultipliers[i].bodyPartTag))
             {
                 damageMultiplier = scriptablePlayer.bodyPartHitTagMultipliers[i].bodyPartMultiplier;
+
+                if (player.IsLocal)
+                {
+                    playerHud.FadeHitmarker(damageMultiplier > 1, 0.3f);
+
+                    if (damageMultiplier > 1)
+                    {
+                        playerAudioSource.pitch = Utilities.GetRandomPitch(0.1f, 0.05f);
+                        if (scriptablePlayer.playerHitMarkerAudio) playerAudioSource.PlayOneShot(scriptablePlayer.playerHitMarkerSpecialAudio, scriptablePlayer.playerHitMarkerAudioVolume);
+                    }
+                    else
+                    {
+                        playerAudioSource.pitch = Utilities.GetRandomPitch(0.1f, 0.05f);
+                        if (scriptablePlayer.playerHitMarkerAudio) playerAudioSource.PlayOneShot(scriptablePlayer.playerHitMarkerAudio, scriptablePlayer.playerHitMarkerAudioVolume);
+                    }
+
+                }
                 return true;
             }
         }
@@ -483,7 +505,11 @@ public class PlayerShooting : MonoBehaviour
 
         Player hitPlayer = playerHit.GetComponentInParent<Player>();
 
-        if (hitPlayer.playerHealth.ReceiveDamage(damage * damageMultiplier)) MatchManager.Singleton.AddKillToPlayerScore(player.Id);
+        if (hitPlayer.playerHealth.ReceiveDamage(damage * damageMultiplier, player.Id))
+        {
+            MatchManager.Singleton.AddKillToPlayerScore(player.Id);
+            playerHealth.RecoverHealth(scriptablePlayer.maxHealth);
+        }
     }
 
     public void FinishPlayerShooting()
@@ -545,7 +571,6 @@ public class PlayerShooting : MonoBehaviour
     #region GunSwitching
     public void PickStartingWeapons()
     {
-        print("<color=green> PICKSTARTINGWEAPON</color>");
         if (player.IsLocal) playerHud.ResetWeaponsOnSlots();
 
         for (int i = 0; i < currentPlayerGuns.Length; i++)
@@ -907,10 +932,8 @@ public class PlayerShooting : MonoBehaviour
     [MessageHandler((ushort)ServerToClientId.weaponSync)]
     private static void SyncWeapons(Message message)
     {
-        print("<color=blue> Got Weapon Sync</color>");
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
-            print("<color=blue> Got Weapon Sync And Player Exists</color>");
             player.playerShooting.PickSyncedWeapons((int)message.GetByte(), (int)message.GetByte(), (int)message.GetByte());
             player.playerShooting.StartSlotSwitch((int)message.GetByte(), message.GetUInt());
         }

@@ -1,7 +1,6 @@
 using System.Collections.Generic;
 using Riptide;
 using UnityEngine;
-using Cinemachine;
 
 public class Player : MonoBehaviour
 {
@@ -37,7 +36,7 @@ public class Player : MonoBehaviour
         {
             player = Instantiate(NetworkManager.Singleton.localPlayerPrefab, spawnPos, Quaternion.identity).GetComponent<Player>();
             player.IsLocal = true;
-            SpectateCameraManager.Instance.playerCamera = player.playerCamera;
+            SpectateCameraManager.Singleton.playerCamera = player.playerCamera;
         }
 
         else
@@ -56,9 +55,9 @@ public class Player : MonoBehaviour
         player.username = username;
         list.Add(id, player);
 
-        if (list.Count == 1 && id != NetworkManager.Singleton.Client.Id) SpectateCameraManager.Instance.EnableSpectateMode();
+        if (list.Count == 1 && id != NetworkManager.Singleton.Client.Id) SpectateCameraManager.Singleton.EnableSpectateMode();
 
-        if (id == NetworkManager.Singleton.Client.Id) SpectateCameraManager.Instance.DisableSpectateMode();
+        if (id == NetworkManager.Singleton.Client.Id) SpectateCameraManager.Singleton.DisableSpectateMode();
         if (NetworkManager.Singleton.Server.IsRunning) player.SendPlayerToPlayers();
     }
 

@@ -14,7 +14,7 @@ public class PlayerInteractions : MonoBehaviour
     {
         interactTimeCounter = interactTimeCounter > 0 ? interactTimeCounter - Time.deltaTime : 0;
 
-        if (!player.IsLocal || !PlayerHud.Focused) return;
+        if (!player.IsLocal || !GameManager.Focused) return;
         GetInput();
     }
 

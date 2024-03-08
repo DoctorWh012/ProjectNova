@@ -48,7 +48,7 @@ public class HeadBobController : MonoBehaviour
 
     private void CheckMotion()
     {
-        if (!PlayerHud.Focused || playerMovement.coyoteTimeCounter == 0 || playerMovement.currentMovementState == PlayerMovement.MovementStates.Crouched || playerMovement.horizontalInput == 0 && playerMovement.verticalInput == 0) return;
+        if (!GameManager.Focused || playerMovement.coyoteTimeCounter == 0 || playerMovement.currentMovementState == PlayerMovement.MovementStates.Crouched || playerMovement.horizontalInput == 0 && playerMovement.verticalInput == 0) return;
 
         if (envCamBob) PlayMotion(FootStepMotion(stepAmplitude));
         if (gunCambob) PlayGunMotion(FootStepMotion(gunAmplitude));

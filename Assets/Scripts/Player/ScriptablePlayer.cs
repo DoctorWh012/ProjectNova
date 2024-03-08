@@ -19,7 +19,7 @@ public class ScriptablePlayer : ScriptableObject
     [Range(0, 1f)]
     [SerializeField] public float playerHurtAudioVolume;
     [SerializeField] public AudioClip playerHurtAudio;
-    [SerializeField ] public float invincibilityTime;
+    [SerializeField] public float invincibilityTime;
 
     [Range(0, 1f)]
     [SerializeField] public float playerDieAudioVolume;
@@ -34,10 +34,10 @@ public class ScriptablePlayer : ScriptableObject
 
     [Header("Game")]
     [Range(0, 1f)]
-    [SerializeField] public float playerHitAudioVolume;
-    [SerializeField] public float playerHitAudio;
+    [SerializeField] public float playerHitMarkerAudioVolume;
+    [SerializeField] public AudioClip playerHitMarkerAudio;
+    [SerializeField] public AudioClip playerHitMarkerSpecialAudio;
 
-    [SerializeField] public float respawnTime;
     [SerializeField] public float interactBufferTime = 0.1f;
 }
 
