@@ -94,6 +94,7 @@ public class GameManager : SettingsMenu
     private void Awake()
     {
         Singleton = this;
+        Physics.autoSyncTransforms = true;
     }
 
     private void Start()

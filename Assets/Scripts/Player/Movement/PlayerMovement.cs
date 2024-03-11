@@ -1,4 +1,5 @@
 using Riptide;
+using UnityEditor;
 using UnityEngine;
 
 /* WORK REMINDER
@@ -14,6 +15,7 @@ public class SimulationState
 {
     public Vector3 position = Vector3.zero;
     public Vector3 playerCharacterPos = Vector3.zero;
+    public Quaternion playerCharacterRot = Quaternion.identity;
     public Vector3 rotation = Vector3.zero;
     public Vector3 camRotation = Vector3.zero;
     public uint currentTick = 0;
@@ -23,7 +25,7 @@ public class PlayerMovement : MonoBehaviour
 {
     public enum MovementStates { Active, Inactive, Crouched, Wallrunning, GroundSlamming, Dashing }
     private enum AnimationId : byte { Idle = 0, RunForward, RunBackwards, RunLeft, RunRight, Crouch }
-    public MovementStates currentMovementState { get; private set; } = MovementStates.Active;
+    [SerializeField] public MovementStates currentMovementState = MovementStates.Active; //{ get; private set; } = MovementStates.Active;
     public float coyoteTimeCounter { get; private set; }
     public float verticalInput { get; private set; }
     public float horizontalInput { get; private set; }
@@ -36,8 +38,9 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private Animator playerAnimator;
     [SerializeField] private CapsuleCollider col;
     [SerializeField] public Rigidbody rb;
-    [SerializeField] private Transform playerCam;
-    [SerializeField] private Transform playerCharacter;
+    [SerializeField] private PlayerCam playerCam;
+    [SerializeField] private Transform playerCamTransform;
+    [SerializeField] public Transform playerCharacter;
     [SerializeField] private Transform orientation;
     [SerializeField] private Transform groundCheck;
     [SerializeField] private LayerMask groundLayer;
@@ -105,7 +108,7 @@ public class PlayerMovement : MonoBehaviour
     private uint lastReceivedDashTick;
 
     // Lag Compensation
-    private Vector3 playerCharacterDefaultPos = new Vector3(0, 0, 0);
+    private Vector3 playerCharacterDefaultPos = new Vector3(0, -1, 0);
     public SimulationState[] playerSimulationState = new SimulationState[NetworkManager.lagCompensationCacheSize];
 
     // Interpolation
@@ -144,6 +147,7 @@ public class PlayerMovement : MonoBehaviour
             verticalInput = 0;
             horizontalInput = 0;
             jumpBufferCounter = 0;
+            // if (!movingDumb) MoveDumb();
             return;
         }
         GetInput();
@@ -159,11 +163,11 @@ public class PlayerMovement : MonoBehaviour
         IncreaseGravity();
         ApplyDrag();
 
-        if (NetworkManager.Singleton.Server.IsRunning) SendServerMovement(transform.position, rb.velocity, orientation.forward, playerCam.forward, (byte)currentAnimationId);
+        if (NetworkManager.Singleton.Server.IsRunning) SendServerMovement(transform.position, rb.velocity, orientation.forward, playerCamTransform.forward, (byte)currentAnimationId);
         else SendClientMovement();
     }
 
-
+    [SerializeField] bool movingDumb = false;
     private void GetInput()
     {
         // Desired Input
@@ -184,6 +188,22 @@ public class PlayerMovement : MonoBehaviour
 
         // Dashing
         if (Input.GetKeyDown(SettingsManager.playerPreferences.dashKey)) Dash();
+    }
+
+    private void MoveDumb()
+    {
+        movingDumb = true;
+        verticalInput = Random.Range(-1, 2);
+        horizontalInput = Random.Range(-1, 2);
+
+        jumpBufferCounter = Random.Range(0, 2) == 1 ? movementSettings.jumpBufferTime : 0;
+
+        Invoke("RestoreMoveDumb", Random.Range(2, 5));
+    }
+
+    private void RestoreMoveDumb()
+    {
+        movingDumb = false;
     }
 
     private void SwitchMovementState(MovementStates state)
@@ -276,7 +296,7 @@ public class PlayerMovement : MonoBehaviour
         // Apply Movement Force
         moveDir = trueForward * verticalInput + orientation.right * horizontalInput;
         moveDir = moveDir.sqrMagnitude > 0 ? moveDir.normalized : moveDir;
-        
+
         if (coyoteTimeCounter > 0) rb.AddForce(moveDir * groundedMovementMultiplier * multiplier, ForceMode.Force);
         else rb.AddForce(moveDir * airMovementMultiplier, ForceMode.Force);
 
@@ -354,8 +374,9 @@ public class PlayerMovement : MonoBehaviour
         {
             position = transform.position,
             playerCharacterPos = playerCharacter.position,
+            playerCharacterRot = playerCharacter.rotation,
             rotation = orientation.forward,
-            camRotation = playerCam.forward,
+            camRotation = playerCamTransform.forward,
             currentTick = NetworkManager.Singleton.serverTick
         };
     }
@@ -364,9 +385,15 @@ public class PlayerMovement : MonoBehaviour
     {
         uint cacheIndex = tick % NetworkManager.lagCompensationCacheSize;
 
-        if (playerSimulationState[cacheIndex].currentTick != tick) return;
+        if (playerSimulationState[cacheIndex].currentTick != tick)
+        {
+            print($"<color=red>FAILED COMPENSATION TICK OUT OF BOUNDS WANTED {tick} IS {playerSimulationState[cacheIndex].currentTick}</color>"); return;
+        }
 
+        print($"<color=yellow> Rewinding player to position {playerSimulationState[cacheIndex].playerCharacterPos} | CurrentPos is {playerCharacter.position}</color>");
         playerCharacter.position = playerSimulationState[cacheIndex].playerCharacterPos;
+
+        // EditorApplication.isPaused = true;
     }
 
     public void ResetPlayerPosition()
@@ -657,13 +684,15 @@ public class PlayerMovement : MonoBehaviour
         onWallLeft = Physics.Raycast(orientation.position, -orientation.right, out leftWallHit, movementSettings.wallDistance, wallLayer);
         onWallRight = Physics.Raycast(orientation.position, orientation.right, out rightWallHit, movementSettings.wallDistance, wallLayer);
 
-        if ((onWallLeft || onWallRight) && coyoteTimeCounter == 0 && currentMovementState == MovementStates.Active)
+        bool pressingAgainstWall = onWallLeft && horizontalInput == -1 || onWallRight && horizontalInput == 1;
+
+        if (pressingAgainstWall && coyoteTimeCounter == 0 && currentMovementState == MovementStates.Active)
         {
             SwitchMovementState(MovementStates.Wallrunning);
             rb.velocity = new Vector3(rb.velocity.x, rb.velocity.y * movementSettings.wallStickUpMultiplier, rb.velocity.z);
         }
 
-        else if (currentMovementState == MovementStates.Wallrunning && !(onWallLeft || onWallRight)) SwitchMovementState(MovementStates.Active);
+        else if (currentMovementState == MovementStates.Wallrunning && !pressingAgainstWall) SwitchMovementState(MovementStates.Active);
     }
     #endregion
 
@@ -728,27 +757,8 @@ public class PlayerMovement : MonoBehaviour
 
     private void CheckCameraTilt()
     {
-        if (coyoteTimeCounter > 0)
-        {
-            switch (horizontalInput)
-            {
-                case 1:
-                    PlayerCam.Instance.TiltCamera(true, 0, 2, 0.3f);
-                    break;
-                case -1:
-                    PlayerCam.Instance.TiltCamera(true, 1, 2, 0.3f);
-                    break;
-                case 0:
-                    PlayerCam.Instance.TiltCamera(false, 0, 2, 0.2f);
-                    break;
-            }
-        }
-        else
-        {
-            int i = onWallLeft ? 0 : 1;
-            if (currentMovementState == MovementStates.Wallrunning) { PlayerCam.Instance.TiltCamera(true, i, 10, 0.2f); }
-            else { PlayerCam.Instance.TiltCamera(false, i, 10, 0.2f); }
-        }
+        if (currentMovementState == MovementStates.Wallrunning) playerCam.TiltCamera(-(int)horizontalInput * 4);
+        else playerCam.TiltCamera((int)horizontalInput);
     }
 
     private void AnimatePlayer()
@@ -854,7 +864,7 @@ public class PlayerMovement : MonoBehaviour
 
         if (Vector3.Distance(interpolationStartingState.camRotation, interpolationGoal.camRotation) > interpolationThreshold)
         {
-            playerCam.forward = Vector3.Lerp(interpolationStartingState.camRotation, interpolationGoal.camRotation, interpolationAmount);
+            playerCamTransform.forward = Vector3.Lerp(interpolationStartingState.camRotation, interpolationGoal.camRotation, interpolationAmount);
         }
 
     }
@@ -909,7 +919,7 @@ public class PlayerMovement : MonoBehaviour
         message.AddVector3(transform.position);
         message.AddVector3(rb.velocity);
         message.AddVector3(orientation.forward);
-        message.AddVector3(playerCam.forward);
+        message.AddVector3(playerCamTransform.forward);
         message.AddByte((byte)currentAnimationId);
         message.AddUInt(NetworkManager.Singleton.serverTick);
         NetworkManager.Singleton.Client.Send(message);

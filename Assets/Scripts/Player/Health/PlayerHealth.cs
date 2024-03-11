@@ -178,15 +178,9 @@ public class PlayerHealth : MonoBehaviour
     {
         if (player.IsLocal) playerShooting.EnableDisableHandsMeshes(state, state);
 
-        for (int i = 0; i < playerModels.Length; i++)
-        {
-            playerModels[i].SetActive(state);
-        }
+        for (int i = 0; i < playerModels.Length; i++) playerModels[i].SetActive(state);
 
-        if (state)
-        {
-            playerShooting.EnableActiveWeapon(playerShooting.activeGun.weaponType);
-        }
+        if (state) playerShooting.EnableActiveWeapon(playerShooting.activeGun.weaponType);
 
         else
         {
@@ -198,10 +192,7 @@ public class PlayerHealth : MonoBehaviour
 
     private void EnableDisablePlayerColliders(bool state)
     {
-        for (int i = 0; i < colliders.Length; i++)
-        {
-            colliders[i].enabled = state;
-        }
+        for (int i = 0; i < colliders.Length; i++) colliders[i].enabled = state;
     }
 
     #region  ServerSenders

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using Riptide;
 using UnityEngine;
 using System.Collections;
@@ -104,6 +105,7 @@ public class PlayerShooting : MonoBehaviour
 
     // Shooting Cache
     Vector3 dirSpread;
+    private bool didHitPlayer = false;
     private float individualPelletDamage;
     private Vector3 spread;
     private RaycastHit shootingRayHit;
@@ -247,25 +249,20 @@ public class PlayerShooting : MonoBehaviour
     private void VerifyGunShoot()
     {
         if (currentShootingState != ShootingState.Active) return;
-
         ammunition--;
         SwitchWeaponState(WeaponState.Shooting);
 
-        if (!player.IsLocal && NetworkManager.Singleton.Server.IsRunning) NetworkManager.Singleton.SetAllPlayersPositionsTo(lastShotTick, player.Id);
+        didHitPlayer = false;
+        // ClearGhosts();
 
-        switch (activeGun.weaponType)
-        {
-            case WeaponType.rifle:
-                ShootNoSpread();
-                break;
-
-            case WeaponType.shotgun:
-                ShotgunShoot();
-                break;
-        }
+        if (activeGun.weaponType == WeaponType.rifle) ShootNoSpread();
+        else if (activeGun.weaponType == WeaponType.shotgun) ShotgunShoot();
 
         if (player.IsLocal)
         {
+            // ClearGhosts();
+            // if (!NetworkManager.Singleton.Server.IsRunning) foreach (Player _player in Player.list.Values) CreateDebugGhosts(_player, false, NetworkManager.Singleton.serverTick);
+
             if (activeGun.screenShakeData) CameraShakerHandler.ShakeAll(activeGun.screenShakeData);
             playerHud.ScaleCrosshairShot();
         }
@@ -274,6 +271,21 @@ public class PlayerShooting : MonoBehaviour
 
         if (NetworkManager.Singleton.Server.IsRunning) SendPlayerFire();
         else if (player.IsLocal) SendShootMessage();
+    }
+
+    private List<DebugGhost> debugGhosts = new List<DebugGhost>();
+    private void ClearGhosts()
+    {
+        foreach (DebugGhost debugGhost in debugGhosts) Destroy(debugGhost.gameObject);
+        debugGhosts.Clear();
+    }
+
+    private void CreateDebugGhosts(Player player, bool rewound, uint tick)
+    {
+        print("<color=green>Spawning Debug Ghost</color>");
+        DebugGhost debugGhost = Instantiate(NetworkManager.Singleton.debugGhost, player.playerMovement.playerCharacter.position, player.playerMovement.playerCharacter.rotation);
+        debugGhost.SetupGhost(rewound, tick);
+        debugGhosts.Add(debugGhost);
     }
 
     private void VerifyMeleeAttack()
@@ -295,34 +307,58 @@ public class PlayerShooting : MonoBehaviour
 
     private void ShootNoSpread()
     {
-        shootingRayHit = FilteredRaycast(playerCam.forward);
+        // foreach (Player _player in Player.list.Values) CreateDebugGhosts(_player, false, NetworkManager.Singleton.serverTick);
 
-        if (!shootingRayHit.collider)
+        if (!player.IsLocal && NetworkManager.Singleton.Server.IsRunning)
         {
-            ShootingEffects(false, false);
-            return;
+            for (uint i = lastShotTick - (uint)NetworkManager.overcompensationAmount; i < lastShotTick + NetworkManager.overcompensationAmount + 1; i++)
+            {
+                NetworkManager.Singleton.SetAllPlayersPositionsTo(i, player.Id);
+
+                shootingRayHit = FilteredRaycast(playerCam.forward);
+                if (!shootingRayHit.collider) continue;
+
+                didHitPlayer = CheckPlayerHit(shootingRayHit.collider);
+
+                // foreach (Player _player in Player.list.Values) CreateDebugGhosts(_player, true, i);
+                if (didHitPlayer) break;
+            }
+            if (!shootingRayHit.collider)
+            {
+                ShootingEffects(false, false);
+                return;
+            }
+        }
+        else
+        {
+            shootingRayHit = FilteredRaycast(playerCam.forward);
+
+            if (!shootingRayHit.collider)
+            {
+                ShootingEffects(false, false);
+                return;
+            }
+
+            didHitPlayer = CheckPlayerHit(shootingRayHit.collider);
         }
 
+
         // If it's a player damages it
-        if (CheckPlayerHit(shootingRayHit.collider))
+        if (didHitPlayer)
         {
             GetHitPlayer(shootingRayHit.collider.gameObject, activeGun.damage);
-            ShootingEffects(true, true, true);
+            ShootingEffects(true, false, true);
         }
 
         else ShootingEffects(true, false);
         ApplyKnockback();
-
     }
 
     private void ShotgunShoot()
     {
         individualPelletDamage = activeGun.damage / activeGun.pellets;
 
-        for (int i = 0; i < activeGun.pellets; i++)
-        {
-            ShootWithFixedSpread(i);
-        }
+        for (int i = 0; i < activeGun.pellets; i++) ShootWithFixedSpread(i);
     }
 
     private void ShootWithFixedSpread(int spreadIndex)
@@ -335,23 +371,43 @@ public class PlayerShooting : MonoBehaviour
         // Applies the spread to the raycast
         dirSpread = playerCam.forward + Quaternion.LookRotation(playerCam.forward) * spread * activeGun.spread;
 
-        shootingRayHit = FilteredRaycast(dirSpread);
-
-        // Checks if it did not hit anything
-        if (!shootingRayHit.collider)
+        if (!player.IsLocal && NetworkManager.Singleton.Server.IsRunning)
         {
-            ShootingEffects(false, true);
-            return;
+            for (uint i = lastShotTick - (uint)NetworkManager.overcompensationAmount; i < lastShotTick + NetworkManager.overcompensationAmount; i++)
+            {
+                NetworkManager.Singleton.SetAllPlayersPositionsTo(i, player.Id);
+
+                shootingRayHit = FilteredRaycast(dirSpread);
+                if (!shootingRayHit.collider) continue;
+                didHitPlayer = CheckPlayerHit(shootingRayHit.collider);
+
+                // foreach (Player _player in Player.list.Values) CreateDebugGhosts(_player, true, i);
+                if (didHitPlayer) break;
+            }
+            if (!shootingRayHit.collider)
+            {
+                ShootingEffects(false, true);
+                return;
+            }
+        }
+        else
+        {
+            shootingRayHit = FilteredRaycast(dirSpread);
+            if (!shootingRayHit.collider)
+            {
+                ShootingEffects(false, true);
+                return;
+            }
+            didHitPlayer = CheckPlayerHit(shootingRayHit.collider);
         }
 
         // If it's a player damages it 
-        if (CheckPlayerHit(shootingRayHit.collider))
+        if (didHitPlayer)
         {
             GetHitPlayer(shootingRayHit.collider.gameObject, individualPelletDamage);
             ShootingEffects(true, true, true);
         }
         else ShootingEffects(true, true);
-
         ApplyKnockback();
     }
 
@@ -381,12 +437,17 @@ public class PlayerShooting : MonoBehaviour
         filterRayHits = Physics.RaycastAll(playerCam.position, dir.normalized, activeGun.range, ~layersToIgnoreShootRaycast);
         System.Array.Sort(filterRayHits, (x, y) => x.distance.CompareTo(y.distance));
 
+        foreach (RaycastHit hit in filterRayHits) print($"{hit.collider.name}");
+
         for (int i = 0; i < filterRayHits.Length; i++)
         {
             if (CompareHitCollider(filterRayHits[i].collider))
             {
                 // If this is the last obj the ray collided with and it is still the player returns that it didn't hit anything
-                if (filterRayHits.Length - 1 == i) return new RaycastHit();
+                if (filterRayHits.Length - 1 == i)
+                {
+                    return new RaycastHit();
+                }
                 continue;
             }
             return filterRayHits[i];
@@ -419,6 +480,7 @@ public class PlayerShooting : MonoBehaviour
         if (didHit && !hitPlayer) HitParticle();
     }
 
+    LineRenderer debugLine;
     private void ShootingTracer(bool didHit, bool hasSpread)
     {
         // Get The Tracer From Pool
@@ -431,15 +493,22 @@ public class PlayerShooting : MonoBehaviour
         tracer.transform.position = barrelTip.position;
         tracer.Clear();
 
-
         Vector3 endPos = didHit ? shootingRayHit.point : hasSpread ? (dirSpread.normalized * activeGun.range) + barrelTip.position : playerCam.forward * activeGun.range + barrelTip.position;
 
-        float duration = Vector3.Distance(tracer.transform.position, endPos) / 24f;
         tracer.transform.DOMove(endPos, activeGun.tracerLasts).SetEase(Ease.Linear);
         tracer.DOResize(activeGun.tracerWidth, 0, 0.5f);
 
         // Returns Tracer To Pool After It's Used
         tracer.GetComponent<ReturnToPool>().ReturnToPoolIn(activeGun.tracerLasts);
+
+        if (player.IsLocal && NetworkManager.Singleton.Server.IsRunning) return;
+
+        // if (!debugLine) debugLine = gameObject.AddComponent<LineRenderer>();
+        // debugLine.startWidth = 0.05f;
+        // debugLine.endWidth = 0.05f;
+        // debugLine.SetPosition(0, playerCam.position);
+        // debugLine.SetPosition(1, endPos);
+
     }
 
     private void HitParticle()
@@ -452,6 +521,7 @@ public class PlayerShooting : MonoBehaviour
         hitParticle.GetComponent<ReturnToPool>().ReturnToPoolIn(hitParticle.main.duration);
     }
 
+    // TODO REFACTOR
     private bool CheckPlayerHit(Collider col)
     {
         damageMultiplier = 0;
@@ -471,6 +541,7 @@ public class PlayerShooting : MonoBehaviour
                         playerAudioSource.pitch = Utilities.GetRandomPitch(0.1f, 0.05f);
                         if (scriptablePlayer.playerHitMarkerAudio) playerAudioSource.PlayOneShot(scriptablePlayer.playerHitMarkerSpecialAudio, scriptablePlayer.playerHitMarkerAudioVolume);
                     }
+
                     else
                     {
                         playerAudioSource.pitch = Utilities.GetRandomPitch(0.1f, 0.05f);
@@ -478,9 +549,11 @@ public class PlayerShooting : MonoBehaviour
                     }
 
                 }
+
                 return true;
             }
         }
+
         return false;
     }
 

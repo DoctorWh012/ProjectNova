@@ -98,8 +98,13 @@ public class MatchManager : MonoBehaviour
     [SerializeField] private int preMatchStartTime;
     [SerializeField] private int matchWarmUpTime;
 
+    [Header("Debug")]
     [SerializeField] private List<PlayerData> playerDataDebug = new List<PlayerData>();
+    [SerializeField] private int respawnTimeDebug = respawnTime;
+    [SerializeField] private GameMode gamemodeDebug = currentGamemode;
     [SerializeField] private MatchState matchStateDebug = currentMatchState;
+
+    uint lastMatchDataTick;
     private float matchTime;
     private float timer;
     private string timerEndText = "";
@@ -125,6 +130,7 @@ public class MatchManager : MonoBehaviour
         if (NetworkManager.Singleton.Server.IsRunning) AssignPingToCapsules();
     }
 
+    #region Player Handling
     public void IntroducePlayerToMatch(ushort id, string name)
     {
         playersOnLobby.Add(id, new PlayerData(name));
@@ -134,6 +140,7 @@ public class MatchManager : MonoBehaviour
 
         if (!NetworkManager.Singleton.Server.IsRunning) return;
 
+        SendMatchDataToPlayer(id);
         playersOnLobby[id].onQueue = currentMatchState == MatchState.Ongoing;
 
         playerDataDebug.Add(playersOnLobby[id]);
@@ -158,6 +165,7 @@ public class MatchManager : MonoBehaviour
             playersOnLobby.Remove(id);
         }
     }
+    #endregion
 
     #region Scoreboard
     public void OpenCloseScoreBoard(bool state)
@@ -236,17 +244,40 @@ public class MatchManager : MonoBehaviour
         bigTopText.SetText("");
     }
 
+    #region Match
+    private void HandleMatchData(uint tick, byte respawnT, GameMode gamemode, MatchState matchState)
+    {
+        if (tick <= lastMatchDataTick) return;
+        lastMatchDataTick = tick;
+
+        respawnTime = respawnT;
+        respawnTimeDebug = respawnT;
+
+        currentGamemode = gamemode;
+        gamemodeDebug = gamemode;
+
+        currentMatchState = matchState;
+        matchStateDebug = matchState;
+    }
+
     private void ChangeMatchStatus(MatchState state)
     {
         currentMatchState = state;
         matchStateDebug = currentMatchState;
+
+        if (!NetworkManager.Singleton.Server.IsRunning) return;
+        SendMatchData();
         SteamMatchmaking.SetLobbyData(NetworkManager.Singleton.lobbyId, "status", currentMatchState.ToString());
     }
 
     public void StartMatch(GameMode gamemode, Scenes scene, int respawnT, int matchDuration)
     {
         currentGamemode = gamemode;
+        gamemodeDebug = gamemode;
+
         respawnTime = respawnT;
+        respawnTimeDebug = respawnT;
+
         matchTime = matchDuration;
 
         StartCoroutine(Match(scene));
@@ -264,6 +295,7 @@ public class MatchManager : MonoBehaviour
     {
 
     }
+    #endregion
 
     #region ServerSenders
     private void SendPlayerMovementFreeze(ushort id)
@@ -278,6 +310,26 @@ public class MatchManager : MonoBehaviour
         Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.playerMovementFree);
         message.AddUShort(id);
         NetworkManager.Singleton.Server.SendToAll(message);
+    }
+
+    private void SendMatchData()
+    {
+        Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.matchData);
+        message.AddUInt(NetworkManager.Singleton.serverTick);
+        message.AddByte((byte)respawnTime);
+        message.AddByte((byte)currentGamemode);
+        message.AddByte((byte)currentMatchState);
+        NetworkManager.Singleton.Server.SendToAll(message);
+    }
+
+    private void SendMatchDataToPlayer(ushort id)
+    {
+        Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.matchData);
+        message.AddUInt(NetworkManager.Singleton.serverTick);
+        message.AddByte((byte)respawnTime);
+        message.AddByte((byte)currentGamemode);
+        message.AddByte((byte)currentMatchState);
+        NetworkManager.Singleton.Server.Send(message, id);
     }
 
     private void SendMatchTimer()
@@ -313,6 +365,13 @@ public class MatchManager : MonoBehaviour
         if (NetworkManager.Singleton.Server.IsRunning) return;
         MatchManager.Singleton.StopAllCoroutines();
         MatchManager.Singleton.StartCoroutine(MatchManager.Singleton.MatchTimer(message.GetFloat(), message.GetString()));
+    }
+
+    [MessageHandler((ushort)ServerToClientId.matchData)]
+    private static void GetMatchData(Message message)
+    {
+        if (NetworkManager.Singleton.Server.IsRunning) return;
+        MatchManager.Singleton.HandleMatchData(message.GetUInt(), message.GetByte(), (GameMode)message.GetByte(), (MatchState)message.GetByte());
     }
 
     [MessageHandler((ushort)ServerToClientId.scoreBoardChanged)]
@@ -386,6 +445,7 @@ public class MatchManager : MonoBehaviour
 
         ResetScoreBoard();
         GameManager.Singleton.LoadScene(GameManager.lobbyScene, "Match");
+
         ChangeMatchStatus(MatchState.Waiting);
         foreach (PlayerData playerData in playersOnLobby.Values) playerData.onQueue = false;
     }

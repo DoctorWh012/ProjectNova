@@ -11,9 +11,10 @@ public enum ServerToClientId : ushort
 
     playerInfo,
 
-    scoreBoardChanged,
+    matchData,
     matchTimer,
     sceneChanged,
+    scoreBoardChanged,
 
     playerMovement,
     playerCrouch,
@@ -77,7 +78,8 @@ public class NetworkManager : MonoBehaviour
     }
 
     public uint serverTick { get; private set; } // NEEDS CLEARING
-    public static uint lagCompensationCacheSize { get; private set; } = 30; //64 ticks every 1000ms
+    public static uint lagCompensationCacheSize { get; private set; } = 25; //64 ticks every 1000ms
+    public static int overcompensationAmount { get; private set; } = 2;
 
     public Client Client { get; private set; }
     public Server Server { get; private set; }
@@ -85,6 +87,7 @@ public class NetworkManager : MonoBehaviour
     [Header("Prefabs")]
     [SerializeField] public GameObject localPlayerPrefab;
     [SerializeField] public GameObject netPlayerPrefab;
+    [SerializeField] public DebugGhost debugGhost;
 
     protected Callback<LobbyCreated_t> lobbyCreated;
     protected Callback<GameLobbyJoinRequested_t> gameLobbyJoinRequested;
