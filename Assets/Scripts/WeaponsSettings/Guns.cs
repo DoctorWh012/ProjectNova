@@ -11,6 +11,7 @@ public enum Gunslot : int
     secondary = 1,
     melee = 2,
 }
+
 public enum WeaponType
 {
     rifle,
@@ -40,7 +41,6 @@ public class Guns : ScriptableObject
     [Header("Weapon")]
     [SerializeField] public Gunslot slot;
     [SerializeField] public WeaponType weaponType;
-    [SerializeField] public GameObject gunModel;
     [SerializeField] public Sprite gunIcon;
     [SerializeField] public string gunName;
 
