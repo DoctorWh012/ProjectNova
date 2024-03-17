@@ -14,7 +14,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   slot: 2
   weaponType: 2
-  gunModel: {fileID: 919132149155446097, guid: 54174e0dd33002742b8b71469a8da675, type: 3}
   gunIcon: {fileID: 21300000, guid: e9576092d4fbac146abc528673bb99b6, type: 3}
   gunName: N.I.F.E
   crosshairType: 1
@@ -23,11 +22,12 @@ MonoBehaviour:
   crosshairShrinkTime: 0.5
   damage: 150
   range: 5
-  fireRate: 2.5
+  fireRate: 5
   reloadTime: 0
   reloadSpins: 0
   maxAmmo: 0
   currentAmmo: 0
+  screenShakeData: {fileID: 0}
   knockbackForce: 0
   knockbackMaxHitDistance: 0
   weaponHum: {fileID: 0}
@@ -41,6 +41,7 @@ MonoBehaviour:
   - {fileID: 8300000, guid: ff96fb6f956a743729c9599f17f5d00c, type: 3}
   tracerType: 0
   tracerLasts: 0
+  tracerWidth: 0
   canAim: 0
   scopeFov: 0
   isShotgun: 0

@@ -63,11 +63,12 @@ public class GameManager : SettingsMenu
 
     public static Scenes menuScene = new Scenes("NewMenu", false, false);
     public static Scenes loadingScreenScene = new Scenes("LoadingScreen", false, false);
-    public static Scenes lobbyScene = new Scenes("RiptideLobby", true, true);
+    public static Scenes lobbyScene = new Scenes("NewLobby", true, true);
 
     public static Scenes facilityScene = new Scenes("Facility", true, false);
-    public static Scenes renewedFacilityScene = new Scenes("FacilityRenewed", true, false);
-    public static Scenes riptideMultiplayerScene = new Scenes("RiptideMultiplayer", true, false);
+    public static Scenes renewedFacilityScene = new Scenes("FacilityRenewed", true, true);
+    public static Scenes riptideMultiplayerScene = new Scenes("RiptideMultiplayer", true, true);
+    public static Scenes lavaPit = new Scenes("LavaPit", true, true);
 
     public static Scenes currentScene;
     public static int playersLoadedScene;
@@ -92,7 +93,7 @@ public class GameManager : SettingsMenu
     [Header("Audio")]
     [SerializeField] private AudioMixerGroup masterMixer;
 
-    private Scenes[] matchMaps = new Scenes[3];
+    private Scenes[] matchMaps = new Scenes[4];
     private List<KillFeedDisplay> killFeedDisplayList = new List<KillFeedDisplay>();
 
     private void Awake()
@@ -102,6 +103,7 @@ public class GameManager : SettingsMenu
         matchMaps[0] = facilityScene;
         matchMaps[1] = renewedFacilityScene;
         matchMaps[2] = riptideMultiplayerScene;
+        matchMaps[3] = lavaPit;
     }
 
     private void Start()
@@ -225,7 +227,7 @@ public class GameManager : SettingsMenu
 
     private Scenes GetRandomMap()
     {
-        return matchMaps[Random.Range(0, 3)];
+        return matchMaps[Random.Range(0, matchMaps.Length)];
     }
     #endregion
 

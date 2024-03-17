@@ -14,7 +14,7 @@ public class StartMatchBtn : Interactable
 
         for (int i = 0; i < players.Count; i++)
         {
-            if (players[i].Id != NetworkManager.Singleton.Client.Id) return;
+            if (players[i].Id != NetworkManager.Singleton.Client.Id) continue;
             if (players[i].playerInteractions.interactTimeCounter > 0 && canPress)
             {
                 GameManager.Singleton.OpenCloseMatchSettingsMenu();
