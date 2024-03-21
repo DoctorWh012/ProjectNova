@@ -1046,26 +1046,22 @@ public class PlayerShooting : MonoBehaviour
             weaponReloadSpinAudioSource.Play();
         }
 
-        Tween tween = activeGunComponents.transform.DOLocalRotate(new Vector3(-360 * activeGun.reloadSpins, 0, 0), activeGun.reloadTime, RotateMode.LocalAxisAdd);
-        while (tween.IsActive()) { playerHud.UpdateReloadSlider(tween.ElapsedPercentage()); yield return null; }
-        playerHud.UpdateReloadSlider(1);
+        Vector3 startingAngle = activeGunComponents.transform.localEulerAngles;
+        float toAngle = startingAngle.x + -360 * times;
+        float t = 0;
+        float c = 0;
 
-        // Vector3 startingAngle = activeGunComponents.transform.localEulerAngles;
-        // float toAngle = startingAngle.x + -360 * times;
-        // float t = 0;
-        // float c = 0;
+        while (t < duration)
+        {
+            t += Time.deltaTime;
+            c = t / duration;
+            if (player.IsLocal) playerHud.UpdateReloadSlider(c);
+            float xRot = Mathf.Lerp(startingAngle.x, toAngle, c);
+            activeGunComponents.transform.localEulerAngles = new Vector3(xRot, startingAngle.y, startingAngle.z);
+            yield return null;
+        }
 
-        // while (t < duration)
-        // {
-        //     t += Time.deltaTime;
-        //     c = t / duration;
-        //     if (player.IsLocal) playerHud.UpdateReloadSlider(c);
-        //     float xRot = Mathf.Lerp(startingAngle.x, toAngle, c);
-        //     activeGunComponents.transform.localEulerAngles = new Vector3(xRot, startingAngle.y, startingAngle.z);
-        //     yield return null;
-        // }
-
-        // activeGunComponents.transform.localEulerAngles = startingAngle;
+        activeGunComponents.transform.localEulerAngles = startingAngle;
         ReplenishAmmo();
 
         if (activeGun.weaponSpinSound)
