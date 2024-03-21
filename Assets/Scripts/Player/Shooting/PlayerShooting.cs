@@ -58,7 +58,6 @@ public class PlayerShooting : MonoBehaviour
 {
     private enum ShootingState { Active, OnCooldown }
     public enum WeaponState { Idle, Shooting, Reloading, Switching }
-    private bool isTilting = false;
 
     [Header("Components")]
     [Space(5)]
@@ -122,7 +121,7 @@ public class PlayerShooting : MonoBehaviour
     private int playerLayer;
     private int NetPlayerLayer;
 
-    private IEnumerator tiltWeaponCoroutine;
+    private int weapionTiltedDir;
     private IEnumerator reloadCoroutine;
 
     private GunComponents activeGunComponents;
@@ -211,15 +210,16 @@ public class PlayerShooting : MonoBehaviour
 
     private bool GetShootingState(uint tick, bool compensatingForSwitch)
     {
-        if (playerHealth.currentPlayerState == PlayerState.Dead) return false;
 
-        if (ammunition <= 0 && activeGun.weaponType != WeaponType.melee) return false;
+        if (playerHealth.currentPlayerState == PlayerState.Dead) { print("RETURN HERe"); return false; }
 
-        if (tick - activeGun.tickFireRate < lastShotTick) return false;
+        if (ammunition <= 0 && activeGun.weaponType != WeaponType.melee) { print("RETURN HERe"); return false; }
 
-        if (!compensatingForSwitch && currentWeaponState == WeaponState.Switching) return false;
+        if (tick - activeGun.tickFireRate < lastShotTick) { print("RETURN HERe"); return false; }
 
-        if (currentWeaponState == WeaponState.Reloading) return false;
+        if (!compensatingForSwitch && currentWeaponState == WeaponState.Switching) { print("RETURN HERe"); return false; }
+
+        if (currentWeaponState == WeaponState.Reloading) { print("RETURN HERe"); return false; }
 
         lastShotTick = tick;
         return true;
@@ -437,8 +437,6 @@ public class PlayerShooting : MonoBehaviour
         filterRayHits = Physics.RaycastAll(playerCam.position, dir.normalized, activeGun.range, ~layersToIgnoreShootRaycast);
         System.Array.Sort(filterRayHits, (x, y) => x.distance.CompareTo(y.distance));
 
-        foreach (RaycastHit hit in filterRayHits) print($"{hit.collider.name}");
-
         for (int i = 0; i < filterRayHits.Length; i++)
         {
             if (CompareHitCollider(filterRayHits[i].collider))
@@ -587,6 +585,8 @@ public class PlayerShooting : MonoBehaviour
 
     public void FinishPlayerShooting()
     {
+        if (currentWeaponState == WeaponState.Switching || currentWeaponState == WeaponState.Reloading) return;
+        print("FinishPlayerShooting");
         CheckIfReloadIsNeeded();
         SwitchWeaponState(WeaponState.Idle);
     }
@@ -629,12 +629,11 @@ public class PlayerShooting : MonoBehaviour
         StartCoroutine(reloadCoroutine);
     }
 
-    private void StopReload()
+    public void StopReload()
     {
-        StopCoroutine(reloadCoroutine);
+        if (reloadCoroutine != null) StopCoroutine(reloadCoroutine);
         if (player.IsLocal) playerHud.UpdateReloadSlider(0);
         isWaitingForReload = false;
-        animator.enabled = true;
         weaponReloadSpinAudioSource.loop = false;
         weaponReloadSpinAudioSource.Stop();
         SwitchWeaponState(WeaponState.Idle);
@@ -718,6 +717,7 @@ public class PlayerShooting : MonoBehaviour
         if (activeGun.weaponType != WeaponType.melee) SwitchGun(currentPlayerGunsIndexes[slotIndex]);
         else SwitchMelee(currentPlayerGunsIndexes[slotIndex]);
 
+        if (!animator.gameObject.activeInHierarchy) FinishSwitching();
         animator.Play("Raise");
     }
 
@@ -763,6 +763,7 @@ public class PlayerShooting : MonoBehaviour
 
     public void FinishSwitching()
     {
+        print("FinishSwitching");
         SwitchWeaponState(WeaponState.Idle);
         CheckIfReloadIsNeeded();
     }
@@ -845,15 +846,8 @@ public class PlayerShooting : MonoBehaviour
 
     public void CheckWeaponTilt()
     {
-        if (playerMovement.currentMovementState == PlayerMovement.MovementStates.Crouched && rb.velocity.magnitude > 8f)
-        {
-            TiltGun(35, 0.25f);
-        }
-
-        else
-        {
-            TiltGun(0, 0.15f);
-        }
+        if (playerMovement.currentMovementState == PlayerMovement.MovementStates.Crouched && rb.velocity.magnitude > 8f) TiltWeapon(-35);
+        else TiltWeapon(0);
     }
 
     public void EnableDisableHandsMeshes(bool leftState, bool rightState)
@@ -1024,11 +1018,11 @@ public class PlayerShooting : MonoBehaviour
     }
     #endregion
 
-    public void TiltGun(float angle, float duration)
+    public void TiltWeapon(int direction)
     {
-        if (isTilting) return;
-        tiltWeaponCoroutine = TiltWeapon(angle, duration);
-        StartCoroutine(tiltWeaponCoroutine);
+        if (direction == weapionTiltedDir || currentWeaponState == WeaponState.Reloading) return;
+        activeGunComponents.transform.DOLocalRotate(new Vector3(0, 0, -direction), 0.5f);
+        weapionTiltedDir = direction;
     }
 
     // FUCK QUATERNIONS
@@ -1051,25 +1045,27 @@ public class PlayerShooting : MonoBehaviour
             weaponReloadSpinAudioSource.loop = true;
             weaponReloadSpinAudioSource.Play();
         }
-        animator.enabled = false;
 
-        Vector3 startingAngle = activeGunComponents.gunModelPos.localEulerAngles;
-        float toAngle = startingAngle.x + -360 * times;
-        float t = 0;
-        float c = 0;
+        Tween tween = activeGunComponents.transform.DOLocalRotate(new Vector3(-360 * activeGun.reloadSpins, 0, 0), activeGun.reloadTime, RotateMode.LocalAxisAdd);
+        while (tween.IsActive()) { playerHud.UpdateReloadSlider(tween.ElapsedPercentage()); yield return null; }
+        playerHud.UpdateReloadSlider(1);
 
-        while (t < duration)
-        {
-            t += Time.deltaTime;
-            c = t / duration;
-            if (player.IsLocal) playerHud.UpdateReloadSlider(c);
-            float xRot = Mathf.Lerp(startingAngle.x, toAngle, c);
-            activeGunComponents.gunModelPos.localEulerAngles = new Vector3(xRot, startingAngle.y, startingAngle.z);
-            yield return null;
-        }
+        // Vector3 startingAngle = activeGunComponents.transform.localEulerAngles;
+        // float toAngle = startingAngle.x + -360 * times;
+        // float t = 0;
+        // float c = 0;
 
-        activeGunComponents.gunModelPos.localEulerAngles = startingAngle;
-        animator.enabled = true;
+        // while (t < duration)
+        // {
+        //     t += Time.deltaTime;
+        //     c = t / duration;
+        //     if (player.IsLocal) playerHud.UpdateReloadSlider(c);
+        //     float xRot = Mathf.Lerp(startingAngle.x, toAngle, c);
+        //     activeGunComponents.transform.localEulerAngles = new Vector3(xRot, startingAngle.y, startingAngle.z);
+        //     yield return null;
+        // }
+
+        // activeGunComponents.transform.localEulerAngles = startingAngle;
         ReplenishAmmo();
 
         if (activeGun.weaponSpinSound)
@@ -1085,22 +1081,5 @@ public class PlayerShooting : MonoBehaviour
         }
         SwitchWeaponState(WeaponState.Idle);
         isWaitingForReload = false;
-    }
-
-    private IEnumerator TiltWeapon(float tiltAngle, float duration)
-    {
-        isTilting = true;
-        Transform weaponTransform = activeGunComponents.transform;
-        Quaternion startingAngle = weaponTransform.localRotation;
-        Quaternion toAngle = Quaternion.Euler(new Vector3(0, 0, tiltAngle));
-        float rotationDuration = 0;
-
-        while (weaponTransform.localRotation != toAngle)
-        {
-            weaponTransform.localRotation = Quaternion.Lerp(startingAngle, toAngle, rotationDuration / duration);
-            rotationDuration += Time.deltaTime;
-            yield return null;
-        }
-        isTilting = false;
     }
 }

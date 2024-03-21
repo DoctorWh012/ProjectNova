@@ -147,6 +147,7 @@ public class PlayerMovement : MonoBehaviour
             verticalInput = 0;
             horizontalInput = 0;
             jumpBufferCounter = 0;
+            EndCrouch();
             // if (!movingDumb) MoveDumb();
             return;
         }
@@ -543,8 +544,10 @@ public class PlayerMovement : MonoBehaviour
         Invoke("FinishDashing", movementSettings.dashDuration);
 
         // rb.velocity = new Vector3(0, rb.velocity.y, 0);
-        rb.AddForce(moveDir * movementSettings.dashForce * movementSettings.mass, ForceMode.Impulse);
+        Vector3 dashDir = horizontalInput == 0 && verticalInput == 0 ? GetTrueForward() : moveDir;
+        rb.AddForce(dashDir * movementSettings.dashForce * movementSettings.mass, ForceMode.Impulse);
 
+        dashParticles.transform.rotation = Quaternion.Euler(dashDir);
         dashParticles.Play();
 
         if (movementSettings.dashAudioClip)

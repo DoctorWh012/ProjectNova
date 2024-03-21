@@ -83,6 +83,7 @@ public class GameManager : SettingsMenu
     [SerializeField] private float killFeedDisplayTime;
 
     [Header("Match Settings Menu")]
+    [SerializeField] private TMP_Dropdown matchMapsDropdown;
     [SerializeField] private Slider matchDurationSlider;
     [SerializeField] private TextMeshProUGUI matchDurationTxt;
     [SerializeField] private Slider matchRespawnTimeSlider;
@@ -111,6 +112,7 @@ public class GameManager : SettingsMenu
         Focused = true;
 
         SettingsManager.updatedPlayerPrefs += GetPreferences;
+        AddMapsToDropdown();
         AddListenerToSettingsSliders();
 
         matchDurationSlider.onValueChanged.AddListener(delegate { UpdateSliderDisplayTxt(matchDurationTxt, matchDurationSlider); });
@@ -199,16 +201,27 @@ public class GameManager : SettingsMenu
         respawnBtn.interactable = true;
     }
 
+    private void AddMapsToDropdown()
+    {
+        for (int i = 0; i < matchMaps.Length; i++)
+        {
+            matchMapsDropdown.options.Add(new TMP_Dropdown.OptionData(matchMaps[i].sceneName));
+        }
+    }
+
     public void ExitMatch()
     {
         if (NetworkManager.Singleton.Server.IsRunning) NetworkManager.Singleton.Server.Stop();
+        if (!Focused) PauseUnpause();
+        DisableAllMenus();
         NetworkManager.Singleton.Client.Disconnect();
         SteamMatchmaking.LeaveLobby(NetworkManager.Singleton.lobbyId);
     }
 
     public void StartMatch()
     {
-        MatchManager.Singleton.StartMatch(GameMode.FreeForAll, GetRandomMap(), (int)matchRespawnTimeSlider.value, (int)matchDurationSlider.value);
+        Scenes map = matchMapsDropdown.value == 0 ? GetRandomMap() : matchMaps[matchMapsDropdown.value - 1];
+        MatchManager.Singleton.StartMatch(GameMode.FreeForAll, map, (int)matchRespawnTimeSlider.value, (int)matchDurationSlider.value);
         OpenCloseMatchSettingsMenu();
     }
 

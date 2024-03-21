@@ -6,7 +6,6 @@ public class GunComponents : MonoBehaviour
     [SerializeField] public Guns gunSettings;
     [SerializeField] public GunSway gunSway;
     [SerializeField] public Transform barrelTip;
-    [SerializeField] public Transform gunModelPos;
     [SerializeField] public Animator animator;
     [SerializeField] public ParticleSystem muzzleFlash;
 

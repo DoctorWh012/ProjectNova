@@ -85,6 +85,7 @@ public class PlayerHealth : MonoBehaviour
     {
         if (currentPlayerState == PlayerState.Dead) return;
         currentPlayerState = PlayerState.Dead;
+        print("DIED");
 
         if (id != null) GameManager.Singleton.SpawnKillFeedCapsule(Player.list[(ushort)id].username, Player.list[(ushort)id].playerShooting.activeGun.gunIcon, player.username);
         else GameManager.Singleton.SpawnKillFeedCapsule("", suicideIcon, player.username);
@@ -95,6 +96,7 @@ public class PlayerHealth : MonoBehaviour
         playerAudioSource.pitch = Utilities.GetRandomPitch();
         playerAudioSource.PlayOneShot(scriptablePlayer.playerDieAudio, scriptablePlayer.playerDieAudioVolume);
 
+        playerShooting.StopReload();
         if (player.IsLocal)
         {
             playerCamera.SetActive(false);
@@ -222,7 +224,7 @@ public class PlayerHealth : MonoBehaviour
     {
         Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.healthChanged);
         message.AddUShort(player.Id);
-        message.AddSByte((sbyte)currentHealth);
+        message.AddUShort((ushort)currentHealth);
         message.AddUInt(NetworkManager.Singleton.serverTick);
         NetworkManager.Singleton.Server.SendToAll(message);
     }
@@ -255,7 +257,7 @@ public class PlayerHealth : MonoBehaviour
         if (NetworkManager.Singleton.Server.IsRunning) return;
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
-            player.playerHealth.HandleServerHealth((float)message.GetSByte(), message.GetUInt());
+            player.playerHealth.HandleServerHealth((float)message.GetUShort(), message.GetUInt());
         }
     }
     #endregion
@@ -275,11 +277,11 @@ public class PlayerHealth : MonoBehaviour
             SendPlayerRespawned();
         }
 
-        playerShooting.PickStartingWeapons();
-        playerShooting.ReplenishAllAmmo();
-
         EnableDisablePlayerColliders(true);
         EnableDisableModels(true);
+
+        playerShooting.PickStartingWeapons();
+        playerShooting.ReplenishAllAmmo();
 
         if (player.IsLocal)
         {
