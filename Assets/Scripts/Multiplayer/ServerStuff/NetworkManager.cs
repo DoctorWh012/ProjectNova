@@ -79,7 +79,7 @@ public class NetworkManager : MonoBehaviour
 
     public uint serverTick { get; private set; } // NEEDS CLEARING
     public static uint lagCompensationCacheSize { get; private set; } = 25; //64 ticks every 1000ms
-    public static int overcompensationAmount { get; private set; } = 2;
+    public static int overcompensationAmount { get; private set; } = 1;
 
     public Client Client { get; private set; }
     public Server Server { get; private set; }

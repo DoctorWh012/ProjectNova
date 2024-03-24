@@ -455,7 +455,7 @@ public class PlayerShooting : MonoBehaviour
 
     private void ShootingEffects(bool didHit, bool hasSpread, bool hitPlayer = false)
     {
-        animator.Play("Recoil");
+        animator.Play("Recoil", 0, 0);
         if (activeGun.weaponShootingSounds.Length != 0)
         {
             weaponAudioSource.pitch = Utilities.GetRandomPitch(-0.1f, 0.02f);

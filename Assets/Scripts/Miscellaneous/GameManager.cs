@@ -203,10 +203,7 @@ public class GameManager : SettingsMenu
 
     private void AddMapsToDropdown()
     {
-        for (int i = 0; i < matchMaps.Length; i++)
-        {
-            matchMapsDropdown.options.Add(new TMP_Dropdown.OptionData(matchMaps[i].sceneName));
-        }
+        for (int i = 0; i < matchMaps.Length; i++) matchMapsDropdown.options.Add(new TMP_Dropdown.OptionData(matchMaps[i].sceneName));
     }
 
     public void ExitMatch()
@@ -300,7 +297,7 @@ public class GameManager : SettingsMenu
         GunSpawnManager.Instance.SendWeaponsSpawnersDataToPlayer(id);
         MatchManager.Singleton.SendMatchTimerToPlayer(id);
 
-        if (MatchManager.playersOnLobby[id].onQueue) return;
+        if (MatchManager.playersOnLobby[id].onQueue && !currentScene.canSpawnOnJoin) return;
         playersLoadedScene++;
         Player.SpawnPlayer(id, MatchManager.playersOnLobby[id].playerName, Vector3.zero);
     }
