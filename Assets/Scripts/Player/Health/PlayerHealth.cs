@@ -19,7 +19,6 @@ public class PlayerHealth : MonoBehaviour
     [SerializeField] private PlayerHud playerHud;
     [SerializeField] private PlayerShooting playerShooting;
     [SerializeField] private PlayerMovement playerMovement;
-    [SerializeField] private GameObject[] playerModels;
     [SerializeField] private Collider[] colliders;
 
     [Header("Particles/Effects")]
@@ -179,8 +178,6 @@ public class PlayerHealth : MonoBehaviour
     private void EnableDisableModels(bool state)
     {
         if (player.IsLocal) playerShooting.EnableDisableHandsMeshes(state, state);
-
-        for (int i = 0; i < playerModels.Length; i++) playerModels[i].SetActive(state);
 
         if (state) playerShooting.EnableActiveWeapon(playerShooting.activeGun.weaponType);
 

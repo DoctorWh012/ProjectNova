@@ -547,7 +547,7 @@ public class PlayerMovement : MonoBehaviour
         Vector3 dashDir = horizontalInput == 0 && verticalInput == 0 ? GetTrueForward() : moveDir;
         rb.AddForce(dashDir * movementSettings.dashForce * movementSettings.mass, ForceMode.Impulse);
 
-        dashParticles.transform.rotation = Quaternion.Euler(dashDir);
+        dashParticles.transform.forward = dashDir;
         dashParticles.Play();
 
         if (movementSettings.dashAudioClip)
@@ -781,6 +781,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void PlayAnimationFromId(AnimationId id)
     {
+        return;
         switch (id)
         {
             case AnimationId.Idle:

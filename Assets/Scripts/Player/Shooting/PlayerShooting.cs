@@ -721,7 +721,6 @@ public class PlayerShooting : MonoBehaviour
         animator.Play("Raise");
     }
 
-
     public void SwitchGun(int index)
     {
         activeGunComponents = gunsComponents[index];

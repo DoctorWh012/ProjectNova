@@ -65,10 +65,11 @@ public class GameManager : SettingsMenu
     public static Scenes loadingScreenScene = new Scenes("LoadingScreen", false, false);
     public static Scenes lobbyScene = new Scenes("NewLobby", true, true);
 
-    public static Scenes facilityScene = new Scenes("Facility", true, false);
+    public static Scenes facilityScene = new Scenes("Facility", true, true);
     public static Scenes renewedFacilityScene = new Scenes("FacilityRenewed", true, true);
     public static Scenes riptideMultiplayerScene = new Scenes("RiptideMultiplayer", true, true);
     public static Scenes lavaPit = new Scenes("LavaPit", true, true);
+    public static Scenes ship = new Scenes("MAp", true, true);
 
     public static Scenes currentScene;
     public static int playersLoadedScene;
