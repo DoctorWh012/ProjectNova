@@ -12,42 +12,48 @@ using DG.Tweening;
 public class PlayerHud : MonoBehaviour
 {
     [Header("Components")]
+    [Space(5)]
     [SerializeField] private ScriptablePlayer playerSettings;
     [SerializeField] private PlayerHealth playerHealth;
     [SerializeField] private PlayerShooting playerShooting;
 
     [Header("Colors")]
+    [Space(5)]
     [SerializeField] private Color dashAvailableColor;
     [SerializeField] private Color highlitedColor;
     [SerializeField] private Color fadedColor;
 
     [Header("Health Battery")]
-    [SerializeField] private TextMeshProUGUI healthText;
-    [SerializeField] private Slider batteryLevel;
+    [Space(5)]
+    [SerializeField] private Image hurtOverlay;
+    [SerializeField] private Slider healthBarFill;
 
     [Header("Abilities Panel")]
+    [Space(5)]
     [SerializeField] private Image[] dashIcons;
     [SerializeField] public Slider[] dashSliders;
     [SerializeField] private Image groundSlamIcon;
     [SerializeField] public Slider groundSlamSlider;
 
     [Header("Weapons Panel")]
+    [Space(5)]
     [SerializeField] private TextMeshProUGUI ammoText;
     [SerializeField] private TextMeshProUGUI[] weaponsSlotsText;
     [SerializeField] private TextMeshProUGUI[] weaponsNamesText;
     [SerializeField] private Image[] weaponsImages;
 
     [Header("Crosshairs")]
+    [Space(5)]
     [SerializeField] private GameObject[] crosshairs;
     [SerializeField] private Image[] hitmarkers;
     [SerializeField] private Slider reloadSlider;
 
     [Header("UI Texts")]
+    [Space(5)]
     [SerializeField] private TextMeshProUGUI mediumBottomText;
-    [SerializeField] private TextMeshProUGUI pingTxt;
-    [SerializeField] private TextMeshProUGUI speedometerText;
 
     [Header("Menus")]
+    [Space(5)]
     [SerializeField] private GameObject gameHud;
 
     private int currentCrosshairIndex;
@@ -76,20 +82,28 @@ public class PlayerHud : MonoBehaviour
     private void Update()
     {
         ScaleDownCrosshair();
-        pingTxt.SetText($"Ping: {NetworkManager.Singleton.Client.RTT}");
     }
 
     #region GameUi
     private void GetPreferences()
     {
-        if (SettingsManager.playerPreferences.crosshairType == 0 && playerShooting.activeGun) UpdateCrosshair((int)playerShooting.activeGun.crosshairType, playerShooting.activeGun.crosshairScale, playerShooting.activeGun.crosshairShotScale, playerShooting.activeGun.crosshairShrinkTime);
+        if (SettingsManager.playerPreferences.crosshairType == 0 && playerShooting.currentWeapon)
+        {
+            UpdateCrosshair((int)playerShooting.currentWeapon.crosshairType, playerShooting.currentWeapon.crosshairScale, playerShooting.currentWeapon.crosshairShotScale, playerShooting.currentWeapon.crosshairShrinkTime);
+        }
         else UpdateCrosshair((int)CrosshairType.dot, 1, 1, 0);
     }
 
     public void UpdateHealthDisplay(float health)
     {
-        healthText.SetText($"{health.ToString("#")}%");
-        batteryLevel.value = health / playerSettings.maxHealth;
+        print($"Updated to health {health}");
+        healthBarFill.value = health / playerSettings.maxHealth;
+    }
+
+    public void FadeHurtOverlay()
+    {
+        Tweener tweener = hurtOverlay.DOFade(170f / 250, 0.1f).SetEase(Ease.OutSine);
+        tweener.OnComplete(() => hurtOverlay.DOFade(0, 0.3f).SetEase(Ease.OutSine));
     }
 
     public void UpdateAmmoDisplay(int currentAmmo, int maxAmmo)
@@ -100,11 +114,6 @@ public class PlayerHud : MonoBehaviour
     public void UpdateMediumBottomText(string text)
     {
         mediumBottomText.SetText(text);
-    }
-
-    public void UpdateSpeedometerText(string text)
-    {
-        speedometerText.SetText(text);
     }
 
     private void ResetAllUITexts()

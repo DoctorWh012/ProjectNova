@@ -5,32 +5,11 @@ using FirstGearGames.SmoothCameraShaker;
 using UnityEditor;
 #endif
 
-public enum Gunslot : int
-{
-    primary = 0,
-    secondary = 1,
-    melee = 2,
-}
-
 public enum WeaponType
 {
     rifle,
     shotgun,
     melee,
-}
-
-public enum TracerType
-{
-    yellow,
-    red,
-}
-
-public enum CrosshairType : int
-{
-    cross,
-    x,
-    square,
-    dot,
 }
 
 [CreateAssetMenu(fileName = "Guns", menuName = "RUSP/Guns", order = 0)]

@@ -1,21 +1,13 @@
-using System;
 using UnityEngine;
 using TMPro;
 using Riptide;
-
-[Serializable]
-public struct PickableWeapons
-{
-    public GameObject weaponObject;
-    public Guns weaponSettings;
-}
 
 public class GunSpawn : Interactable
 {
     public int spawnedWeaponId { get; private set; }
 
     [Header("Components")]
-    [SerializeField] PickableWeapons[] weapons;
+    [SerializeField] public GameObject[] weapons;
     [SerializeField] TextMeshProUGUI idText;
 
     [Header("Settings")]
@@ -25,8 +17,7 @@ public class GunSpawn : Interactable
     [SerializeField] private bool spawnSpecificWeapon = false;
     [SerializeField] private int specificWeaponId;
 
-
-    private Guns spawnedWeaponSettings;
+    private bool weaponAvailable;
     public int weaponSpawnerId;
 
     [HideInInspector] public uint lastReceivedWeaponSpawnTick;
@@ -51,10 +42,9 @@ public class GunSpawn : Interactable
 
         for (int i = 0; i < players.Count; i++)
         {
-            if (players[i].playerInteractions.interactTimeCounter > 0 && spawnedWeaponSettings)
+            if (players[i].playerInteractions.interactTimeCounter > 0 && weaponAvailable)
             {
-                if (spawnedWeaponSettings.weaponType != WeaponType.melee) players[i].playerShooting.PickUpGun((int)spawnedWeaponSettings.slot, spawnedWeaponId, NetworkManager.Singleton.serverTick);
-                else players[i].playerShooting.PickUpMelee(spawnedWeaponId, NetworkManager.Singleton.serverTick);
+                players[i].playerShooting.PickUpGun(spawnedWeaponId, NetworkManager.Singleton.serverTick);
 
                 DespawnWeapon();
             }
@@ -63,7 +53,7 @@ public class GunSpawn : Interactable
 
     private void HideAllWeapons()
     {
-        for (int i = 0; i < weapons.Length; i++) weapons[i].weaponObject.SetActive(false);
+        for (int i = 0; i < weapons.Length; i++) weapons[i].SetActive(false);
     }
 
     private void FixedWeaponSpawn()
@@ -73,11 +63,11 @@ public class GunSpawn : Interactable
 
     public void SpawnSpecificWeapon(int weaponId)
     {
-        weapons[spawnedWeaponId].weaponObject.SetActive(false);
+        weapons[spawnedWeaponId].SetActive(false);
+        weaponAvailable = true;
 
         spawnedWeaponId = weaponId;
-        weapons[spawnedWeaponId].weaponObject.SetActive(true);
-        spawnedWeaponSettings = weapons[spawnedWeaponId].weaponSettings;
+        weapons[spawnedWeaponId].SetActive(true);
 
         if (NetworkManager.Singleton.Server.IsRunning) SendWeaponSpawned();
 
@@ -85,19 +75,20 @@ public class GunSpawn : Interactable
 
     public void SpawnWeapon()
     {
-        weapons[spawnedWeaponId].weaponObject.SetActive(false);
+        weapons[spawnedWeaponId].SetActive(false);
+
+        weaponAvailable = true;
 
         spawnedWeaponId = UnityEngine.Random.Range(0, weapons.Length);
-        weapons[spawnedWeaponId].weaponObject.SetActive(true);
-        spawnedWeaponSettings = weapons[spawnedWeaponId].weaponSettings;
+        weapons[spawnedWeaponId].SetActive(true);
 
         SendWeaponSpawned();
     }
 
     public void DespawnWeapon()
     {
-        weapons[spawnedWeaponId].weaponObject.SetActive(false);
-        spawnedWeaponSettings = null;
+        weapons[spawnedWeaponId].SetActive(false);
+        weaponAvailable = false;
 
         if (!NetworkManager.Singleton.Server.IsRunning) return;
         if (spawnSpecificWeapon)
@@ -125,7 +116,7 @@ public class GunSpawn : Interactable
 
     public void SendWeaponSpawnerDataToPlayer(ushort id)
     {
-        if (!spawnedWeaponSettings) return;
+        if (!weaponAvailable) return;
         Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.weaponSpawned);
         message.AddByte((byte)weaponSpawnerId);
         message.AddByte((byte)spawnedWeaponId);

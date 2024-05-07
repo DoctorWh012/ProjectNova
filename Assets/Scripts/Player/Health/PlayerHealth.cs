@@ -14,23 +14,23 @@ public class PlayerHealth : MonoBehaviour
 {
     [Header("Components")]
     [SerializeField] private Player player;
-    [SerializeField] private GameObject playerCamera;
+    [SerializeField] private GameObject playerCameraHolder;
     [SerializeField] private AudioSource playerAudioSource;
     [SerializeField] private PlayerHud playerHud;
     [SerializeField] private PlayerShooting playerShooting;
     [SerializeField] private PlayerMovement playerMovement;
+    [SerializeField] private GameObject playerModel;
     [SerializeField] private Collider[] colliders;
 
     [Header("Particles/Effects")]
     [SerializeField] private Sprite suicideIcon;
-    [SerializeField] private ParticleSystem hurtEffect;
     [SerializeField] private ParticleSystem hurtParticles;
     [SerializeField] private ParticleSystem deathParticles;
     [SerializeField] private GameObject shieldsHolder;
     [SerializeField] private Animator shieldAnimator;
 
     [Header("Settings")]
-    [SerializeField] ScriptablePlayer scriptablePlayer;
+    [SerializeField] private ScriptablePlayer scriptablePlayer;
 
     [Header("Debugging Serialized")]
     [SerializeField] public PlayerState currentPlayerState = PlayerState.Alive;
@@ -48,28 +48,21 @@ public class PlayerHealth : MonoBehaviour
             // Taking Damage
             if (value < _currentHealth)
             {
-                if (player.IsLocal)
-                {
-                    hurtEffect.Play();
-                    playerAudioSource.pitch = Utilities.GetRandomPitch();
-                    playerAudioSource.PlayOneShot(scriptablePlayer.playerHurtAudio, scriptablePlayer.playerHurtAudioVolume);
-                }
+                if (player.IsLocal) playerHud.FadeHurtOverlay();
                 else hurtParticles.Play();
 
+                playerAudioSource.pitch = Utilities.GetRandomPitch();
+                playerAudioSource.PlayOneShot(scriptablePlayer.playerHurtAudio, scriptablePlayer.playerHurtAudioVolume);
             }
 
             // Healing
-            if (value > scriptablePlayer.maxHealth)
+            if (value > _currentHealth)
             {
-                _currentHealth = scriptablePlayer.maxHealth;
-
-                if (player.IsLocal) playerHud.UpdateHealthDisplay(_currentHealth);
-                if (NetworkManager.Singleton.Server.IsRunning) SendUpdatedHealth();
-                return;
             }
 
-            _currentHealth = value > 0 ? value : 0;
+            _currentHealth = value > scriptablePlayer.maxHealth ? scriptablePlayer.maxHealth : value < 0 ? 0 : value;
 
+            print($"got here {player.username} | {player.IsLocal} | health {_currentHealth}");
             if (player.IsLocal) playerHud.UpdateHealthDisplay(_currentHealth);
             if (NetworkManager.Singleton.Server.IsRunning) SendUpdatedHealth();
         }
@@ -80,34 +73,39 @@ public class PlayerHealth : MonoBehaviour
         currentHealth = scriptablePlayer.maxHealth;
     }
 
+    private void HandleServerPlayerDied(bool wasKilled, ushort killerId, uint tick)
+    {
+        if (tick <= lastReceivedDiedTick) return;
+        lastReceivedDiedTick = tick;
+
+        Die(wasKilled ? (ushort?)killerId : null);
+    }
+
     private void Die(ushort? id)
     {
         if (currentPlayerState == PlayerState.Dead) return;
         currentPlayerState = PlayerState.Dead;
-        print("DIED");
 
-        if (id != null) GameManager.Singleton.SpawnKillFeedCapsule(Player.list[(ushort)id].username, Player.list[(ushort)id].playerShooting.activeGun.gunIcon, player.username);
+        // Killfeed Capsule
+        if (id != null) GameManager.Singleton.SpawnKillFeedCapsule(Player.list[(ushort)id].username, Player.list[(ushort)id].playerShooting.currentWeapon.weaponIcon, player.username);
         else GameManager.Singleton.SpawnKillFeedCapsule("", suicideIcon, player.username);
 
-        shieldsHolder.SetActive(false);
-        StopAllCoroutines();
-
-        playerAudioSource.pitch = Utilities.GetRandomPitch();
-        playerAudioSource.PlayOneShot(scriptablePlayer.playerDieAudio, scriptablePlayer.playerDieAudioVolume);
-
-        playerShooting.StopReload();
+        // Spectator
         if (player.IsLocal)
         {
-            playerCamera.SetActive(false);
+            playerCameraHolder.SetActive(false);
             SpectateCameraManager.Singleton.EnableDeathSpectateMode(id, MatchManager.respawnTime);
-            playerMovement.FreezePlayerMovement();
         }
-        else playerMovement.FreezeNetPlayerMovement();
 
-        EnableDisablePlayerColliders(false);
-        EnableDisableModels(false);
-
+        //  Particles
+        playerAudioSource.pitch = Utilities.GetRandomPitch();
+        playerAudioSource.PlayOneShot(scriptablePlayer.playerDieAudio, scriptablePlayer.playerDieAudioVolume);
         deathParticles.Play();
+
+        playerModel.SetActive(false);
+        playerShooting.PlayerDied();
+        playerMovement.PlayerDied();
+        EnableDisablePlayerColliders(false);
 
         if (NetworkManager.Singleton.Server.IsRunning)
         {
@@ -117,19 +115,6 @@ public class PlayerHealth : MonoBehaviour
         }
     }
 
-    private void StartRespawn()
-    {
-        StartCoroutine(Respawn());
-    }
-
-    private void HandleServerPlayerDied(bool wasKilled, ushort killerId, uint tick)
-    {
-        if (tick <= lastReceivedDiedTick) return;
-        lastReceivedDiedTick = tick;
-
-        Die(wasKilled ? (ushort?)killerId : null);
-    }
-
     private void HandleServerPlayerRespawned(Vector3 pos, uint tick)
     {
         if (tick <= lastReceivedRespawnTick) return;
@@ -137,6 +122,20 @@ public class PlayerHealth : MonoBehaviour
 
         transform.position = pos;
         StartRespawn();
+    }
+
+    private void StartRespawn()
+    {
+        StartCoroutine(Respawn());
+    }
+
+    private void HandleServerHealth(float health, uint tick)
+    {
+        if (tick <= lastReceivedHealthTick) { print($"Returned because of tick {tick}"); return; }
+        lastReceivedHealthTick = tick;
+
+        print($"Got health  {health} at tick {tick}");
+        currentHealth = health;
     }
 
     public bool ReceiveDamage(float damage, ushort? id)
@@ -152,6 +151,13 @@ public class PlayerHealth : MonoBehaviour
         return false;
     }
 
+    public void RecoverHealth(float healAmount)
+    {
+        if (currentPlayerState == PlayerState.Dead) return;
+
+        currentHealth += healAmount;
+    }
+
     public void InstaKill()
     {
         if (currentPlayerState == PlayerState.Dead) return;
@@ -160,41 +166,12 @@ public class PlayerHealth : MonoBehaviour
         Die(null);
     }
 
-    public void RecoverHealth(float healAmount)
-    {
-        if (currentPlayerState == PlayerState.Dead) return;
-
-        currentHealth += healAmount;
-    }
-
-    private void HandleServerHealth(float health, uint tick)
-    {
-        if (tick <= lastReceivedHealthTick) return;
-        lastReceivedHealthTick = tick;
-
-        currentHealth = health;
-    }
-
-    private void EnableDisableModels(bool state)
-    {
-        if (player.IsLocal) playerShooting.EnableDisableHandsMeshes(state, state);
-
-        if (state) playerShooting.EnableActiveWeapon(playerShooting.activeGun.weaponType);
-
-        else
-        {
-            playerShooting.DisableAllGuns();
-            playerShooting.DisableAllMelees();
-            return;
-        }
-    }
-
     private void EnableDisablePlayerColliders(bool state)
     {
         for (int i = 0; i < colliders.Length; i++) colliders[i].enabled = state;
     }
 
-    #region  ServerSenders
+    #region ServerSenders
     private void SendPlayerDied(ushort? id)
     {
         Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.playerDied);
@@ -219,9 +196,10 @@ public class PlayerHealth : MonoBehaviour
 
     private void SendUpdatedHealth()
     {
+        print($"Sending Health {currentHealth} to player {player.username}");
         Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.healthChanged);
         message.AddUShort(player.Id);
-        message.AddUShort((ushort)currentHealth);
+        message.AddFloat(currentHealth);
         message.AddUInt(NetworkManager.Singleton.serverTick);
         NetworkManager.Singleton.Server.SendToAll(message);
     }
@@ -254,7 +232,8 @@ public class PlayerHealth : MonoBehaviour
         if (NetworkManager.Singleton.Server.IsRunning) return;
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
-            player.playerHealth.HandleServerHealth((float)message.GetUShort(), message.GetUInt());
+            print($"Got Message for player {player.username}");
+            player.playerHealth.HandleServerHealth(message.GetFloat(), message.GetUInt());
         }
     }
     #endregion
@@ -264,9 +243,7 @@ public class PlayerHealth : MonoBehaviour
         if (currentPlayerState != PlayerState.Dead) yield break;
         currentPlayerState = PlayerState.Invincible;
 
-        shieldsHolder.SetActive(true);
-        shieldAnimator.Play("ShieldRaise");
-
+        // Spawn
         if (NetworkManager.Singleton.Server.IsRunning)
         {
             transform.position = SpawnHandler.Instance.GetSpawnLocation();
@@ -274,22 +251,23 @@ public class PlayerHealth : MonoBehaviour
             SendPlayerRespawned();
         }
 
-        EnableDisablePlayerColliders(true);
-        EnableDisableModels(true);
-
-        playerShooting.PickStartingWeapons();
-        playerShooting.ReplenishAllAmmo();
-
+        // Spectator
         if (player.IsLocal)
         {
-            playerCamera.SetActive(true);
+            playerCameraHolder.SetActive(true);
             SpectateCameraManager.Singleton.DisableSpectateMode();
-            playerMovement.FreePlayerMovement();
         }
-        else playerMovement.FreeNetPlayerMovement();
 
-        playerMovement.GetSpecials();
+        playerModel.SetActive(true);
 
+        shieldsHolder.SetActive(true);
+        shieldAnimator.Play("ShieldRaise");
+
+        playerShooting.PlayerRespawned();
+        playerMovement.PlayerRespawned();
+        EnableDisablePlayerColliders(true);
+
+        // Finish Invincibility
         yield return new WaitForSeconds(scriptablePlayer.invincibilityTime);
         shieldsHolder.SetActive(false);
         currentPlayerState = PlayerState.Alive;

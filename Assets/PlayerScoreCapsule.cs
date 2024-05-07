@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.UI;
 using TMPro;
 
 public class PlayerScoreCapsule : MonoBehaviour
@@ -8,6 +9,7 @@ public class PlayerScoreCapsule : MonoBehaviour
     [SerializeField] private Color localColor;
 
     [Header("Components")]
+    [SerializeField] public Image playerImg;
     [SerializeField] private TextMeshProUGUI playerNameTxt;
     [SerializeField] public TextMeshProUGUI playerKDTxt;
     [SerializeField] public TextMeshProUGUI playerPingTxt;
@@ -18,6 +20,5 @@ public class PlayerScoreCapsule : MonoBehaviour
     {
         playerId = id;
         playerNameTxt.SetText(playerName);
-
     }
 }

@@ -10,6 +10,8 @@ public class Player : MonoBehaviour
     public bool IsLocal { get; private set; }
     public string username { get; private set; }
 
+    [Header("Components")]
+    [Space(5)]
     [SerializeField] public PlayerHealth playerHealth;
     [SerializeField] public PlayerInteractions playerInteractions;
     [SerializeField] public PlayerHud playerHud;
@@ -61,6 +63,7 @@ public class Player : MonoBehaviour
         if (NetworkManager.Singleton.Server.IsRunning) player.SendPlayerToPlayers();
     }
 
+    #region ServerSenders
     public void SendPlayersToPlayer(ushort toClientId)
     {
         Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.playerSpawned);
@@ -78,11 +81,14 @@ public class Player : MonoBehaviour
         message.AddVector3(transform.position);
         NetworkManager.Singleton.Server.SendToAll(message);
     }
+    #endregion
 
+    #region ServerToClientHandlers
     [MessageHandler((ushort)ServerToClientId.playerSpawned)]
     private static void SpawnPlayer(Message message)
     {
         if (NetworkManager.Singleton.Server.IsRunning) return;
         SpawnPlayer(message.GetUShort(), message.GetString(), message.GetVector3());
     }
+    #endregion
 }

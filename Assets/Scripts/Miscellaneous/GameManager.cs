@@ -77,6 +77,8 @@ public class GameManager : SettingsMenu
     [Header("UI")]
     [SerializeField] private GameObject matchSettingsMenu;
     [SerializeField] private GameObject settingsMenu;
+    [SerializeField] private GameObject loadingScreen;
+    [SerializeField] private TextMeshProUGUI loadingPercentageTxt;
     [SerializeField] private GameObject pauseMenu;
     [SerializeField] private Button respawnBtn;
     [SerializeField] private KillFeedDisplay killFeedDisplayPrefab;
@@ -317,11 +319,17 @@ public class GameManager : SettingsMenu
         if (NetworkManager.Singleton.Server.IsRunning) SendSceneChanged(scene);
 
         print($"<color=yellow>Starting to load Scene {scene.sceneName} currently on Scene {SceneManager.GetActiveScene().name}</color>");
-        SceneManager.LoadScene(loadingScreenScene.sceneName);
+
+        loadingScreen.SetActive(true);
         AsyncOperation sceneLoadingOp = SceneManager.LoadSceneAsync(scene.sceneName);
-        while (!sceneLoadingOp.isDone) yield return null;
+        while (!sceneLoadingOp.isDone)
+        {
+            loadingPercentageTxt.SetText($"Loading {(sceneLoadingOp.progress * 100).ToString("#")}%");
+            yield return null;
+        }
 
         currentScene = scene;
+        loadingScreen.SetActive(false);
         SendClientSceneLoaded();
         SpectateCameraManager.Singleton.mapCamera = FindObjectOfType<Camera>().gameObject;
 

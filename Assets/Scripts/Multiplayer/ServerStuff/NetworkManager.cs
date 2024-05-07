@@ -176,7 +176,7 @@ public class NetworkManager : MonoBehaviour
     private void JoinedServer(object sender, EventArgs e)
     {
         // Introduces Local Player Into Match
-        MatchManager.Singleton.IntroducePlayerToMatch(Client.Id, SteamFriends.GetPersonaName());
+        MatchManager.Singleton.IntroducePlayerToMatch(Client.Id, SteamFriends.GetPersonaName(), SteamUser.GetSteamID());
 
         // Sends HandShake If Player Is A Client Or Loads The Lobby If Host
         if (!Server.IsRunning) SendClientHandShake();
@@ -203,12 +203,12 @@ public class NetworkManager : MonoBehaviour
         Destroy(Player.list[e.Id].gameObject);
     }
 
-    private void HandleClientHandShake(ushort id, string username)
+    private void HandleClientHandShake(ushort id, string username, CSteamID steamId)
     {
         if (MatchManager.playersOnLobby.ContainsKey(id)) return;
 
         // Introduces New Player To Match
-        MatchManager.Singleton.IntroducePlayerToMatch(id, username);
+        MatchManager.Singleton.IntroducePlayerToMatch(id, username, steamId);
 
         // REPLY HANDSHAKE?
         GameManager.Singleton.SendSceneToPlayer(id, GameManager.currentScene);
@@ -222,7 +222,7 @@ public class NetworkManager : MonoBehaviour
 
     private void HandleServerPlayerInfo(ushort id, PlayerData playerData)
     {
-        if (!MatchManager.playersOnLobby.ContainsKey(id)) MatchManager.Singleton.IntroducePlayerToMatch(id, playerData.playerName);
+        if (!MatchManager.playersOnLobby.ContainsKey(id)) MatchManager.Singleton.IntroducePlayerToMatch(id, playerData.playerName, playerData.playerSteamId);
         MatchManager.playersOnLobby[id].onQueue = playerData.onQueue;
         MatchManager.playersOnLobby[id].kills = playerData.kills;
         MatchManager.playersOnLobby[id].deaths = playerData.deaths;
@@ -273,6 +273,7 @@ public class NetworkManager : MonoBehaviour
     {
         Message message = Message.Create(MessageSendMode.Reliable, ClientToServerId.clientHandShake);
         message.AddString(SteamFriends.GetPersonaName());
+        message.AddULong((ulong)SteamUser.GetSteamID());
         Client.Send(message);
     }
     #endregion
@@ -324,7 +325,7 @@ public class NetworkManager : MonoBehaviour
     [MessageHandler((ushort)ClientToServerId.clientHandShake)]
     private static void GetClientHandShake(ushort fromClientId, Message message)
     {
-        NetworkManager.Singleton.HandleClientHandShake(fromClientId, message.GetString());
+        NetworkManager.Singleton.HandleClientHandShake(fromClientId, message.GetString(), (CSteamID)message.GetULong());
     }
     #endregion
 }

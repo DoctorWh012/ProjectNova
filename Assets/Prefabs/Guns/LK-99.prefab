@@ -10,7 +10,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3724043155809928131}
   m_Layer: 6
-  m_Name: Grip
+  m_Name: TargetL
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -23,13 +23,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2007982310633231504}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalRotation: {x: 0.56917745, y: -0.6354345, z: 0.43394485, w: 0.28974447}
+  m_LocalPosition: {x: -0.071, y: 0.1019, z: 0.1067}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 1036247032557489148}
   m_RootOrder: 1
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 61.802, y: 164.565, z: 267.023}
 --- !u!1 &2739918741272341054
 GameObject:
   m_ObjectHideFlags: 0
@@ -40,7 +40,7 @@ GameObject:
   m_Component:
   - component: {fileID: 3093056462411678885}
   m_Layer: 6
-  m_Name: Grip (1)
+  m_Name: TargetR
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -53,13 +53,13 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2739918741272341054}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0.123, z: -0}
+  m_LocalRotation: {x: 0.6363013, y: 0.5521902, z: -0.3859639, w: 0.37581724}
+  m_LocalPosition: {x: 0.0565, y: -0.0402, z: 0.1452}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children: []
   m_Father: {fileID: 1036247032557489148}
   m_RootOrder: 2
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_LocalEulerAnglesHint: {x: 64.758, y: -169.716, z: -255.37201}
 --- !u!1 &7353852581537310369
 GameObject:
   m_ObjectHideFlags: 0
@@ -69,7 +69,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 139767063144497642}
-  - component: {fileID: 8515790219774032843}
+  - component: {fileID: 7819277261242882046}
   m_Layer: 6
   m_Name: LK-99
   m_TagString: Untagged
@@ -84,15 +84,15 @@ Transform:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 7353852581537310369}
-  m_LocalRotation: {x: -0.5565113, y: -0.48249406, z: 0.388643, w: 0.5535805}
-  m_LocalPosition: {x: 0.863, y: -0.648, z: 0.957}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_Children:
   - {fileID: 3930556795748598599}
   m_Father: {fileID: 0}
   m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: -166.048, y: 84.975, z: -94.640015}
---- !u!114 &8515790219774032843
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &7819277261242882046
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -101,16 +101,48 @@ MonoBehaviour:
   m_GameObject: {fileID: 7353852581537310369}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c7303a02f282be94c89df2836087732b, type: 3}
+  m_Script: {fileID: 11500000, guid: cee2dbea0bf120d41bf6dbcc09787415, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  meleeSettings: {fileID: 11400000, guid: d428ac6b8568888419d5d4a28ceea6f9, type: 2}
-  meleeMesh:
-  - {fileID: 2173639875339464851}
-  - {fileID: 8780023186570034038}
+  player: {fileID: 0}
+  playerHud: {fileID: 0}
+  playerShooting: {fileID: 0}
   animator: {fileID: 5657937302632195249}
-  rightArmTarget: {fileID: 3724043155809928131}
-  leftArmTarget: {fileID: 3093056462411678885}
+  playerAudioSource: {fileID: 0}
+  weaponAudioSource: {fileID: 0}
+  weaponHumAudioSource: {fileID: 0}
+  switchingTime: 0
+  weaponHoldAnimation: ArmHoldLK99
+  leftHandTarget: {fileID: 3724043155809928131}
+  rightHandTarget: {fileID: 3093056462411678885}
+  slot: 2
+  weaponIcon: {fileID: 21300000, guid: 31d2f2c1f81e008469ef376fb351bb70, type: 3}
+  weaponName: LK-99
+  damage: 100
+  range: 0
+  fireRate: 2
+  reloadTime: 0
+  reloadSpins: 0
+  maxAmmo: 0
+  crosshairType: 1
+  crosshairScale: 0.5
+  crosshairShotScale: 1.2
+  crosshairShrinkTime: 0.5
+  knockbackForce: 0
+  knockbackMaxHitDistance: 0
+  screenShakeData: {fileID: 11400000, guid: af234b1291e252d44987d5a052ae4c24, type: 2}
+  weaponHum: {fileID: 0}
+  weaponPickupSound: {fileID: 0}
+  weaponSoundVolume: 1
+  weaponSounds:
+  - {fileID: 8300000, guid: 3dca868479308469bad73276ca8c92d5, type: 3}
+  - {fileID: 8300000, guid: d6db4b96005da4bb59dbcbc86068347f, type: 3}
+  - {fileID: 8300000, guid: ff96fb6f956a743729c9599f17f5d00c, type: 3}
+  currentWeaponState: 0
+  startingRotation: {x: 0, y: 0, z: 0}
+  attackRadius: 1.2
+  primaryActionAnimations:
+  - Slice
 --- !u!1 &8825459754721450097
 GameObject:
   m_ObjectHideFlags: 0
@@ -120,6 +152,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 3930556795748598599}
+  - component: {fileID: 4531125753351398333}
   m_Layer: 6
   m_Name: Swayable
   m_TagString: Untagged
@@ -142,6 +175,24 @@ Transform:
   m_Father: {fileID: 139767063144497642}
   m_RootOrder: 0
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &4531125753351398333
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8825459754721450097}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e90a0dfe09cef9c4f9237ff3b0da622d, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerMovement: {fileID: 0}
+  rotationSpeed: 8
+  mouseMultiplier: 3
+  velocityMultiplier: 0.01
+  velocityMouseMultiplier: 0.01
+  velocitySpeed: 8
 --- !u!1001 &714880826320956439
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -203,7 +254,7 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 23332e96777ef734c93bda24142ec624, type: 3}
       propertyPath: m_Name
-      value: SWORD
+      value: LK-99
       objectReference: {fileID: 0}
     - target: {fileID: 919132149155446097, guid: 23332e96777ef734c93bda24142ec624, type: 3}
       propertyPath: m_Layer
@@ -219,16 +270,6 @@ GameObject:
 --- !u!4 &1036247032557489148 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: -8679921383154817045, guid: 23332e96777ef734c93bda24142ec624, type: 3}
-  m_PrefabInstance: {fileID: 714880826320956439}
-  m_PrefabAsset: {fileID: 0}
---- !u!23 &2173639875339464851 stripped
-MeshRenderer:
-  m_CorrespondingSourceObject: {fileID: -7511558181221131132, guid: 23332e96777ef734c93bda24142ec624, type: 3}
-  m_PrefabInstance: {fileID: 714880826320956439}
-  m_PrefabAsset: {fileID: 0}
---- !u!23 &8780023186570034038 stripped
-MeshRenderer:
-  m_CorrespondingSourceObject: {fileID: 8084854973141751649, guid: 23332e96777ef734c93bda24142ec624, type: 3}
   m_PrefabInstance: {fileID: 714880826320956439}
   m_PrefabAsset: {fileID: 0}
 --- !u!95 &5657937302632195249

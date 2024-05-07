@@ -29,7 +29,6 @@ public class ScriptablePlayer : ScriptableObject
     [SerializeField] public BodyPartHitTagMultiplier[] bodyPartHitTagMultipliers;
 
     [Header("Weapons")]
-    [SerializeField] public Guns[] startingGuns = new Guns[3];
     [SerializeField] public int[] startingWeaponsIndex = new int[3];
 
     [Header("Game")]

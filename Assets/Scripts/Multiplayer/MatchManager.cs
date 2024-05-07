@@ -11,6 +11,8 @@ using Steamworks;
 public class PlayerData : IMessageSerializable
 {
     public string playerName;
+    public Sprite playerAvatar;
+    public CSteamID playerSteamId;
 
     public bool onQueue;
 
@@ -18,15 +20,18 @@ public class PlayerData : IMessageSerializable
     public int deaths;
     public PlayerScoreCapsule scoreCapsule;
 
-    public PlayerData(string name)
+    public PlayerData(string name, CSteamID steamId)
     {
         playerName = name;
+        playerSteamId = steamId;
     }
+
     public PlayerData() { }
 
     public void Deserialize(Message message)
     {
         playerName = message.GetString();
+        playerSteamId = (CSteamID)message.GetULong();
         onQueue = message.GetBool();
 
         kills = (int)message.GetUShort();
@@ -36,6 +41,7 @@ public class PlayerData : IMessageSerializable
     public void Serialize(Message message)
     {
         message.AddString(playerName);
+        message.AddULong((ulong)playerSteamId);
         message.AddBool(onQueue);
         message.AddUShort((ushort)kills);
         message.AddUShort((ushort)deaths);
@@ -81,7 +87,7 @@ public class MatchManager : MonoBehaviour
 
     public static Dictionary<ushort, PlayerData> playersOnLobby = new Dictionary<ushort, PlayerData>(); // NEEDS CLEARING
     public static int matchingPlayers;
-    public static int respawnTime { get; private set; }
+    public static int respawnTime { get; private set; } = 5;
     public static GameMode currentGamemode { get; private set; }
     public static MatchState currentMatchState = MatchState.Waiting;
 
@@ -104,6 +110,8 @@ public class MatchManager : MonoBehaviour
     [SerializeField] private GameMode gamemodeDebug = currentGamemode;
     [SerializeField] private MatchState matchStateDebug = currentMatchState;
 
+    protected Callback<AvatarImageLoaded_t> avatarLoaded;
+
     uint lastMatchDataTick;
     private float matchTime;
     private float timer;
@@ -116,6 +124,7 @@ public class MatchManager : MonoBehaviour
 
     private void Start()
     {
+        avatarLoaded = Callback<AvatarImageLoaded_t>.Create(OnAvatarLoaded);
         ResetAllUITexts();
         OpenCloseScoreBoard(false);
     }
@@ -131,9 +140,9 @@ public class MatchManager : MonoBehaviour
     }
 
     #region Player Handling
-    public void IntroducePlayerToMatch(ushort id, string name)
+    public void IntroducePlayerToMatch(ushort id, string name, CSteamID steamId)
     {
-        playersOnLobby.Add(id, new PlayerData(name));
+        playersOnLobby.Add(id, new PlayerData(name, steamId));
 
         CreatePlayerScoreBoardCapsule(id);
         UpdateScoreBoardCapsule(id);
@@ -222,6 +231,19 @@ public class MatchManager : MonoBehaviour
         }
     }
 
+    private void OnAvatarLoaded(AvatarImageLoaded_t callback)
+    {
+        print("ON AVATAR LOADED");
+        foreach (PlayerData playerData in playersOnLobby.Values)
+        {
+            if (playerData.playerSteamId == callback.m_steamID)
+            {
+                playerData.playerAvatar = GetSmallAvatar(callback.m_steamID, callback.m_iImage);
+                playerData.scoreCapsule.playerImg.sprite = playerData.playerAvatar;
+            }
+        }
+    }
+
     private void CreatePlayerScoreBoardCapsule(ushort id)
     {
         PlayerScoreCapsule scoreCapsule = Instantiate(playerScoreCapsulePrefab);
@@ -230,6 +252,35 @@ public class MatchManager : MonoBehaviour
 
         scoreCapsule.SetUpCapsule(id, playersOnLobby[id].playerName);
         playersOnLobby[id].scoreCapsule = scoreCapsule;
+
+        int imageId = SteamFriends.GetLargeFriendAvatar(playersOnLobby[id].playerSteamId);
+        if (imageId != -1)
+        {
+            playersOnLobby[id].playerAvatar = GetSmallAvatar(playersOnLobby[id].playerSteamId, imageId);
+            playersOnLobby[id].scoreCapsule.playerImg.sprite = playersOnLobby[id].playerAvatar;
+        }
+    }
+
+    private Sprite GetSmallAvatar(CSteamID user, int image)
+    {
+        uint imageWidth;
+        uint imageHeight;
+        bool success = SteamUtils.GetImageSize(image, out imageWidth, out imageHeight);
+
+        if (success && imageWidth > 0 && imageHeight > 0)
+        {
+            byte[] imageByte = new byte[imageWidth * imageHeight * 4];
+            Texture2D returnTexture = new Texture2D((int)imageWidth, (int)imageHeight, TextureFormat.RGBA32, false, true);
+            success = SteamUtils.GetImageRGBA(image, imageByte, (int)(imageWidth * imageHeight * 4));
+            if (success)
+            {
+                returnTexture.LoadRawTextureData(imageByte);
+                returnTexture.Apply();
+            }
+            return Sprite.Create(returnTexture, new Rect(0, 0, (int)imageWidth, (int)imageHeight), new Vector2(0.5f, 0.5f));
+        }
+
+        return Sprite.Create(new Texture2D(50, 50), new Rect(0, 0, 50, 50), new Vector2(0.5f, 0.5f));
     }
 
     private void DestroyPlayerScoreBoardCapsule(ushort id)

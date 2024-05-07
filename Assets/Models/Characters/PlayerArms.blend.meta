@@ -35,7 +35,8 @@ ModelImporter:
     resampleCurves: 1
     optimizeGameObjects: 0
     motionNodeName: 
-    rigImportErrors: 
+    rigImportErrors: "Invalid Avatar Rig Configuration. Missing or invalid transform:\n\tRequired
+      human bone 'Spine' not found\n"
     rigImportWarnings: 
     animationImportErrors: 
     animationImportWarnings: 
@@ -43,7 +44,7 @@ ModelImporter:
     animationDoRetargetingWarnings: 0
     importAnimatedCustomProperties: 0
     importConstraints: 0
-    animationCompression: 1
+    animationCompression: 3
     animationRotationError: 0.5
     animationPositionError: 0.5
     animationScaleError: 0.5
@@ -97,7 +98,207 @@ ModelImporter:
   humanDescription:
     serializedVersion: 3
     human: []
-    skeleton: []
+    skeleton:
+    - name: PlayerArms(Clone)
+      parentName: 
+      position: {x: 0, y: 0, z: 0}
+      rotation: {x: 0, y: 0, z: 0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: MiniNovaUpperArmR
+      parentName: PlayerArms(Clone)
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: -0.7071068, y: 0, z: -0, w: 0.7071067}
+      scale: {x: 1, y: 1, z: 1}
+    - name: MiniNovaUpperArmL
+      parentName: PlayerArms(Clone)
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: -0.7071068, y: 0, z: -0, w: 0.7071067}
+      scale: {x: 1, y: 1, z: 1}
+    - name: MiniNovaLowerArmR
+      parentName: PlayerArms(Clone)
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: -0.7071068, y: 0, z: -0, w: 0.7071067}
+      scale: {x: 1, y: 1, z: 1}
+    - name: MiniNovaLowerArmL
+      parentName: PlayerArms(Clone)
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: -0.7071068, y: 0, z: -0, w: 0.7071067}
+      scale: {x: 1, y: 1, z: 1}
+    - name: MiniNovaHandR
+      parentName: PlayerArms(Clone)
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: -0.7071068, y: 0, z: -0, w: 0.7071067}
+      scale: {x: 1, y: 1, z: 1}
+    - name: MiniNovaHandL
+      parentName: PlayerArms(Clone)
+      position: {x: -0, y: 0, z: 0}
+      rotation: {x: -0.7071068, y: 0, z: -0, w: 0.7071067}
+      scale: {x: 1, y: 1, z: 1}
+    - name: Armature
+      parentName: PlayerArms(Clone)
+      position: {x: 0, y: 0.8943966, z: 0}
+      rotation: {x: -0.7071068, y: 0, z: -0, w: 0.7071067}
+      scale: {x: 1, y: 1, z: 1}
+    - name: UpperArm.L
+      parentName: Armature
+      position: {x: -0.3199246, y: -0.000000029802322, z: 0.05023682}
+      rotation: {x: -0.7022603, y: 0.08221281, z: 0.08543096, w: 0.701978}
+      scale: {x: 0.99999976, y: 0.9999998, z: 0.99999994}
+    - name: LowerArm.L
+      parentName: UpperArm.L
+      position: {x: 0.0000000026760478, y: 0.37992448, z: 1.03682396e-10}
+      rotation: {x: -0.081529476, y: -0.016182804, z: -0.044129528, w: 0.995562}
+      scale: {x: 1.0000001, y: 1, z: 1.0000001}
+    - name: Hand.L
+      parentName: LowerArm.L
+      position: {x: 0.000000005122274, y: 0.55821306, z: -0.00000003083369}
+      rotation: {x: -0.29685542, y: -0.3398467, z: 0.55260843, w: 0.7007175}
+      scale: {x: 1, y: 1, z: 0.9999999}
+    - name: UpperIndex.L
+      parentName: Hand.L
+      position: {x: -0.010637872, y: 0.1696673, z: -0.051436845}
+      rotation: {x: -0.025829775, y: 0.015694804, z: -0.08356156, w: 0.99604416}
+      scale: {x: 0.99999994, y: 0.9999999, z: 1}
+    - name: LowerIndex.L
+      parentName: UpperIndex.L
+      position: {x: 0.0000000027939677, y: 0.08374779, z: -0.0000000516593}
+      rotation: {x: 0.0202677, y: 0.00022510806, z: 0.0069177737, w: 0.99977064}
+      scale: {x: 0.99999994, y: 0.9999999, z: 0.9999999}
+    - name: LowerIndex.L_end
+      parentName: LowerIndex.L
+      position: {x: -0, y: 0.10274091, z: 0}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: UpperMiddle.L
+      parentName: Hand.L
+      position: {x: -0.006924361, y: 0.17169787, z: -0.0023451357}
+      rotation: {x: -0.010681702, y: 0.014320084, z: -0.043399636, w: 0.9988981}
+      scale: {x: 0.99999994, y: 1, z: 1}
+    - name: LowerMiddle.L
+      parentName: UpperMiddle.L
+      position: {x: 0.000000010244548, y: 0.09014598, z: 0.00000006813207}
+      rotation: {x: 0.005869376, y: 0.0007167216, z: -0.023403574, w: 0.99970865}
+      scale: {x: 1, y: 1, z: 1}
+    - name: LowerMiddle.L_end
+      parentName: LowerMiddle.L
+      position: {x: -0, y: 0.103755616, z: 0}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: UpperPinkie.L
+      parentName: Hand.L
+      position: {x: -0.0078296745, y: 0.17567745, z: 0.044978525}
+      rotation: {x: -0.0021270681, y: 0.015534085, z: -0.05494601, w: 0.99836624}
+      scale: {x: 1, y: 0.99999994, z: 0.9999999}
+    - name: LowerPinkie.L
+      parentName: UpperPinkie.L
+      position: {x: -0.000000018859282, y: 0.08083388, z: -0.00000002994784}
+      rotation: {x: -0.0008887373, y: -0.0045862105, z: -0.035539806, w: 0.99935734}
+      scale: {x: 0.99999994, y: 0.9999997, z: 0.9999999}
+    - name: LowerPinkie.L_end
+      parentName: LowerPinkie.L
+      position: {x: -0, y: 0.096282825, z: 0}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: UpperThumb.L
+      parentName: Hand.L
+      position: {x: 0.023411073, y: 0.08180023, z: -0.041219573}
+      rotation: {x: -0.5108109, y: 0.0114324335, z: -0.008371957, w: 0.8595763}
+      scale: {x: 1, y: 1, z: 1}
+    - name: MiddleThumb.L
+      parentName: UpperThumb.L
+      position: {x: -9.313226e-10, y: 0.06984556, z: -0.000000017229468}
+      rotation: {x: 0.38844982, y: -0.00067906704, z: 0.010135421, w: 0.92141396}
+      scale: {x: 1, y: 1, z: 0.99999994}
+    - name: LowerThumb.L
+      parentName: MiddleThumb.L
+      position: {x: -0, y: 0.089107506, z: 0.0000000024447218}
+      rotation: {x: 0.13687707, y: 0.0000000070538166, z: 0.0047425865, w: 0.9905767}
+      scale: {x: 0.99999994, y: 1.0000001, z: 0.99999994}
+    - name: LowerThumb.L_end
+      parentName: LowerThumb.L
+      position: {x: -0, y: 0.071834765, z: 0}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: UpperArm.R
+      parentName: Armature
+      position: {x: 0.3199246, y: -0.000000029802322, z: 0.05023682}
+      rotation: {x: -0.7022603, y: -0.08221281, z: -0.08543096, w: 0.701978}
+      scale: {x: 0.99999976, y: 0.9999998, z: 0.99999994}
+    - name: LowerArm.R
+      parentName: UpperArm.R
+      position: {x: -0.0000000026760478, y: 0.37992448, z: 1.03682396e-10}
+      rotation: {x: -0.081529476, y: 0.016182804, z: 0.044129528, w: 0.995562}
+      scale: {x: 1.0000001, y: 1, z: 1.0000001}
+    - name: Hand.R
+      parentName: LowerArm.R
+      position: {x: -0.000000005122274, y: 0.55821306, z: -0.00000003083369}
+      rotation: {x: -0.29685542, y: 0.3398467, z: -0.55260843, w: 0.7007175}
+      scale: {x: 1, y: 1, z: 0.9999999}
+    - name: UpperIndex.R
+      parentName: Hand.R
+      position: {x: 0.010637872, y: 0.1696673, z: -0.051436845}
+      rotation: {x: -0.025829775, y: -0.015694804, z: 0.08356156, w: 0.99604416}
+      scale: {x: 0.99999994, y: 0.9999999, z: 1}
+    - name: LowerIndex.R
+      parentName: UpperIndex.R
+      position: {x: -0.0000000027939677, y: 0.08374779, z: -0.0000000516593}
+      rotation: {x: 0.0202677, y: -0.00022510806, z: -0.0069177737, w: 0.99977064}
+      scale: {x: 0.99999994, y: 0.9999999, z: 0.9999999}
+    - name: LowerIndex.R_end
+      parentName: LowerIndex.R
+      position: {x: -0, y: 0.10274091, z: 0}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: UpperMiddle.R
+      parentName: Hand.R
+      position: {x: 0.006924361, y: 0.17169787, z: -0.0023451357}
+      rotation: {x: -0.010681702, y: -0.014320084, z: 0.043399636, w: 0.9988981}
+      scale: {x: 0.99999994, y: 1, z: 1}
+    - name: LowerMiddle.R
+      parentName: UpperMiddle.R
+      position: {x: -0.000000010244548, y: 0.09014598, z: 0.00000006813207}
+      rotation: {x: 0.005869376, y: -0.0007167216, z: 0.023403574, w: 0.99970865}
+      scale: {x: 1, y: 1, z: 1}
+    - name: LowerMiddle.R_end
+      parentName: LowerMiddle.R
+      position: {x: -0, y: 0.103755616, z: 0}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: UpperPinkie.R
+      parentName: Hand.R
+      position: {x: 0.0078296745, y: 0.17567745, z: 0.044978525}
+      rotation: {x: -0.0021270681, y: -0.015534085, z: 0.05494601, w: 0.99836624}
+      scale: {x: 1, y: 0.99999994, z: 0.9999999}
+    - name: LowerPinkie.R
+      parentName: UpperPinkie.R
+      position: {x: 0.000000018859282, y: 0.08083388, z: -0.00000002994784}
+      rotation: {x: -0.0008887373, y: 0.0045862105, z: 0.035539806, w: 0.99935734}
+      scale: {x: 0.99999994, y: 0.9999997, z: 0.9999999}
+    - name: LowerPinkie.R_end
+      parentName: LowerPinkie.R
+      position: {x: -0, y: 0.096282825, z: 0}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
+    - name: UpperThumb.R
+      parentName: Hand.R
+      position: {x: -0.023411073, y: 0.08180023, z: -0.041219573}
+      rotation: {x: -0.5108109, y: -0.0114324335, z: 0.008371957, w: 0.8595763}
+      scale: {x: 1, y: 1, z: 1}
+    - name: MiddleThumb.R
+      parentName: UpperThumb.R
+      position: {x: 9.313226e-10, y: 0.06984556, z: -0.000000017229468}
+      rotation: {x: 0.38844982, y: 0.00067906704, z: -0.010135421, w: 0.92141396}
+      scale: {x: 1, y: 1, z: 0.99999994}
+    - name: LowerThumb.R
+      parentName: MiddleThumb.R
+      position: {x: -0, y: 0.089107506, z: 0.0000000024447218}
+      rotation: {x: 0.13687707, y: -0.0000000070538166, z: -0.0047425865, w: 0.9905767}
+      scale: {x: 0.99999994, y: 1.0000001, z: 0.99999994}
+    - name: LowerThumb.R_end
+      parentName: LowerThumb.R
+      position: {x: -0, y: 0.071834765, z: 0}
+      rotation: {x: 0, y: -0, z: -0, w: 1}
+      scale: {x: 1, y: 1, z: 1}
     armTwist: 0.5
     foreArmTwist: 0.5
     upperLegTwist: 0.5
@@ -108,13 +309,13 @@ ModelImporter:
     globalScale: 1
     rootMotionBoneName: 
     hasTranslationDoF: 0
-    hasExtraRoot: 0
+    hasExtraRoot: 1
     skeletonHasParents: 1
   lastHumanDescriptionAvatarSource: {instanceID: 0}
   autoGenerateAvatarMappingIfUnspecified: 1
   animationType: 2
   humanoidOversampling: 1
-  avatarSetup: 0
+  avatarSetup: 1
   addHumanoidExtraRootOnlyWhenUsingAvatar: 1
   remapMaterialsIfMaterialImportModeIsNone: 0
   additionalBone: 0
