@@ -78,8 +78,8 @@ public class BaseWeaponMelee : BaseWeapon
 
         ApplyKnockback();
 
-        if (NetworkManager.Singleton.Server.IsRunning) playerShooting.SendPlayerFire();
-        else if (player.IsLocal) playerShooting.SendShootMessage();
+        if (NetworkManager.Singleton.Server.IsRunning) playerShooting.SendServerFire();
+        else if (player.IsLocal) playerShooting.SendClientFire();
 
         return true;
     }

@@ -17,7 +17,7 @@ public class BaseWeaponRifle : BaseWeapon
     protected ParticleSystem hitParticle;
     protected RaycastHit shotRayHit;
 
-    private void Start()
+    protected void Start()
     {
         BaseStart();
     }
@@ -30,6 +30,8 @@ public class BaseWeaponRifle : BaseWeapon
 
         if (tick - tickFireRate < playerShooting.lastShotTick) return false;
 
+        if (currentWeaponState == WeaponState.Ulting) return false;
+        
         if (!compensatingForSwitch && currentWeaponState == WeaponState.Switching) return false;
 
         if (currentWeaponState == WeaponState.Reloading) return false;
@@ -87,8 +89,8 @@ public class BaseWeaponRifle : BaseWeapon
         else HitParticle();
         ApplyKnockback();
 
-        if (NetworkManager.Singleton.Server.IsRunning) playerShooting.SendPlayerFire();
-        else if (player.IsLocal) playerShooting.SendShootMessage();
+        if (NetworkManager.Singleton.Server.IsRunning) playerShooting.SendServerFire();
+        else if (player.IsLocal) playerShooting.SendClientFire();
 
         return true;
     }
@@ -112,8 +114,6 @@ public class BaseWeaponRifle : BaseWeapon
 
         // Returns Tracer To Pool After It's Used
         tracer.GetComponent<ReturnToPool>().ReturnToPoolIn(tracerLasts);
-
-        if (player.IsLocal && NetworkManager.Singleton.Server.IsRunning) return;
     }
 
     protected void HitParticle()

@@ -1,6 +1,5 @@
 using Riptide;
 using UnityEngine;
-using DG.Tweening;
 
 /* WORK REMINDER
 
@@ -78,7 +77,7 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private ParticleSystem speedLinesEffect;
     [SerializeField] private float speedLineStartAtSpeed;
     [SerializeField] private float speedLineMultiplier;
-    [SerializeField] private float speedLineSpoolTime;
+    [SerializeField] private float speedLineSpoolSpeed;
     [SerializeField] private ParticleSystem dashParticles;
 
     [Header("Audio")]
@@ -114,9 +113,8 @@ public class PlayerMovement : MonoBehaviour
     private Vector3 wallNormal;
     private Vector3 wallForward;
 
-    private bool isLerpingUp = false;
-    private ParticleSystem.EmissionModule emission;
-    private float lerpDuration = 0;
+    // Speed Line
+    private ParticleSystem.EmissionModule speedLineEmission;
 
     private uint lastReceivedCrouchTick;
     private uint lastReceivedGroundSlamTick;
@@ -141,7 +139,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void Start()
     {
-        if (player.IsLocal) emission = speedLinesEffect.emission;
+        if (player.IsLocal) speedLineEmission = speedLinesEffect.emission;
     }
 
     private void Update()
@@ -434,7 +432,7 @@ public class PlayerMovement : MonoBehaviour
             print($"<color=red>FAILED COMPENSATION TICK OUT OF BOUNDS WANTED {tick} IS {playerSimulationState[cacheIndex].currentTick}</color>"); return;
         }
 
-        print($"<color=yellow> Rewinding player to position {playerSimulationState[cacheIndex].playerCharacterPos} | CurrentPos is {playerCharacter.position}</color>");
+        // print($"<color=yellow> Rewinding player to position {playerSimulationState[cacheIndex].playerCharacterPos} | CurrentPos is {playerCharacter.position}</color>");
         playerCharacter.position = playerSimulationState[cacheIndex].playerCharacterPos;
 
         // EditorApplication.isPaused = true;
@@ -761,7 +759,6 @@ public class PlayerMovement : MonoBehaviour
 
         groundSlamAirParticles.Stop();
         dashParticles.Stop();
-        if (player.IsLocal) emission.rateOverTime = 0;
     }
 
     private void SlideEffects(Vector3 velocity)
@@ -797,21 +794,8 @@ public class PlayerMovement : MonoBehaviour
 
     private void UpdateSpeedLinesEmission()
     {
-        float speed = rb.velocity.magnitude;
-
-        if (speed < speedLineStartAtSpeed && emission.rateOverTimeMultiplier > 0)
-        {
-            if (isLerpingUp) { lerpDuration = 0; isLerpingUp = false; }
-            emission.rateOverTime = Mathf.Lerp(emission.rateOverTimeMultiplier, 0, lerpDuration / speedLineSpoolTime);
-            lerpDuration += Time.deltaTime;
-        }
-
-        else if (speed > speedLineStartAtSpeed)
-        {
-            if (!isLerpingUp) { lerpDuration = 0; isLerpingUp = true; }
-            emission.rateOverTime = Mathf.Lerp(emission.rateOverTimeMultiplier, Mathf.Abs(speed * speedLineMultiplier), Time.deltaTime / (speedLineSpoolTime / 2));
-            lerpDuration += Time.deltaTime;
-        }
+        float target = flatVel.magnitude > speedLineStartAtSpeed ? flatVel.magnitude * speedLineMultiplier : 0;
+        speedLineEmission.rateOverTime = Mathf.Lerp(speedLineEmission.rateOverTime.constant, target, speedLineSpoolSpeed * Time.deltaTime);
     }
 
     private void PlayIdleAnimation()

@@ -17,15 +17,19 @@ public class PlayerHud : MonoBehaviour
     [SerializeField] private PlayerHealth playerHealth;
     [SerializeField] private PlayerShooting playerShooting;
 
+    [Header("Overlays")]
+    [Space(5)]
+    [SerializeField] private Image hurtOverlay;
+    [SerializeField] private Image focusedOverlay;
+
     [Header("Colors")]
     [Space(5)]
-    [SerializeField] private Color dashAvailableColor;
+    [SerializeField] private Color groundSlamAvailableColor;
     [SerializeField] private Color highlitedColor;
     [SerializeField] private Color fadedColor;
 
     [Header("Health Battery")]
     [Space(5)]
-    [SerializeField] private Image hurtOverlay;
     [SerializeField] private Slider healthBarFill;
 
     [Header("Abilities Panel")]
@@ -50,6 +54,7 @@ public class PlayerHud : MonoBehaviour
 
     [Header("UI Texts")]
     [Space(5)]
+    [SerializeField] private TextMeshProUGUI scoreboardIndicatorKeyTxt;
     [SerializeField] private TextMeshProUGUI mediumBottomText;
 
     [Header("Menus")]
@@ -65,7 +70,6 @@ public class PlayerHud : MonoBehaviour
     private void Start()
     {
         SettingsManager.updatedPlayerPrefs += GetPreferences;
-        ResetWeaponsOnSlots();
         ResetAllUITexts();
     }
 
@@ -87,6 +91,7 @@ public class PlayerHud : MonoBehaviour
     #region GameUi
     private void GetPreferences()
     {
+        scoreboardIndicatorKeyTxt.SetText(SettingsManager.playerPreferences.scoreboardKey.ToString());
         if (SettingsManager.playerPreferences.crosshairType == 0 && playerShooting.currentWeapon)
         {
             UpdateCrosshair((int)playerShooting.currentWeapon.crosshairType, playerShooting.currentWeapon.crosshairScale, playerShooting.currentWeapon.crosshairShotScale, playerShooting.currentWeapon.crosshairShrinkTime);
@@ -96,8 +101,7 @@ public class PlayerHud : MonoBehaviour
 
     public void UpdateHealthDisplay(float health)
     {
-        print($"Updated to health {health}");
-        healthBarFill.value = health / playerSettings.maxHealth;
+        DOTween.To(() => healthBarFill.value, x => healthBarFill.value = x, health / playerSettings.maxHealth, 0.3f);
     }
 
     public void FadeHurtOverlay()
@@ -159,14 +163,14 @@ public class PlayerHud : MonoBehaviour
 
     public void UpdateGroundSlamIcon(bool state)
     {
-        groundSlamIcon.color = state ? highlitedColor : fadedColor;
+        groundSlamIcon.color = state ? groundSlamAvailableColor : fadedColor;
     }
 
     public void UpdateDashIcons(int availableDashes)
     {
         for (int i = 0; i < dashIcons.Length; i++)
         {
-            dashIcons[i].color = i < availableDashes ? dashAvailableColor : fadedColor;
+            dashIcons[i].color = i < availableDashes ? highlitedColor : fadedColor;
             dashSliders[i].value = i < availableDashes ? 1 : 0;
         }
     }

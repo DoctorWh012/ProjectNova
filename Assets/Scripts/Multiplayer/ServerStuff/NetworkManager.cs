@@ -1,5 +1,6 @@
 using Riptide;
 using System;
+using System.Linq;
 using Steamworks;
 using Riptide.Utils;
 using UnityEngine;
@@ -26,6 +27,9 @@ public enum ServerToClientId : ushort
     playerSpawned,
 
     playerFired,
+    playerAltFire,
+    playerAltFireConfirmation,
+    weaponKill,
     gunChanged,
     gunReloading,
     pickedGun,
@@ -52,6 +56,8 @@ public enum ClientToServerId : ushort
     playerSuicide,
 
     fireInput,
+    altFireInput,
+    altFireConfirmation,
     slotChange,
     gunReload,
 }
@@ -213,20 +219,21 @@ public class NetworkManager : MonoBehaviour
         // REPLY HANDSHAKE?
         GameManager.Singleton.SendSceneToPlayer(id, GameManager.currentScene);
 
-        // Sends Existing Player Info To New Player
-        foreach (ushort otherPlayerId in MatchManager.playersOnLobby.Keys) SendPlayersInfoToPlayer(id, otherPlayerId);
-
-        // Sends New Player Info To Existing Players
-        SendPlayerInfo(id);
+        // Sends Players Data To Players
+        SendPlayersInfoToPlayers();
     }
 
-    private void HandleServerPlayerInfo(ushort id, PlayerData playerData)
+    private void HandleServerPlayerInfo(ushort[] ids, PlayerData[] playerDatas, ushort[] placing)
     {
-        if (!MatchManager.playersOnLobby.ContainsKey(id)) MatchManager.Singleton.IntroducePlayerToMatch(id, playerData.playerName, playerData.playerSteamId);
-        MatchManager.playersOnLobby[id].onQueue = playerData.onQueue;
-        MatchManager.playersOnLobby[id].kills = playerData.kills;
-        MatchManager.playersOnLobby[id].deaths = playerData.deaths;
-        MatchManager.Singleton.UpdateScoreBoardCapsule(id);
+        for (int i = 0; i < ids.Length; i++)
+        {
+            if (!MatchManager.playersOnLobby.ContainsKey(ids[i])) MatchManager.Singleton.IntroducePlayerToMatch(ids[i], playerDatas[i].playerName, playerDatas[i].playerSteamId);
+            MatchManager.playersOnLobby[ids[i]].onQueue = playerDatas[i].onQueue;
+            MatchManager.playersOnLobby[ids[i]].kills = playerDatas[i].kills;
+            MatchManager.playersOnLobby[ids[i]].deaths = playerDatas[i].deaths;
+        }
+        MatchManager.playersPlacing = placing;
+        MatchManager.Singleton.UpdateScoreBoardCapsules();
     }
     #endregion
 
@@ -285,21 +292,13 @@ public class NetworkManager : MonoBehaviour
         message.AddUInt(serverTick);
         Server.SendToAll(message);
     }
-
-    private void SendPlayerInfo(ushort id)
+    private void SendPlayersInfoToPlayers()
     {
         Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.playerInfo);
-        message.AddUShort(id);
-        message.AddSerializable<PlayerData>(MatchManager.playersOnLobby[id]);
+        message.AddUShorts(MatchManager.playersOnLobby.Keys.ToArray());
+        message.AddSerializables<PlayerData>(MatchManager.playersOnLobby.Values.ToArray());
+        message.AddUShorts(MatchManager.playersPlacing);
         Server.SendToAll(message);
-    }
-
-    private void SendPlayersInfoToPlayer(ushort id, ushort otherPlayerId)
-    {
-        Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.playerInfo);
-        message.AddUShort(otherPlayerId);
-        message.AddSerializable<PlayerData>(MatchManager.playersOnLobby[otherPlayerId]);
-        Server.Send(message, id);
     }
     #endregion
 
@@ -317,7 +316,7 @@ public class NetworkManager : MonoBehaviour
     private static void GetPlayerInfo(Message message)
     {
         if (NetworkManager.Singleton.Server.IsRunning) return;
-        NetworkManager.Singleton.HandleServerPlayerInfo(message.GetUShort(), message.GetSerializable<PlayerData>());
+        NetworkManager.Singleton.HandleServerPlayerInfo(message.GetUShorts(), message.GetSerializables<PlayerData>(), message.GetUShorts());
     }
     #endregion
 

@@ -347,7 +347,7 @@ PrefabInstance:
   m_SourcePrefab: {fileID: 100100000, guid: 387f6d039acc397408b9859d159141ea, type: 3}
 --- !u!1 &44281774
 GameObject:
-  m_ObjectHideFlags: 16
+  m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -366,7 +366,7 @@ GameObject:
   m_IsActive: 1
 --- !u!4 &44281775
 Transform:
-  m_ObjectHideFlags: 16
+  m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -380,7 +380,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!23 &44281776
 MeshRenderer:
-  m_ObjectHideFlags: 16
+  m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -421,7 +421,7 @@ MeshRenderer:
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &44281777
 MeshFilter:
-  m_ObjectHideFlags: 16
+  m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -448,7 +448,7 @@ MonoBehaviour:
     meshQuery:
       layers: 16777223
       maskAndChannels: 234881031
-    surfaceParameter: 30784
+    surfaceParameter: 51876
     meshQueryIndex: 7
     subMeshQueryIndex: 0
     geometryHashValue: -3767300138378709010
@@ -1389,6 +1389,52 @@ PrefabInstance:
       objectReference: {fileID: 694878034}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: ff1083e5178cf8946b29b1b28fe9a8e8, type: 3}
+--- !u!1 &121599451
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 121599452}
+  - component: {fileID: 121599453}
+  m_Layer: 0
+  m_Name: '[generated-meshes]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &121599452
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 121599451}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 1904931027}
+  m_RootOrder: 0
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &121599453
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 121599451}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 5c3643d4978096d4880d7edbf4f65a50, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  Version: 1
+  owner: {fileID: 1904931026}
+  helperSurfaces: []
 --- !u!1001 &145019102
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -1399,14 +1445,6 @@ PrefabInstance:
     - target: {fileID: 2714320114366572972, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
       propertyPath: m_Name
       value: GunSpawnPad (5)
-      objectReference: {fileID: 0}
-    - target: {fileID: 2714320114366572973, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
-      propertyPath: specificWeaponId
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2714320114366572973, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
-      propertyPath: spawnSpecificWeapon
-      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2714320114366572974, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
       propertyPath: m_RootOrder
@@ -5517,14 +5555,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: GunSpawnPad (10)
       objectReference: {fileID: 0}
-    - target: {fileID: 2714320114366572973, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
-      propertyPath: specificWeaponId
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2714320114366572973, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
-      propertyPath: spawnSpecificWeapon
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 2714320114366572974, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
       propertyPath: m_RootOrder
       value: 9
@@ -7183,7 +7213,7 @@ MonoBehaviour:
     meshQuery:
       layers: 33554440
       maskAndChannels: 8
-    surfaceParameter: 22222
+    surfaceParameter: 51888
     meshQueryIndex: 2
     subMeshQueryIndex: 0
     geometryHashValue: 5666098714618797858
@@ -7264,7 +7294,7 @@ PrefabInstance:
   m_SourcePrefab: {fileID: 100100000, guid: 331ac74bab6fb6b47bb7d909a613940c, type: 3}
 --- !u!1 &395822304
 GameObject:
-  m_ObjectHideFlags: 16
+  m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -7283,7 +7313,7 @@ GameObject:
   m_IsActive: 1
 --- !u!4 &395822305
 Transform:
-  m_ObjectHideFlags: 16
+  m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -7297,7 +7327,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!23 &395822306
 MeshRenderer:
-  m_ObjectHideFlags: 16
+  m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -7338,7 +7368,7 @@ MeshRenderer:
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &395822307
 MeshFilter:
-  m_ObjectHideFlags: 16
+  m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -7365,7 +7395,7 @@ MonoBehaviour:
     meshQuery:
       layers: 16777223
       maskAndChannels: 234881031
-    surfaceParameter: 22364
+    surfaceParameter: 51878
     meshQueryIndex: 9
     subMeshQueryIndex: 0
     geometryHashValue: -211780385884170223
@@ -7930,6 +7960,29 @@ Transform:
   m_Father: {fileID: 0}
   m_RootOrder: 7
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!21 &465234507
+Material:
+  serializedVersion: 6
+  m_ObjectHideFlags: 32
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: Color_RGBA(1.000, 0.000, 1.000, 1.000)
+  m_Shader: {fileID: 10755, guid: 0000000000000000f000000000000000, type: 0}
+  m_ShaderKeywords: 
+  m_LightmapFlags: 4
+  m_EnableInstancingVariants: 0
+  m_DoubleSidedGI: 0
+  m_CustomRenderQueue: -1
+  stringTagMap: {}
+  disabledShaderPasses: []
+  m_SavedProperties:
+    serializedVersion: 3
+    m_TexEnvs: []
+    m_Floats: []
+    m_Colors:
+    - _Color: {r: 1, g: 0, b: 1, a: 1}
+  m_BuildTextureStacks: []
 --- !u!1001 &472300572
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -8001,7 +8054,7 @@ PrefabInstance:
   m_SourcePrefab: {fileID: 100100000, guid: 387f6d039acc397408b9859d159141ea, type: 3}
 --- !u!1 &475572242
 GameObject:
-  m_ObjectHideFlags: 16
+  m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -8019,7 +8072,7 @@ GameObject:
   m_IsActive: 1
 --- !u!4 &475572243
 Transform:
-  m_ObjectHideFlags: 16
+  m_ObjectHideFlags: 2
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -8033,7 +8086,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!64 &475572244
 MeshCollider:
-  m_ObjectHideFlags: 16
+  m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -8066,7 +8119,7 @@ MonoBehaviour:
     meshQuery:
       layers: 33554440
       maskAndChannels: 8
-    surfaceParameter: 22222
+    surfaceParameter: 51888
     meshQueryIndex: 2
     subMeshQueryIndex: 0
     geometryHashValue: 5666098714618797858
@@ -12465,52 +12518,6 @@ Transform:
   m_CorrespondingSourceObject: {fileID: 1971174814385140078, guid: 387f6d039acc397408b9859d159141ea, type: 3}
   m_PrefabInstance: {fileID: 1291443446}
   m_PrefabAsset: {fileID: 0}
---- !u!1 &762619475
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 762619476}
-  - component: {fileID: 762619477}
-  m_Layer: 0
-  m_Name: '[generated-meshes]'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!4 &762619476
-Transform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 762619475}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_Children: []
-  m_Father: {fileID: 1202960652}
-  m_RootOrder: 0
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!114 &762619477
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 762619475}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5c3643d4978096d4880d7edbf4f65a50, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  Version: 1
-  owner: {fileID: 1202960651}
-  helperSurfaces: []
 --- !u!4 &762872782 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1971174814385140078, guid: 387f6d039acc397408b9859d159141ea, type: 3}
@@ -12526,14 +12533,6 @@ PrefabInstance:
     - target: {fileID: 2714320114366572972, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
       propertyPath: m_Name
       value: GunSpawnPad (6)
-      objectReference: {fileID: 0}
-    - target: {fileID: 2714320114366572973, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
-      propertyPath: specificWeaponId
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2714320114366572973, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
-      propertyPath: spawnSpecificWeapon
-      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2714320114366572974, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
       propertyPath: m_RootOrder
@@ -12872,14 +12871,6 @@ PrefabInstance:
     - target: {fileID: 2714320114366572972, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
       propertyPath: m_Name
       value: GunSpawnPad (2)
-      objectReference: {fileID: 0}
-    - target: {fileID: 2714320114366572973, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
-      propertyPath: specificWeaponId
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2714320114366572973, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
-      propertyPath: spawnSpecificWeapon
-      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2714320114366572974, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
       propertyPath: m_RootOrder
@@ -13490,7 +13481,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &827703997
 GameObject:
-  m_ObjectHideFlags: 16
+  m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -13509,7 +13500,7 @@ GameObject:
   m_IsActive: 1
 --- !u!4 &827703998
 Transform:
-  m_ObjectHideFlags: 16
+  m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -13523,7 +13514,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!23 &827703999
 MeshRenderer:
-  m_ObjectHideFlags: 16
+  m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -13564,7 +13555,7 @@ MeshRenderer:
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &827704000
 MeshFilter:
-  m_ObjectHideFlags: 16
+  m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -13591,7 +13582,7 @@ MonoBehaviour:
     meshQuery:
       layers: 16777223
       maskAndChannels: 234881031
-    surfaceParameter: 24104
+    surfaceParameter: 32814
     meshQueryIndex: 6
     subMeshQueryIndex: 0
     geometryHashValue: 2758972029109474624
@@ -13670,29 +13661,6 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 331ac74bab6fb6b47bb7d909a613940c, type: 3}
---- !u!21 &867930397
-Material:
-  serializedVersion: 6
-  m_ObjectHideFlags: 32
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_Name: Color_RGBA(1.000, 0.000, 1.000, 1.000)
-  m_Shader: {fileID: 10755, guid: 0000000000000000f000000000000000, type: 0}
-  m_ShaderKeywords: 
-  m_LightmapFlags: 4
-  m_EnableInstancingVariants: 0
-  m_DoubleSidedGI: 0
-  m_CustomRenderQueue: -1
-  stringTagMap: {}
-  disabledShaderPasses: []
-  m_SavedProperties:
-    serializedVersion: 3
-    m_TexEnvs: []
-    m_Floats: []
-    m_Colors:
-    - _Color: {r: 1, g: 0, b: 1, a: 1}
-  m_BuildTextureStacks: []
 --- !u!4 &900373809 stripped
 Transform:
   m_CorrespondingSourceObject: {fileID: 1971174814385140078, guid: 387f6d039acc397408b9859d159141ea, type: 3}
@@ -13705,7 +13673,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &919616872
 GameObject:
-  m_ObjectHideFlags: 16
+  m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -13724,7 +13692,7 @@ GameObject:
   m_IsActive: 1
 --- !u!4 &919616873
 Transform:
-  m_ObjectHideFlags: 16
+  m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -13738,7 +13706,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!23 &919616874
 MeshRenderer:
-  m_ObjectHideFlags: 16
+  m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -13755,7 +13723,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 867930397}
+  - {fileID: 465234507}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -13779,7 +13747,7 @@ MeshRenderer:
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &919616875
 MeshFilter:
-  m_ObjectHideFlags: 16
+  m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -15032,14 +15000,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: GunSpawnPad (1)
       objectReference: {fileID: 0}
-    - target: {fileID: 2714320114366572973, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
-      propertyPath: specificWeaponId
-      value: 4
-      objectReference: {fileID: 0}
-    - target: {fileID: 2714320114366572973, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
-      propertyPath: spawnSpecificWeapon
-      value: 1
-      objectReference: {fileID: 0}
     - target: {fileID: 2714320114366572974, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
       propertyPath: m_RootOrder
       value: 0
@@ -15178,7 +15138,7 @@ Transform:
   m_PrefabAsset: {fileID: 0}
 --- !u!1 &1043328859
 GameObject:
-  m_ObjectHideFlags: 0
+  m_ObjectHideFlags: 3
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -15195,7 +15155,7 @@ GameObject:
   m_IsActive: 1
 --- !u!4 &1043328860
 Transform:
-  m_ObjectHideFlags: 0
+  m_ObjectHideFlags: 11
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -15218,7 +15178,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!114 &1043328861
 MonoBehaviour:
-  m_ObjectHideFlags: 0
+  m_ObjectHideFlags: 27
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -15574,14 +15534,6 @@ PrefabInstance:
     - target: {fileID: 2714320114366572972, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
       propertyPath: m_Name
       value: GunSpawnPad (3)
-      objectReference: {fileID: 0}
-    - target: {fileID: 2714320114366572973, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
-      propertyPath: specificWeaponId
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2714320114366572973, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
-      propertyPath: spawnSpecificWeapon
-      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2714320114366572974, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
       propertyPath: m_RootOrder
@@ -16765,7 +16717,7 @@ Transform:
   m_LocalScale: {x: 16.258, y: 16.258, z: 16.258}
   m_Children: []
   m_Father: {fileID: 0}
-  m_RootOrder: 12
+  m_RootOrder: 11
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!43 &1142158105
 Mesh:
@@ -17247,7 +17199,7 @@ ReflectionProbe:
   m_CullingMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  m_IntensityMultiplier: 1.2
+  m_IntensityMultiplier: 1.5
   m_BlendDistance: 1
   m_HDR: 1
   m_BoxProjection: 0
@@ -17525,14 +17477,6 @@ PrefabInstance:
     - target: {fileID: 2714320114366572972, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
       propertyPath: m_Name
       value: GunSpawnPad (8)
-      objectReference: {fileID: 0}
-    - target: {fileID: 2714320114366572973, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
-      propertyPath: specificWeaponId
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2714320114366572973, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
-      propertyPath: spawnSpecificWeapon
-      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2714320114366572974, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
       propertyPath: m_RootOrder
@@ -18018,90 +17962,6 @@ PrefabInstance:
       objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 387f6d039acc397408b9859d159141ea, type: 3}
---- !u!1 &1202960649
-GameObject:
-  m_ObjectHideFlags: 17
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1202960652}
-  - component: {fileID: 1202960651}
-  - component: {fileID: 1202960650}
-  m_Layer: 0
-  m_Name: '[default-CSGModel]'
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 124
-  m_IsActive: 1
---- !u!54 &1202960650
-Rigidbody:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1202960649}
-  serializedVersion: 2
-  m_Mass: 1
-  m_Drag: 0
-  m_AngularDrag: 0.05
-  m_UseGravity: 0
-  m_IsKinematic: 1
-  m_Interpolate: 0
-  m_Constraints: 126
-  m_CollisionDetection: 0
---- !u!114 &1202960651
-MonoBehaviour:
-  m_ObjectHideFlags: 17
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1202960649}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 8672dcc90e16b0a489a41edf56e016f8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  PrefabBehaviour: 0
-  PrefabSourceAlignment: 4
-  PrefabDestinationAlignment: 0
-  Version: 1.1
-  infiniteBrush: {fileID: 0}
-  Settings: 1025
-  VertexChannels: 14
-  ReceiveGI: 2
-  MeshColliderCookingOptions: 14
-  ShowGeneratedMeshes: 0
-  DefaultPhysicsMaterial: {fileID: 13400000, guid: 0c5fdfb44d6f19646a41a0720fbf751a, type: 2}
-  exportType: 0
-  originType: 0
-  exportColliders: 0
-  exportPath: 
-  angleError: 1
-  areaError: 1
-  hardAngle: 60
-  packMargin: 20
-  scaleInLightmap: 1
-  autoUVMaxDistance: 0.5
-  autoUVMaxAngle: 89
-  minimumChartSize: 4
---- !u!4 &1202960652
-Transform:
-  m_ObjectHideFlags: 17
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1202960649}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_Children:
-  - {fileID: 762619476}
-  m_Father: {fileID: 0}
-  m_RootOrder: 11
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1233201115
 GameObject:
   m_ObjectHideFlags: 0
@@ -21956,7 +21816,7 @@ PrefabInstance:
   m_SourcePrefab: {fileID: 100100000, guid: 331ac74bab6fb6b47bb7d909a613940c, type: 3}
 --- !u!1 &1421012461
 GameObject:
-  m_ObjectHideFlags: 16
+  m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -21975,7 +21835,7 @@ GameObject:
   m_IsActive: 1
 --- !u!4 &1421012462
 Transform:
-  m_ObjectHideFlags: 16
+  m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -21989,7 +21849,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!23 &1421012463
 MeshRenderer:
-  m_ObjectHideFlags: 16
+  m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -22030,7 +21890,7 @@ MeshRenderer:
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1421012464
 MeshFilter:
-  m_ObjectHideFlags: 16
+  m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -22057,7 +21917,7 @@ MonoBehaviour:
     meshQuery:
       layers: 16777223
       maskAndChannels: 234881031
-    surfaceParameter: 21980
+    surfaceParameter: 51880
     meshQueryIndex: 1
     subMeshQueryIndex: 0
     geometryHashValue: -4036909496309500472
@@ -25754,14 +25614,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: GunSpawnPad (4)
       objectReference: {fileID: 0}
-    - target: {fileID: 2714320114366572973, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
-      propertyPath: specificWeaponId
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2714320114366572973, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
-      propertyPath: spawnSpecificWeapon
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 2714320114366572974, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
       propertyPath: m_RootOrder
       value: 3
@@ -26244,14 +26096,6 @@ PrefabInstance:
     - target: {fileID: 2714320114366572972, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
       propertyPath: m_Name
       value: GunSpawnPad (9)
-      objectReference: {fileID: 0}
-    - target: {fileID: 2714320114366572973, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
-      propertyPath: specificWeaponId
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2714320114366572973, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
-      propertyPath: spawnSpecificWeapon
-      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2714320114366572974, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
       propertyPath: m_RootOrder
@@ -27610,7 +27454,7 @@ ReflectionProbe:
   m_CullingMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  m_IntensityMultiplier: 1.2
+  m_IntensityMultiplier: 1.5
   m_BlendDistance: 1
   m_HDR: 1
   m_BoxProjection: 0
@@ -27620,7 +27464,7 @@ ReflectionProbe:
   m_CustomBakedTexture: {fileID: 0}
 --- !u!1 &1751700792
 GameObject:
-  m_ObjectHideFlags: 16
+  m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -27639,7 +27483,7 @@ GameObject:
   m_IsActive: 1
 --- !u!4 &1751700793
 Transform:
-  m_ObjectHideFlags: 16
+  m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -27653,7 +27497,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!23 &1751700794
 MeshRenderer:
-  m_ObjectHideFlags: 16
+  m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -27694,7 +27538,7 @@ MeshRenderer:
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1751700795
 MeshFilter:
-  m_ObjectHideFlags: 16
+  m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -27721,7 +27565,7 @@ MonoBehaviour:
     meshQuery:
       layers: 16777223
       maskAndChannels: 234881031
-    surfaceParameter: 21986
+    surfaceParameter: 32812
     meshQueryIndex: 0
     subMeshQueryIndex: 0
     geometryHashValue: 7304220830619166063
@@ -29302,14 +29146,6 @@ PrefabInstance:
       propertyPath: m_Name
       value: GunSpawnPad (7)
       objectReference: {fileID: 0}
-    - target: {fileID: 2714320114366572973, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
-      propertyPath: specificWeaponId
-      value: 0
-      objectReference: {fileID: 0}
-    - target: {fileID: 2714320114366572973, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
-      propertyPath: spawnSpecificWeapon
-      value: 0
-      objectReference: {fileID: 0}
     - target: {fileID: 2714320114366572974, guid: 9bf3a5d7bbae3c44596aff421133fd2d, type: 3}
       propertyPath: m_RootOrder
       value: 6
@@ -30410,6 +30246,90 @@ MonoBehaviour:
     - EdgeIndices: 07000000060000000500000004000000
       TexGenIndex: 5
     Generation: 2
+--- !u!1 &1904931024
+GameObject:
+  m_ObjectHideFlags: 17
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1904931027}
+  - component: {fileID: 1904931026}
+  - component: {fileID: 1904931025}
+  m_Layer: 0
+  m_Name: '[default-CSGModel]'
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 124
+  m_IsActive: 1
+--- !u!54 &1904931025
+Rigidbody:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1904931024}
+  serializedVersion: 2
+  m_Mass: 1
+  m_Drag: 0
+  m_AngularDrag: 0.05
+  m_UseGravity: 0
+  m_IsKinematic: 1
+  m_Interpolate: 0
+  m_Constraints: 126
+  m_CollisionDetection: 0
+--- !u!114 &1904931026
+MonoBehaviour:
+  m_ObjectHideFlags: 17
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1904931024}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8672dcc90e16b0a489a41edf56e016f8, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  PrefabBehaviour: 0
+  PrefabSourceAlignment: 4
+  PrefabDestinationAlignment: 0
+  Version: 1.1
+  infiniteBrush: {fileID: 0}
+  Settings: 1025
+  VertexChannels: 14
+  ReceiveGI: 2
+  MeshColliderCookingOptions: 14
+  ShowGeneratedMeshes: 0
+  DefaultPhysicsMaterial: {fileID: 13400000, guid: 0c5fdfb44d6f19646a41a0720fbf751a, type: 2}
+  exportType: 0
+  originType: 0
+  exportColliders: 0
+  exportPath: 
+  angleError: 1
+  areaError: 1
+  hardAngle: 60
+  packMargin: 20
+  scaleInLightmap: 1
+  autoUVMaxDistance: 0.5
+  autoUVMaxAngle: 89
+  minimumChartSize: 4
+--- !u!4 &1904931027
+Transform:
+  m_ObjectHideFlags: 17
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1904931024}
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children:
+  - {fileID: 121599452}
+  m_Father: {fileID: 0}
+  m_RootOrder: 12
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1907428147
 GameObject:
   m_ObjectHideFlags: 0
@@ -31419,7 +31339,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1936763971
 GameObject:
-  m_ObjectHideFlags: 16
+  m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -31438,7 +31358,7 @@ GameObject:
   m_IsActive: 1
 --- !u!4 &1936763972
 Transform:
-  m_ObjectHideFlags: 16
+  m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -31452,7 +31372,7 @@ Transform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!23 &1936763973
 MeshRenderer:
-  m_ObjectHideFlags: 16
+  m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -31493,7 +31413,7 @@ MeshRenderer:
   m_AdditionalVertexStreams: {fileID: 0}
 --- !u!33 &1936763974
 MeshFilter:
-  m_ObjectHideFlags: 16
+  m_ObjectHideFlags: 1
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
@@ -31520,7 +31440,7 @@ MonoBehaviour:
     meshQuery:
       layers: 16777223
       maskAndChannels: 234881031
-    surfaceParameter: 30800
+    surfaceParameter: 51884
     meshQueryIndex: 10
     subMeshQueryIndex: 0
     geometryHashValue: 257097312224423908
@@ -32982,7 +32902,7 @@ ReflectionProbe:
   m_CullingMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  m_IntensityMultiplier: 1.2
+  m_IntensityMultiplier: 1.5
   m_BlendDistance: 1
   m_HDR: 1
   m_BoxProjection: 0
@@ -33475,7 +33395,7 @@ ReflectionProbe:
   m_CullingMask:
     serializedVersion: 2
     m_Bits: 4294967295
-  m_IntensityMultiplier: 1.2
+  m_IntensityMultiplier: 1.5
   m_BlendDistance: 1
   m_HDR: 1
   m_BoxProjection: 0

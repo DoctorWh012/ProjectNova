@@ -1,7 +1,9 @@
 using FirstGearGames.SmoothCameraShaker;
 using UnityEngine;
+using UnityEngine.UI;
 using DG.Tweening;
 using System.Collections.Generic;
+using System;
 
 public enum Gunslot : int
 {
@@ -28,6 +30,7 @@ public enum WeaponState
 {
     Idle,
     Shooting,
+    Ulting,
     Reloading,
     Switching
 }
@@ -91,8 +94,12 @@ public class BaseWeapon : MonoBehaviour
     [Space(5)]
     [SerializeField] public float switchingTime;
     [SerializeField] public string weaponHoldAnimation;
+
     [SerializeField] public Transform leftHandTarget;
+    [SerializeField] public Transform leftHandPole;
+
     [SerializeField] public Transform rightHandTarget;
+    [SerializeField] public Transform rightHandPole;
 
     [Header("Weapon")]
     [Space(5)]
@@ -112,6 +119,12 @@ public class BaseWeapon : MonoBehaviour
     [SerializeField] public int reloadSpins;
     [SerializeField] public int maxAmmo;
     [HideInInspector] protected int _currentAmmo;
+
+    [Header("Ultimate")]
+    [Space(5)]
+    [SerializeField] public GameObject ultimateIcon;
+    [SerializeField] public Slider ultimateSlider;
+    [SerializeField] public Image ultimateIconImg;
 
     public int currentAmmo
     {
@@ -150,6 +163,7 @@ public class BaseWeapon : MonoBehaviour
     [Space(5)]
     [SerializeField] public WeaponState currentWeaponState = WeaponState.Idle; // Serialized for Debugging
 
+    public int killsPerformed;
     protected float damageMultiplier;
     protected float fireTime;
     public Vector3 startingRotation;
@@ -161,6 +175,11 @@ public class BaseWeapon : MonoBehaviour
         tickFireRate = (1f / fireRate) / Time.fixedDeltaTime;
         fireTime = 1f / fireRate;
         currentAmmo = maxAmmo;
+    }
+
+    public virtual void OnWeaponPickUp()
+    {
+        killsPerformed = 0;
     }
 
     public virtual void ActivateWeapon()
@@ -178,20 +197,24 @@ public class BaseWeapon : MonoBehaviour
             weaponAudioSource.PlayOneShot(weaponPickupSound);
         }
 
-        if (player.IsLocal)
-        {
-            playerHud.UpdateWeaponOnSlot((int)slot, weaponName, weaponIcon, true);
-            playerHud.UpdateAmmoDisplay(currentAmmo, maxAmmo);
-            if (SettingsManager.playerPreferences.crosshairType == 0) playerHud.UpdateCrosshair((int)crosshairType, crosshairScale, crosshairShotScale, crosshairShrinkTime);
-            else playerHud.UpdateCrosshair((int)CrosshairType.dot, 1, 1, 0);
-        }
+        if (!player.IsLocal) return;
+        playerHud.UpdateWeaponOnSlot((int)slot, weaponName, weaponIcon, true);
+        playerHud.UpdateAmmoDisplay(currentAmmo, maxAmmo);
+        if (ultimateIcon) ultimateIcon.SetActive(true);
+
+        if (SettingsManager.playerPreferences.crosshairType == 0) playerHud.UpdateCrosshair((int)crosshairType, crosshairScale, crosshairShotScale, crosshairShrinkTime);
+        else playerHud.UpdateCrosshair((int)CrosshairType.dot, 1, 1, 0);
     }
 
     public virtual void DeactivateWeapon()
     {
         gameObject.SetActive(false);
         CancelInvoke(nameof(FinishSwitching));
-        AbortReload();
+        if (currentWeaponState == WeaponState.Reloading) AbortReload();
+        if (currentWeaponState == WeaponState.Ulting) AbortSecondaryAction();
+
+        if (!player.IsLocal) return;
+        if (ultimateIcon) ultimateIcon.SetActive(false);
     }
 
     public virtual void PrimaryAction(uint tick, bool compensatingForSwitch = false)
@@ -199,14 +222,37 @@ public class BaseWeapon : MonoBehaviour
 
     }
 
-    public virtual void SecondaryAction()
+    public virtual void SecondaryAction(uint tick)
     {
 
+    }
+
+    public virtual void AbortSecondaryAction()
+    {
+
+    }
+
+    public virtual void HandleServerWeaponKill(int kills, uint tick)
+    {
+        killsPerformed = kills;
+        playerShooting.lastWeaponKillsTick = tick;
+    }
+
+    public virtual void OnKillPerformed()
+    {
+        killsPerformed++;
+        playerShooting.lastWeaponKillsTick = NetworkManager.Singleton.serverTick;
+        playerShooting.SendWeaponKill(killsPerformed);
     }
 
     public virtual bool CanPerformPrimaryAction(uint tick, bool compensatingForSwitch)
     {
         return true;
+    }
+
+    public virtual bool CanPerformSecondaryAction(uint tick)
+    {
+        return false;
     }
 
     public virtual void CheckIfReloadIsNeeded()
@@ -216,6 +262,7 @@ public class BaseWeapon : MonoBehaviour
 
     public virtual void Reload()
     {
+        print("<color=red>RELOADDDDDD</color>");
         if (!CanReload()) return;
         SwitchWeaponState(WeaponState.Reloading);
 
@@ -250,7 +297,7 @@ public class BaseWeapon : MonoBehaviour
     public void AbortReload()
     {
         transform.DOKill();
-        transform.localRotation = Quaternion.Euler(Vector3.zero);
+        transform.localRotation = Quaternion.identity;
         if (player.IsLocal) playerShooting.playerHud.UpdateReloadSlider(0);
         SwitchWeaponState(WeaponState.Idle);
     }
@@ -267,9 +314,16 @@ public class BaseWeapon : MonoBehaviour
         playerShooting.rightArm.handIK.enabled = rightHandTarget;
 
         if (leftHandTarget) playerShooting.leftArm.handIK.Target = leftHandTarget;
-        if (rightHandTarget) playerShooting.rightArm.handIK.Target = rightHandTarget;
+        if (leftHandPole) playerShooting.leftArm.handIK.Pole = leftHandPole;
 
-        if (!string.IsNullOrEmpty(weaponHoldAnimation)) playerShooting.armsAnimator.Play(weaponHoldAnimation, 0, 0);
+        if (rightHandTarget) playerShooting.rightArm.handIK.Target = rightHandTarget;
+        if (rightHandPole) playerShooting.rightArm.handIK.Pole = rightHandPole;
+
+        if (!string.IsNullOrEmpty(weaponHoldAnimation))
+        {
+            if (player.IsLocal) playerShooting.armsAnimator.Play(weaponHoldAnimation, 0, 0);
+            else playerShooting.armsAnimator.Play(weaponHoldAnimation, 1, 0);
+        }
 
         if (player.IsLocal && SettingsManager.playerPreferences.renderArms) playerShooting.EnableDisableHandsMeshes(leftHandTarget, rightHandTarget);
     }
@@ -277,10 +331,9 @@ public class BaseWeapon : MonoBehaviour
 
     protected RaycastHit FilteredRaycast(Vector3 dir)
     {
-        // filterRayHits = Physics.RaycastAll(playerShooting.playerCam.position, dir.normalized, range, ~playerShooting.layersToIgnoreShootRaycast);
         RaycastHit[] filterRayHits = Physics.SphereCastAll(playerShooting.playerCam.position, 0.1f, dir.normalized, range, ~playerShooting.layersToIgnoreShootRaycast);
 
-        System.Array.Sort(filterRayHits, (x, y) => x.distance.CompareTo(y.distance));
+        Array.Sort(filterRayHits, (x, y) => x.distance.CompareTo(y.distance));
 
         for (int i = 0; i < filterRayHits.Length; i++)
         {
@@ -310,10 +363,26 @@ public class BaseWeapon : MonoBehaviour
         return filteredCol;
     }
 
+    protected Collider[] PlayersOverlapSphere(Vector3 pos, float radius)
+    {
+        return Physics.OverlapSphere(pos, radius, playerShooting.playersLayer);
+    }
+
+    protected bool FilteredObstacleCheck(Vector3 from, Vector3 to)
+    {
+        return Physics.Raycast(from, to - from, Vector3.Distance(from, to), playerShooting.obstacleLayers);
+    }
+
     protected bool CheckDuplicateCol(List<Collider> filteredCol, Collider col)
     {
         foreach (Collider fcol in filteredCol) if (fcol.transform.root == col.transform.root) return true;
         return false;
+    }
+
+    protected bool CheckAltFireConfirmation()
+    {
+        if (player.IsLocal) return Input.GetKey(SettingsManager.playerPreferences.altFireBtn);
+        else return playerShooting.lastAltFireConfirmationTick < playerShooting.lastAltFireTick;
     }
 
     protected bool CheckPlayerHit(Collider col)
@@ -355,6 +424,7 @@ public class BaseWeapon : MonoBehaviour
 
         if (hitPlayer.playerHealth.ReceiveDamage(damage * damageMultiplier, player.Id))
         {
+            OnKillPerformed();
             MatchManager.Singleton.AddKillToPlayerScore(player.Id);
             player.playerHealth.RecoverHealth(playerShooting.scriptablePlayer.maxHealth);
         }

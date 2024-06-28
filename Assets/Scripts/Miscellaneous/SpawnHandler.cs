@@ -1,5 +1,3 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class SpawnHandler : MonoBehaviour
@@ -9,7 +7,10 @@ public class SpawnHandler : MonoBehaviour
     [Header("Components")]
     [SerializeField] private Transform[] spawns;
 
-    private void Awake() => Instance = this;
+    private void Awake()
+    {
+        Instance = this;
+    }
 
     public Vector3 GetSpawnLocation()
     {

@@ -11,14 +11,13 @@ using Steamworks;
 public class PlayerData : IMessageSerializable
 {
     public string playerName;
-    public Sprite playerAvatar;
     public CSteamID playerSteamId;
+    public Sprite playerAvatar;
 
     public bool onQueue;
 
     public int kills;
     public int deaths;
-    public PlayerScoreCapsule scoreCapsule;
 
     public PlayerData(string name, CSteamID steamId)
     {
@@ -86,8 +85,8 @@ public class MatchManager : MonoBehaviour
     }
 
     public static Dictionary<ushort, PlayerData> playersOnLobby = new Dictionary<ushort, PlayerData>(); // NEEDS CLEARING
-    public static int matchingPlayers;
-    public static int respawnTime { get; private set; } = 5;
+    public static ushort[] playersPlacing;
+    public static int respawnTime { get; private set; } = 1;
     public static GameMode currentGamemode { get; private set; }
     public static MatchState currentMatchState = MatchState.Waiting;
 
@@ -95,8 +94,7 @@ public class MatchManager : MonoBehaviour
     [SerializeField] private PlayerScoreCapsule playerScoreCapsulePrefab;
 
     [Header("Components")]
-    [SerializeField] private TextMeshProUGUI mediumTopText;
-    [SerializeField] private TextMeshProUGUI bigTopText;
+    [SerializeField] private TextMeshProUGUI matchTimerTxt;
     [SerializeField] public GameObject scoreboard;
     [SerializeField] private Transform scoreboardCapsulesHolder;
 
@@ -111,6 +109,7 @@ public class MatchManager : MonoBehaviour
     [SerializeField] private MatchState matchStateDebug = currentMatchState;
 
     protected Callback<AvatarImageLoaded_t> avatarLoaded;
+    private List<PlayerScoreCapsule> scoreCapsules = new List<PlayerScoreCapsule>();
 
     uint lastMatchDataTick;
     private float matchTime;
@@ -125,7 +124,6 @@ public class MatchManager : MonoBehaviour
     private void Start()
     {
         avatarLoaded = Callback<AvatarImageLoaded_t>.Create(OnAvatarLoaded);
-        ResetAllUITexts();
         OpenCloseScoreBoard(false);
     }
 
@@ -144,11 +142,13 @@ public class MatchManager : MonoBehaviour
     {
         playersOnLobby.Add(id, new PlayerData(name, steamId));
 
-        CreatePlayerScoreBoardCapsule(id);
-        UpdateScoreBoardCapsule(id);
+        int imageId = SteamFriends.GetLargeFriendAvatar(steamId);
+        if (imageId != -1) playersOnLobby[id].playerAvatar = GetSmallAvatar(playersOnLobby[id].playerSteamId, imageId);
+
+        CreatePlayerScoreBoardCapsule();
 
         if (!NetworkManager.Singleton.Server.IsRunning) return;
-
+        RankPlayers();
         SendMatchDataToPlayer(id);
         playersOnLobby[id].onQueue = currentMatchState == MatchState.Ongoing;
 
@@ -158,19 +158,20 @@ public class MatchManager : MonoBehaviour
     public void RemovePlayerFromMatch(ushort id)
     {
         playerDataDebug.Remove(playersOnLobby[id]);
-
-        DestroyPlayerScoreBoardCapsule(id);
         playersOnLobby.Remove(id);
 
+        Destroy(scoreCapsules[scoreCapsules.Count - 1].gameObject);
+        scoreCapsules.RemoveAt(scoreCapsules.Count - 1);
+
+        RankPlayers();
     }
 
     public void RemoveAllPlayersFromMatch()
     {
+        DestroyPlayersScoreBoardCapsules();
         foreach (ushort id in playersOnLobby.Keys.ToList())
         {
             playerDataDebug.Remove(playersOnLobby[id]);
-
-            DestroyPlayerScoreBoardCapsule(id);
             playersOnLobby.Remove(id);
         }
     }
@@ -184,41 +185,47 @@ public class MatchManager : MonoBehaviour
 
     private void AssignPingToCapsules()
     {
-        foreach (Connection clients in NetworkManager.Singleton.Server.Clients)
-        {
-            if (!playersOnLobby.ContainsKey(clients.Id)) return;
-            playersOnLobby[clients.Id].scoreCapsule.playerPingTxt.SetText(clients.SmoothRTT.ToString());
-        }
+        // foreach (Connection clients in NetworkManager.Singleton.Server.Clients)
+        // {
+        //     if (!playersOnLobby.ContainsKey(clients.Id)) return;
+        //     playersOnLobby[clients.Id].scoreCapsule.playerPingTxt.SetText(clients.SmoothRTT.ToString());
+        // }
     }
 
     public void AddKillToPlayerScore(ushort id)
     {
         playersOnLobby[id].kills++;
-        UpdateScoreBoardCapsule(id);
+        RankPlayers();
+        if (NetworkManager.Singleton.Server.IsRunning) SendScoreBoardChanged(id);
     }
 
     public void AddDeathToPlayerScore(ushort id)
     {
         playersOnLobby[id].deaths++;
         UpdateScoreBoardCapsule(id);
+        if (NetworkManager.Singleton.Server.IsRunning) SendScoreBoardChanged(id);
     }
 
     private void HandleScoreboardChange(ushort id, int kills, int deaths)
     {
-        if (!playersOnLobby.ContainsKey(id)) return;
-
         playersOnLobby[id].kills = kills;
         playersOnLobby[id].deaths = deaths;
-        playersOnLobby[id].scoreCapsule.playerKDTxt.SetText($"{playersOnLobby[id].kills} / {playersOnLobby[id].deaths}");
+        RankPlayers();
     }
 
-    public void UpdateScoreBoardCapsule(ushort id)
+    public void UpdateScoreBoardCapsules()
     {
-        if (!playersOnLobby.ContainsKey(id)) return;
+        for (int i = 0; i < playersPlacing.Length; i++)
+        {
+            PlayerData playerData = playersOnLobby[playersPlacing[i]];
+            scoreCapsules[i].SetUpCapsule(playersPlacing[i], playerData.playerName, playerData.playerAvatar, playerData.kills, playerData.deaths);
+        }
+    }
 
-        playersOnLobby[id].scoreCapsule.playerKDTxt.SetText($"{playersOnLobby[id].kills} / {playersOnLobby[id].deaths}");
-
-        if (NetworkManager.Singleton.Server.IsRunning) SendScoreBoardChanged(id);
+    private void UpdateScoreBoardCapsule(ushort id)
+    {
+        PlayerData playerData = playersOnLobby[id];
+        scoreCapsules[Array.IndexOf(playersPlacing, id)].SetUpCapsule(id, playerData.playerName, playerData.playerAvatar, playerData.kills, playerData.deaths);
     }
 
     private void ResetScoreBoard()
@@ -227,38 +234,36 @@ public class MatchManager : MonoBehaviour
         {
             playerKD.Value.kills = 0;
             playerKD.Value.deaths = 0;
-            UpdateScoreBoardCapsule(playerKD.Key);
+            if (NetworkManager.Singleton.Server.IsRunning) SendScoreBoardChanged(playerKD.Key);
         }
+        UpdateScoreBoardCapsules();
     }
 
-    private void OnAvatarLoaded(AvatarImageLoaded_t callback)
-    {
-        print("ON AVATAR LOADED");
-        foreach (PlayerData playerData in playersOnLobby.Values)
-        {
-            if (playerData.playerSteamId == callback.m_steamID)
-            {
-                playerData.playerAvatar = GetSmallAvatar(callback.m_steamID, callback.m_iImage);
-                playerData.scoreCapsule.playerImg.sprite = playerData.playerAvatar;
-            }
-        }
-    }
-
-    private void CreatePlayerScoreBoardCapsule(ushort id)
+    private void CreatePlayerScoreBoardCapsule()
     {
         PlayerScoreCapsule scoreCapsule = Instantiate(playerScoreCapsulePrefab);
         scoreCapsule.transform.SetParent(scoreboardCapsulesHolder);
         scoreCapsule.transform.localScale = Vector3.one;
+        scoreCapsules.Add(scoreCapsule);
+    }
 
-        scoreCapsule.SetUpCapsule(id, playersOnLobby[id].playerName);
-        playersOnLobby[id].scoreCapsule = scoreCapsule;
+    private void DestroyPlayersScoreBoardCapsules()
+    {
+        for (int i = 0; i < scoreCapsules.Count; i++) Destroy(scoreCapsules[i].gameObject);
+        scoreCapsules.Clear();
+    }
 
-        int imageId = SteamFriends.GetLargeFriendAvatar(playersOnLobby[id].playerSteamId);
-        if (imageId != -1)
+    private void RankPlayers()
+    {
+        switch (currentGamemode)
         {
-            playersOnLobby[id].playerAvatar = GetSmallAvatar(playersOnLobby[id].playerSteamId, imageId);
-            playersOnLobby[id].scoreCapsule.playerImg.sprite = playersOnLobby[id].playerAvatar;
+            case GameMode.FreeForAll:
+                // Rank Players By Kills
+                playersPlacing = playersOnLobby.OrderByDescending(x => x.Value.kills).Select(x => x.Key).ToArray();
+                break;
         }
+
+        UpdateScoreBoardCapsules();
     }
 
     private Sprite GetSmallAvatar(CSteamID user, int image)
@@ -283,17 +288,18 @@ public class MatchManager : MonoBehaviour
         return Sprite.Create(new Texture2D(50, 50), new Rect(0, 0, 50, 50), new Vector2(0.5f, 0.5f));
     }
 
-    private void DestroyPlayerScoreBoardCapsule(ushort id)
+    private void OnAvatarLoaded(AvatarImageLoaded_t callback)
     {
-        Destroy(playersOnLobby[id].scoreCapsule.gameObject);
+        foreach (PlayerData playerData in playersOnLobby.Values)
+        {
+            if (playerData.playerSteamId == callback.m_steamID)
+            {
+                playerData.playerAvatar = GetSmallAvatar(callback.m_steamID, callback.m_iImage);
+                UpdateScoreBoardCapsules();
+            }
+        }
     }
     #endregion
-
-    private void ResetAllUITexts()
-    {
-        mediumTopText.SetText("");
-        bigTopText.SetText("");
-    }
 
     #region Match
     private void HandleMatchData(uint tick, byte respawnT, GameMode gamemode, MatchState matchState)
@@ -336,15 +342,17 @@ public class MatchManager : MonoBehaviour
 
     public void EndMatch()
     {
-        // NEEDS REWORK
-        ResetAllUITexts();
+        timer = 0;
+        timerEndText = "";
+        matchTimerTxt.SetText("");
+        SendMatchTimer();
+
         StopAllCoroutines();
         ChangeMatchStatus(MatchState.Waiting);
     }
 
     private void StartFreeForAllMatch()
     {
-
     }
     #endregion
 
@@ -452,19 +460,21 @@ public class MatchManager : MonoBehaviour
         while (timer > 0)
         {
             timer -= Time.deltaTime;
-            bigTopText.SetText(timer > 1 ? timer.ToString("#") : timerEndText);
+            matchTimerTxt.SetText(timer > 1 ? timer.ToString("#") : timerEndText);
             yield return null;
         }
-        ResetAllUITexts();
-        matchingPlayers = playersOnLobby.Count;
+        matchTimerTxt.SetText("");
 
         // Loads the map
         GameManager.Singleton.LoadScene(scene, "Match");
         ResetScoreBoard();
 
+        if (GameManager.currentScene != scene) yield return null;
+
         // Should wait for all players to load In
-        bigTopText.SetText("Waiting For Players To Load In...");
-        while (GameManager.playersLoadedScene < matchingPlayers) yield return null;
+        matchTimerTxt.SetText("Waiting For Players To Load In...");
+        while (GameManager.playersLoadedScene < playersOnLobby.Count) yield return null;
+
 
         foreach (Player player in Player.list.Values) SendPlayerMovementFreeze(player.Id);
 
@@ -475,10 +485,10 @@ public class MatchManager : MonoBehaviour
         while (timer > 0)
         {
             timer -= Time.deltaTime;
-            bigTopText.SetText(timer > 1 ? timer.ToString("#") : timerEndText);
+            matchTimerTxt.SetText(timer > 1 ? timer.ToString("#") : timerEndText);
             yield return null;
         }
-        ResetAllUITexts();
+        matchTimerTxt.SetText("");
 
         foreach (Player player in Player.list.Values) SendPlayerMovementFree(player.Id);
 
@@ -489,10 +499,15 @@ public class MatchManager : MonoBehaviour
         while (timer > 0)
         {
             timer -= Time.deltaTime;
-            bigTopText.SetText(timer > 1 ? timer.ToString("#") : timerEndText);
+            matchTimerTxt.SetText(timer > 1 ? timer.ToString("#") : timerEndText);
             yield return null;
         }
-        ResetAllUITexts();
+        matchTimerTxt.SetText("");
+
+        GameManager.Singleton.LoadScene(GameManager.winScreen, "Match");
+        while (GameManager.playersLoadedScene < playersOnLobby.Count) yield return null;
+
+        yield return new WaitForSeconds(5);
 
         ResetScoreBoard();
         GameManager.Singleton.LoadScene(GameManager.lobbyScene, "Match");
@@ -507,9 +522,9 @@ public class MatchManager : MonoBehaviour
         while (timer > 0)
         {
             timer -= Time.deltaTime;
-            bigTopText.SetText(timer > 1 ? timer.ToString("#") : $"{text}");
+            matchTimerTxt.SetText(timer > 1 ? timer.ToString("#") : $"{text}");
             yield return null;
         }
-        ResetAllUITexts();
+        matchTimerTxt.SetText("");
     }
 }

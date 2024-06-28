@@ -62,7 +62,6 @@ public class PlayerHealth : MonoBehaviour
 
             _currentHealth = value > scriptablePlayer.maxHealth ? scriptablePlayer.maxHealth : value < 0 ? 0 : value;
 
-            print($"got here {player.username} | {player.IsLocal} | health {_currentHealth}");
             if (player.IsLocal) playerHud.UpdateHealthDisplay(_currentHealth);
             if (NetworkManager.Singleton.Server.IsRunning) SendUpdatedHealth();
         }
@@ -131,10 +130,9 @@ public class PlayerHealth : MonoBehaviour
 
     private void HandleServerHealth(float health, uint tick)
     {
-        if (tick <= lastReceivedHealthTick) { print($"Returned because of tick {tick}"); return; }
+        if (tick <= lastReceivedHealthTick)  return; 
         lastReceivedHealthTick = tick;
 
-        print($"Got health  {health} at tick {tick}");
         currentHealth = health;
     }
 
@@ -196,7 +194,6 @@ public class PlayerHealth : MonoBehaviour
 
     private void SendUpdatedHealth()
     {
-        print($"Sending Health {currentHealth} to player {player.username}");
         Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.healthChanged);
         message.AddUShort(player.Id);
         message.AddFloat(currentHealth);
@@ -232,7 +229,6 @@ public class PlayerHealth : MonoBehaviour
         if (NetworkManager.Singleton.Server.IsRunning) return;
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
-            print($"Got Message for player {player.username}");
             player.playerHealth.HandleServerHealth(message.GetFloat(), message.GetUInt());
         }
     }

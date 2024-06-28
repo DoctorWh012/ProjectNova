@@ -38,6 +38,8 @@ public class BaseWeaponShotgun : BaseWeapon
 
         if (tick - tickFireRate < playerShooting.lastShotTick) return false;
 
+        if (currentWeaponState == WeaponState.Ulting) return false;
+
         if (!compensatingForSwitch && currentWeaponState == WeaponState.Switching) return false;
 
         if (currentWeaponState == WeaponState.Reloading) return false;
@@ -89,8 +91,8 @@ public class BaseWeaponShotgun : BaseWeapon
 
         ApplyKnockback();
 
-        if (NetworkManager.Singleton.Server.IsRunning) playerShooting.SendPlayerFire();
-        else if (player.IsLocal) playerShooting.SendShootMessage();
+        if (NetworkManager.Singleton.Server.IsRunning) playerShooting.SendServerFire();
+        else if (player.IsLocal) playerShooting.SendClientFire();
 
         return true;
     }

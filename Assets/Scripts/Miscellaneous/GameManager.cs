@@ -11,13 +11,13 @@ using Steamworks;
 public class Scenes : IMessageSerializable
 {
     public string sceneName;
-    public bool canSpawnOnLoad;
+    public bool spawnable;
     public bool canSpawnOnJoin;
 
-    public Scenes(string name, bool spawnOnLoad, bool spawnOnJoin)
+    public Scenes(string name, bool isSpawnable, bool spawnOnJoin)
     {
         sceneName = name;
-        canSpawnOnLoad = spawnOnLoad;
+        spawnable = isSpawnable;
         canSpawnOnJoin = spawnOnJoin;
     }
 
@@ -26,14 +26,14 @@ public class Scenes : IMessageSerializable
     public void Deserialize(Message message)
     {
         sceneName = message.GetString();
-        canSpawnOnLoad = message.GetBool();
+        spawnable = message.GetBool();
         canSpawnOnJoin = message.GetBool();
     }
 
     public void Serialize(Message message)
     {
         message.AddString(sceneName);
-        message.AddBool(canSpawnOnLoad);
+        message.AddBool(spawnable);
         message.AddBool(canSpawnOnJoin);
     }
 }
@@ -62,14 +62,13 @@ public class GameManager : SettingsMenu
     }
 
     public static Scenes menuScene = new Scenes("NewMenu", false, false);
-    public static Scenes loadingScreenScene = new Scenes("LoadingScreen", false, false);
     public static Scenes lobbyScene = new Scenes("NewLobby", true, true);
+    public static Scenes winScreen = new Scenes("WinScreen", false, false);
 
     public static Scenes facilityScene = new Scenes("Facility", true, true);
     public static Scenes renewedFacilityScene = new Scenes("FacilityRenewed", true, true);
     public static Scenes riptideMultiplayerScene = new Scenes("RiptideMultiplayer", true, true);
     public static Scenes lavaPit = new Scenes("LavaPit", true, true);
-    public static Scenes ship = new Scenes("MAp", true, true);
 
     public static Scenes currentScene;
     public static int playersLoadedScene;
@@ -282,14 +281,7 @@ public class GameManager : SettingsMenu
     #region SceneManaging
     private void HandlePlayerLoadedScene(ushort id)
     {
-        // This Is Here And Not In The Scene Loading Coroutine Because Unity's Scene Loading System Is A Cunt
-        if (id == NetworkManager.Singleton.Client.Id)
-        {
-            playersLoadedScene++;
-            Player.SpawnPlayer(id, MatchManager.playersOnLobby[id].playerName, Vector3.zero);
-            return;
-        }
-
+        print($"<color=red>Player {MatchManager.playersOnLobby[id].playerName} Loaded Scene</color>");
         // Sends Spawned Players To The Player Who Loaded The Scene
         foreach (Player otherPlayer in Player.list.Values)
         {
@@ -302,7 +294,7 @@ public class GameManager : SettingsMenu
 
         if (MatchManager.playersOnLobby[id].onQueue && !currentScene.canSpawnOnJoin) return;
         playersLoadedScene++;
-        Player.SpawnPlayer(id, MatchManager.playersOnLobby[id].playerName, Vector3.zero);
+        if (currentScene.spawnable) Player.SpawnPlayer(id, MatchManager.playersOnLobby[id].playerName, Vector3.zero);
     }
 
     public void LoadScene(Scenes scene, string caller)
@@ -315,10 +307,8 @@ public class GameManager : SettingsMenu
 
     private IEnumerator LoadSceneAsync(Scenes scene)
     {
-        playersLoadedScene = 0;
-        if (NetworkManager.Singleton.Server.IsRunning) SendSceneChanged(scene);
-
         print($"<color=yellow>Starting to load Scene {scene.sceneName} currently on Scene {SceneManager.GetActiveScene().name}</color>");
+        playersLoadedScene = 0;
 
         loadingScreen.SetActive(true);
         AsyncOperation sceneLoadingOp = SceneManager.LoadSceneAsync(scene.sceneName);
@@ -330,8 +320,16 @@ public class GameManager : SettingsMenu
 
         currentScene = scene;
         loadingScreen.SetActive(false);
-        SendClientSceneLoaded();
         SpectateCameraManager.Singleton.mapCamera = FindObjectOfType<Camera>().gameObject;
+
+        if (NetworkManager.Singleton.Server.IsRunning)
+        {
+            print("<color=blue>Reset PLS Counter</color>");
+            playersLoadedScene++;
+            if (currentScene.spawnable) Player.SpawnPlayer(NetworkManager.Singleton.Client.Id, MatchManager.playersOnLobby[NetworkManager.Singleton.Client.Id].playerName, Vector3.zero);
+            SendSceneChanged(scene);
+        }
+        else SendClientSceneLoaded();
 
         print($"<color=yellow>Loaded Scene</color>");
         print($"<color=yellow>{new string('-', 30)}</color>");

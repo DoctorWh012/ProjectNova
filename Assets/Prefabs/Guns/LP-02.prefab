@@ -81,7 +81,7 @@ MonoBehaviour:
   playerAudioSource: {fileID: 0}
   weaponAudioSource: {fileID: 0}
   weaponHumAudioSource: {fileID: 0}
-  switchingTime: 0.1
+  switchingTime: 0.05
   weaponHoldAnimation: ArmHoldLP02
   leftHandTarget: {fileID: 3877892373963478822}
   rightHandTarget: {fileID: 596333381175028987}
@@ -98,7 +98,7 @@ MonoBehaviour:
   crosshairScale: 1.3
   crosshairShotScale: 3
   crosshairShrinkTime: 1
-  knockbackForce: 10
+  knockbackForce: 15
   knockbackMaxHitDistance: 20
   screenShakeData: {fileID: 11400000, guid: 7614436c2c7fae248af77b875f935958, type: 2}
   weaponHum: {fileID: 0}
@@ -107,6 +107,7 @@ MonoBehaviour:
   weaponSounds:
   - {fileID: 8300000, guid: 3bcc06d0c9e5e464f891b37cfaddc75a, type: 3}
   currentWeaponState: 0
+  startingRotation: {x: 0, y: 0, z: 0}
   spread: 0.15
   pellets: 15
   muzzleFlash: {fileID: 3095014998602583062}
