@@ -9839,16 +9839,21 @@ MonoBehaviour:
   switchingTime: 0.15
   weaponHoldAnimation: ArmHoldLA07
   leftHandTarget: {fileID: 8062142241327298738}
+  leftHandPole: {fileID: 0}
   rightHandTarget: {fileID: 662697053}
+  rightHandPole: {fileID: 0}
   slot: 0
   weaponIcon: {fileID: 21300000, guid: 4134999243b91f049974bded2e616633, type: 3}
   weaponName: LA-07
-  damage: 25
+  damage: 20
   range: 50
-  fireRate: 8.5
+  fireRate: 9
   reloadTime: 1.5
   reloadSpins: 2
   maxAmmo: 40
+  ultimateIcon: {fileID: 0}
+  ultimateSlider: {fileID: 0}
+  ultimateIconImg: {fileID: 0}
   crosshairType: 1
   crosshairScale: 0.5
   crosshairShotScale: 1
@@ -9863,6 +9868,8 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 3c1c3263ca5584251a1091ef5bca1bfb, type: 3}
   - {fileID: 8300000, guid: 4891a74c2b7e04ff9999412992eadfee, type: 3}
   currentWeaponState: 0
+  killsPerformed: 0
+  startingRotation: {x: 0, y: 0, z: 0}
   muzzleFlash: {fileID: 7460436203650139633}
   barrelTip: {fileID: 4102884095540675023}
   tracerType: 0

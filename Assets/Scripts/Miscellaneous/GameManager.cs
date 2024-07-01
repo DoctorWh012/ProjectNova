@@ -69,6 +69,7 @@ public class GameManager : SettingsMenu
     public static Scenes renewedFacilityScene = new Scenes("FacilityRenewed", true, true);
     public static Scenes riptideMultiplayerScene = new Scenes("RiptideMultiplayer", true, true);
     public static Scenes lavaPit = new Scenes("LavaPit", true, true);
+    public static Scenes silo = new Scenes("Silo", true, true);
 
     public static Scenes currentScene;
     public static int playersLoadedScene;
@@ -96,7 +97,7 @@ public class GameManager : SettingsMenu
     [Header("Audio")]
     [SerializeField] private AudioMixerGroup masterMixer;
 
-    private Scenes[] matchMaps = new Scenes[4];
+    private Scenes[] matchMaps = new Scenes[5];
     private List<KillFeedDisplay> killFeedDisplayList = new List<KillFeedDisplay>();
 
     private void Awake()
@@ -107,6 +108,7 @@ public class GameManager : SettingsMenu
         matchMaps[1] = renewedFacilityScene;
         matchMaps[2] = riptideMultiplayerScene;
         matchMaps[3] = lavaPit;
+        matchMaps[4] = silo;
     }
 
     private void Start()

@@ -54,16 +54,21 @@ MonoBehaviour:
   switchingTime: 0.2
   weaponHoldAnimation: ArmHoldLA87
   leftHandTarget: {fileID: 1450558309263566744}
+  leftHandPole: {fileID: 0}
   rightHandTarget: {fileID: 6816608901049110162}
+  rightHandPole: {fileID: 0}
   slot: 1
   weaponIcon: {fileID: 21300000, guid: 7a0a032b09be0804093eaf92ca70b2e7, type: 3}
   weaponName: LA-87
-  damage: 35
+  damage: 30
   range: 80
   fireRate: 7
   reloadTime: 2
   reloadSpins: 3
   maxAmmo: 35
+  ultimateIcon: {fileID: 0}
+  ultimateSlider: {fileID: 0}
+  ultimateIconImg: {fileID: 0}
   crosshairType: 0
   crosshairScale: 0.5
   crosshairShotScale: 1.4
@@ -78,6 +83,8 @@ MonoBehaviour:
   - {fileID: 8300000, guid: 36a9dee887e1b4272b30fe8582f363d5, type: 3}
   - {fileID: 8300000, guid: 92b82831f1e1847d6a0ca02db73fb301, type: 3}
   currentWeaponState: 0
+  killsPerformed: 0
+  startingRotation: {x: 0, y: 0, z: 0}
   muzzleFlash: {fileID: 4523389326115453825}
   barrelTip: {fileID: 8074524265749238165}
   tracerType: 0

@@ -9921,16 +9921,21 @@ MonoBehaviour:
   switchingTime: 0.1
   weaponHoldAnimation: ArmHoldLP12
   leftHandTarget: {fileID: 6978673615336742404}
+  leftHandPole: {fileID: 0}
   rightHandTarget: {fileID: 1863463545571445072}
+  rightHandPole: {fileID: 0}
   slot: 1
   weaponIcon: {fileID: 21300000, guid: 87a8f12475529804eb6189344e177469, type: 3}
   weaponName: LP-12
-  damage: 200
-  range: 20
+  damage: 75
+  range: 40
   fireRate: 2
   reloadTime: 2
   reloadSpins: 4
   maxAmmo: 4
+  ultimateIcon: {fileID: 0}
+  ultimateSlider: {fileID: 0}
+  ultimateIconImg: {fileID: 0}
   crosshairType: 2
   crosshairScale: 1
   crosshairShotScale: 2
@@ -9944,6 +9949,7 @@ MonoBehaviour:
   weaponSounds:
   - {fileID: 8300000, guid: 5b05fb89b205a41f0b495620b907f4d2, type: 3}
   currentWeaponState: 0
+  killsPerformed: 0
   startingRotation: {x: 0, y: 0, z: 0}
   spread: 0.12
   pellets: 10

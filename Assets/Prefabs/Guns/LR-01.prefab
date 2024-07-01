@@ -19599,7 +19599,14 @@ MonoBehaviour:
   slot: 0
   weaponIcon: {fileID: 21300000, guid: 1e0e007194dd9f34cab3e793b23c980e, type: 3}
   weaponName: LR-01
-  damage: 80
+  weaponDamageMultiplier:
+  - bodyPartTag: PlayerHead
+    bodyPartMultiplier: 3
+  - bodyPartTag: PlayerTorso
+    bodyPartMultiplier: 1
+  - bodyPartTag: PlayerLimbs
+    bodyPartMultiplier: 0.9
+  damage: 40
   range: 100
   fireRate: 1.1
   reloadTime: 1.5

@@ -4998,16 +4998,21 @@ MonoBehaviour:
   switchingTime: 0.1
   weaponHoldAnimation: ArmHoldLW19
   leftHandTarget: {fileID: 7915524672402909683}
+  leftHandPole: {fileID: 0}
   rightHandTarget: {fileID: 1769374938810013046}
+  rightHandPole: {fileID: 0}
   slot: 0
   weaponIcon: {fileID: 21300000, guid: 08fa9aa0a647fb945bcb6b0198739453, type: 3}
   weaponName: LW-19
   damage: 30
   range: 35
-  fireRate: 4
+  fireRate: 5
   reloadTime: 1
   reloadSpins: 3
   maxAmmo: 19
+  ultimateIcon: {fileID: 0}
+  ultimateSlider: {fileID: 0}
+  ultimateIconImg: {fileID: 0}
   crosshairType: 0
   crosshairScale: 0.7
   crosshairShotScale: 1.2
@@ -5021,6 +5026,8 @@ MonoBehaviour:
   weaponSounds:
   - {fileID: 8300000, guid: d4edde7b6066142919cd977dc5498385, type: 3}
   currentWeaponState: 0
+  killsPerformed: 0
+  startingRotation: {x: 0, y: 0, z: 0}
   muzzleFlash: {fileID: 3986337341673624377}
   barrelTip: {fileID: 2784136343004735146}
   tracerType: 0

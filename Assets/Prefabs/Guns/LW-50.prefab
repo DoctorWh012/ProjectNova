@@ -54,16 +54,21 @@ MonoBehaviour:
   switchingTime: 0
   weaponHoldAnimation: ArmHoldLW50
   leftHandTarget: {fileID: 2101699211012552215}
+  leftHandPole: {fileID: 0}
   rightHandTarget: {fileID: 1856931169594125433}
+  rightHandPole: {fileID: 0}
   slot: 0
   weaponIcon: {fileID: 21300000, guid: 37f37181a778af34c9ea2682c933e2f4, type: 3}
   weaponName: LW-50
   damage: 70
   range: 100
-  fireRate: 1.5
+  fireRate: 1.7
   reloadTime: 1
   reloadSpins: 2
   maxAmmo: 7
+  ultimateIcon: {fileID: 0}
+  ultimateSlider: {fileID: 0}
+  ultimateIconImg: {fileID: 0}
   crosshairType: 0
   crosshairScale: 0.45
   crosshairShotScale: 1.6
@@ -77,6 +82,8 @@ MonoBehaviour:
   weaponSounds:
   - {fileID: 8300000, guid: efba91feacc854f3f81ba483da37ee9e, type: 3}
   currentWeaponState: 0
+  killsPerformed: 0
+  startingRotation: {x: 0, y: 0, z: 0}
   muzzleFlash: {fileID: 97338299934130536}
   barrelTip: {fileID: 884309071257084000}
   tracerType: 0

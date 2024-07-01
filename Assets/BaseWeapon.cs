@@ -76,6 +76,14 @@ public class GaussianDistribution
     }
 }
 
+
+[Serializable]
+public struct BodyPartHitTagMultiplier
+{
+    public string bodyPartTag;
+    public float bodyPartMultiplier;
+}
+
 public class BaseWeapon : MonoBehaviour
 {
     public float tickFireRate { get; protected set; }
@@ -109,6 +117,7 @@ public class BaseWeapon : MonoBehaviour
 
     [Header("Damage")]
     [Space(5)]
+    [SerializeField] public BodyPartHitTagMultiplier[] weaponDamageMultiplier;
     [SerializeField] public float damage;
     [SerializeField] public float range;
     [SerializeField] public float fireRate;
@@ -168,8 +177,14 @@ public class BaseWeapon : MonoBehaviour
     protected float fireTime;
     public Vector3 startingRotation;
 
+    protected void AssignDefaultDamageMultiplier()
+    {
+        if (weaponDamageMultiplier.Length == 0) weaponDamageMultiplier = playerShooting.scriptablePlayer.bodyPartHitTagMultipliers;
+    }
+
     protected void BaseStart()
     {
+        AssignDefaultDamageMultiplier();
         animator.keepAnimatorStateOnDisable = true;
         startingRotation = transform.localEulerAngles;
         tickFireRate = (1f / fireRate) / Time.fixedDeltaTime;
@@ -389,11 +404,11 @@ public class BaseWeapon : MonoBehaviour
     {
         damageMultiplier = 0;
 
-        for (int i = 0; i < playerShooting.scriptablePlayer.bodyPartHitTagMultipliers.Length; i++)
+        for (int i = 0; i < weaponDamageMultiplier.Length; i++)
         {
-            if (!col.CompareTag(playerShooting.scriptablePlayer.bodyPartHitTagMultipliers[i].bodyPartTag)) continue;
+            if (!col.CompareTag(weaponDamageMultiplier[i].bodyPartTag)) continue;
 
-            damageMultiplier = playerShooting.scriptablePlayer.bodyPartHitTagMultipliers[i].bodyPartMultiplier;
+            damageMultiplier = weaponDamageMultiplier[i].bodyPartMultiplier;
 
             if (!player.IsLocal) return true;
 

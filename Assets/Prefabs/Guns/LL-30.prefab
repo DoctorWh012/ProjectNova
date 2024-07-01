@@ -5027,16 +5027,21 @@ MonoBehaviour:
   switchingTime: 0.2
   weaponHoldAnimation: ArmHoldLL30
   leftHandTarget: {fileID: 374581251914177967}
+  leftHandPole: {fileID: 0}
   rightHandTarget: {fileID: 149809145882161134}
+  rightHandPole: {fileID: 0}
   slot: 1
   weaponIcon: {fileID: 21300000, guid: 57dbb1041c49bb34b88504c12627ec8a, type: 3}
   weaponName: LL-30
   damage: 60
   range: 100
-  fireRate: 2
+  fireRate: 2.5
   reloadTime: 1.5
   reloadSpins: 3
   maxAmmo: 5
+  ultimateIcon: {fileID: 0}
+  ultimateSlider: {fileID: 0}
+  ultimateIconImg: {fileID: 0}
   crosshairType: 1
   crosshairScale: 0.6
   crosshairShotScale: 1.4
@@ -5050,6 +5055,8 @@ MonoBehaviour:
   weaponSounds:
   - {fileID: 8300000, guid: 8912d8b1aa9794b7286e1b8b2b7910e3, type: 3}
   currentWeaponState: 0
+  killsPerformed: 0
+  startingRotation: {x: 0, y: 0, z: 0}
   muzzleFlash: {fileID: 7351871348590923072}
   barrelTip: {fileID: 1209572805476833142}
   tracerType: 0
