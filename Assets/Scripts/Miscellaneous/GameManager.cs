@@ -288,7 +288,7 @@ public class GameManager : SettingsMenu
         foreach (Player otherPlayer in Player.list.Values)
         {
             otherPlayer.SendPlayersToPlayer(id);
-            otherPlayer.playerShooting.SendWeaponSync(id); // BROKEN / IS it?
+            otherPlayer.playerShooting.SendWeaponSyncToPlayer(id);
         }
 
         GunSpawnManager.Instance.SendWeaponsSpawnersDataToPlayer(id);

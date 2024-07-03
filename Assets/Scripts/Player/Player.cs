@@ -61,6 +61,7 @@ public class Player : MonoBehaviour
 
         if (id == NetworkManager.Singleton.Client.Id) SpectateCameraManager.Singleton.DisableSpectateMode();
         if (NetworkManager.Singleton.Server.IsRunning) player.SendPlayerToPlayers();
+        print("Player was Spawned");
     }
 
     #region ServerSenders

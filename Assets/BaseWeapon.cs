@@ -195,6 +195,7 @@ public class BaseWeapon : MonoBehaviour
     public virtual void OnWeaponPickUp()
     {
         killsPerformed = 0;
+        if (player.IsLocal) playerHud.UpdateWeaponOnSlot((int)slot, weaponName, weaponIcon, false);
     }
 
     public virtual void ActivateWeapon()

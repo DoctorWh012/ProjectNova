@@ -187,7 +187,6 @@ public class NetworkManager : MonoBehaviour
         // Sends HandShake If Player Is A Client Or Loads The Lobby If Host
         if (!Server.IsRunning) SendClientHandShake();
         else GameManager.Singleton.LoadScene(GameManager.lobbyScene, "Host Joined Server");
-
     }
 
     // Local Player Disconnected From Server

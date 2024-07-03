@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using Riptide;
 using UnityEngine;
 using DitzelGames.FastIK;
-using DG.Tweening;
 
 [Serializable]
 public struct ArmMeshIK
@@ -78,15 +77,15 @@ public class PlayerShooting : MonoBehaviour
     private void Awake()
     {
         SettingsManager.updatedPlayerPrefs += GetPreferences;
-        currentWeapons = new BaseWeapon[3];
         playerLayer = LayerMask.NameToLayer("Player");
         netPlayerLayer = LayerMask.NameToLayer("NetPlayer");
+        currentWeapons = new BaseWeapon[3];
     }
 
     private void Start()
     {
-        PickStartingWeapons();
         if (player.IsLocal) GetPreferences();
+        if (NetworkManager.Singleton.Server.IsRunning) PickStartingWeapons();
     }
 
     private void OnDestroy()
@@ -117,7 +116,6 @@ public class PlayerShooting : MonoBehaviour
         if (playerHealth.currentPlayerState == PlayerState.Dead || !player.IsLocal || !GameManager.Focused) return;
 
         GetInput();
-        CheckWeaponTilt();
     }
 
     private void LateUpdate()
@@ -149,6 +147,8 @@ public class PlayerShooting : MonoBehaviour
 
     public void PlayerRespawned()
     {
+        if (!NetworkManager.Singleton.Server.IsRunning) return;
+
         ReplenishAllAmmo();
         PickStartingWeapons();
     }
@@ -214,7 +214,7 @@ public class PlayerShooting : MonoBehaviour
 
     private void HandleClientReload(int slot, uint tick)
     {
-        if (tick < lastReloadTick || (int)currentWeapon.slot != slot) return;
+        if (tick <= lastReloadTick || (int)currentWeapon.slot != slot) return;
         lastReloadTick = tick;
 
         currentWeapon.Reload();
@@ -224,7 +224,11 @@ public class PlayerShooting : MonoBehaviour
     #region GunSwitching
     public void PickStartingWeapons()
     {
+        print($"PICK STARTING WEAPON FOR {player.name}");
+
         if (player.IsLocal) playerHud.ResetWeaponsOnSlots();
+        if (currentWeapon) currentWeapon.DeactivateWeapon();
+
         currentWeapons = new BaseWeapon[3];
         currentWeapon = null;
 
@@ -235,7 +239,6 @@ public class PlayerShooting : MonoBehaviour
 
             currentWeapons[i] = weapons[scriptablePlayer.startingWeaponsIndex[i]];
             currentWeapons[i].OnWeaponPickUp();
-            if (player.IsLocal) playerHud.UpdateWeaponOnSlot(i, currentWeapons[i].weaponName, currentWeapons[i].weaponIcon, false);
         }
 
         int slot = currentWeapons[0] ? 0 : currentWeapons[1] ? 1 : 2;
@@ -243,19 +246,17 @@ public class PlayerShooting : MonoBehaviour
         SlotSwitch(slot, NetworkManager.Singleton.serverTick);
     }
 
-    private void PickSyncedWeapons(int primaryIndex, int secondaryIndex, int tertiaryIndex)
+    private void HandleServerWeaponSwitch(int primaryIndex, int secondaryIndex, int tertiaryIndex, int slot, int ammo, int kills, uint tick)
     {
+        if (tick <= lastSlotChangeTick) return;
+
         if (primaryIndex != -1) currentWeapons[0] = weapons[primaryIndex];
         if (secondaryIndex != -1) currentWeapons[1] = weapons[secondaryIndex];
         if (tertiaryIndex != -1) currentWeapons[2] = weapons[tertiaryIndex];
-    }
 
-    private void HandleServerWeaponSwitch(uint tick, int ammo, int kills, int slot)
-    {
-        if (tick < lastSlotChangeTick) return;
+        currentWeapons[slot].currentAmmo = ammo;
+        currentWeapons[slot].killsPerformed = kills;
         SlotSwitch(slot, tick, true);
-        currentWeapon.currentAmmo = ammo;
-        currentWeapon.killsPerformed = kills;
     }
 
     private void HandleClientWeaponSwitch(uint tick, int slot)
@@ -274,8 +275,8 @@ public class PlayerShooting : MonoBehaviour
 
         lastSlotChangeTick = tick;
 
-        if (NetworkManager.Singleton.Server.IsRunning) SendGunSwitch(slotIndex);
-        else if (player.IsLocal && !askedByServer) SendSlotSwitch(slotIndex);
+        if (NetworkManager.Singleton.Server.IsRunning) SendGunSwitch();
+        else if (player.IsLocal && !askedByServer) SendSlotSwitch();
     }
 
     public void PickUpGun(int pickedGunIndex, uint tick)
@@ -286,27 +287,12 @@ public class PlayerShooting : MonoBehaviour
             currentWeapons[(int)weapon.slot] = weapon;
             weapon.OnWeaponPickUp();
         }
+        currentWeapons[(int)weapon.slot].ReplenishAmmo();
         SlotSwitch((int)weapon.slot, tick);
-        currentWeapon.ReplenishAmmo();
-
-        if (NetworkManager.Singleton.Server.IsRunning) SendPickedUpGun(pickedGunIndex);
     }
     #endregion
 
-    public void CheckWeaponTilt()
-    {
-        if (playerMovement.currentMovementState == PlayerMovement.MovementStates.Crouched && rb.velocity.magnitude > 8f) TiltWeapon(true);
-        else TiltWeapon(false);
-    }
-
-    public void TiltWeapon(bool tilt)
-    {
-        if (tilt == weaponTilted || currentWeapon.currentWeaponState == WeaponState.Reloading) return;
-        Vector3 tiltDir = tilt ? currentWeapon.startingRotation - new Vector3(0, 0, -35) : currentWeapon.startingRotation;
-        currentWeapon.transform.DOLocalRotate(tiltDir, 0.5f);
-        weaponTilted = tilt;
-    }
-
+    #region IKStuff
     public void EnableDisableHandsMeshes(bool leftState, bool rightState)
     {
         leftArm.handMesh.enabled = leftState;
@@ -341,6 +327,7 @@ public class PlayerShooting : MonoBehaviour
         torsoForward = playerTorso.bodyPart.forward;
         headForward = playerHead.bodyPart.forward;
     }
+    #endregion
 
     #region ServerSenders
     public void SendServerFire()
@@ -380,15 +367,41 @@ public class PlayerShooting : MonoBehaviour
         NetworkManager.Singleton.Server.SendToAll(message);
     }
 
-    private void SendGunSwitch(int gunSlot)
+    private void SendGunSwitch()
     {
         Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.gunChanged);
         message.AddUShort(player.Id);
-        message.AddUInt(lastSlotChangeTick);
+
+        message.AddSByte((sbyte)Array.IndexOf(weapons, currentWeapons[0]));
+        message.AddSByte((sbyte)Array.IndexOf(weapons, currentWeapons[1]));
+        message.AddSByte((sbyte)Array.IndexOf(weapons, currentWeapons[2]));
+
+
+        message.AddByte((byte)currentWeapon.slot);
         message.AddUShort((ushort)currentWeapon.currentAmmo);
         message.AddInt(currentWeapon.killsPerformed);
-        message.AddByte((byte)gunSlot);
+
+        message.AddUInt(lastSlotChangeTick);
         NetworkManager.Singleton.Server.SendToAll(message);
+    }
+
+    public void SendWeaponSyncToPlayer(ushort receiverId)
+    {
+        if (!currentWeapon) return;
+        Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.gunChanged);
+        message.AddUShort(player.Id);
+
+        message.AddSByte((sbyte)Array.IndexOf(weapons, currentWeapons[0]));
+        message.AddSByte((sbyte)Array.IndexOf(weapons, currentWeapons[1]));
+        message.AddSByte((sbyte)Array.IndexOf(weapons, currentWeapons[2]));
+
+
+        message.AddByte((byte)currentWeapon.slot);
+        message.AddUShort((ushort)currentWeapon.currentAmmo);
+        message.AddInt(currentWeapon.killsPerformed);
+
+        message.AddUInt(lastSlotChangeTick);
+        NetworkManager.Singleton.Server.Send(message, receiverId);
     }
 
     public void SendReloading()
@@ -400,27 +413,14 @@ public class PlayerShooting : MonoBehaviour
         NetworkManager.Singleton.Server.SendToAll(message);
     }
 
-    public void SendPickedUpGun(int pickedGunIndex)
-    {
-        Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.pickedGun);
-        message.AddUShort(player.Id);
-        message.AddByte((byte)pickedGunIndex);
-        message.AddUInt(lastSlotChangeTick);
-        NetworkManager.Singleton.Server.SendToAll(message);
-    }
-
-    public void SendWeaponSync(ushort id)
-    {
-        Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.weaponSync);
-        message.AddUShort(player.Id);
-        message.AddSByte((sbyte)Array.IndexOf(weapons, currentWeapons[0]));
-        message.AddSByte((sbyte)Array.IndexOf(weapons, currentWeapons[1]));
-        message.AddSByte((sbyte)Array.IndexOf(weapons, currentWeapons[2]));
-
-        message.AddByte((byte)currentWeapon.slot);
-        message.AddUInt(lastSlotChangeTick);
-        NetworkManager.Singleton.Server.Send(message, id);
-    }
+    // public void SendPickedUpGun(int pickedGunIndex)
+    // {
+    //     Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.pickedGun);
+    //     message.AddUShort(player.Id);
+    //     message.AddByte((byte)pickedGunIndex);
+    //     message.AddUInt(lastSlotChangeTick);
+    //     NetworkManager.Singleton.Server.SendToAll(message);
+    // }
     #endregion
 
     #region ClientSenders
@@ -456,11 +456,11 @@ public class PlayerShooting : MonoBehaviour
         NetworkManager.Singleton.Client.Send(message);
     }
 
-    public void SendSlotSwitch(int index)
+    public void SendSlotSwitch()
     {
         Message message = Message.Create(MessageSendMode.Unreliable, ClientToServerId.slotChange);
         message.AddUInt(lastSlotChangeTick);
-        message.AddByte((byte)index);
+        message.AddByte((byte)currentWeapon.slot);
         NetworkManager.Singleton.Client.Send(message);
     }
     #endregion
@@ -577,24 +577,13 @@ public class PlayerShooting : MonoBehaviour
         }
     }
 
-    [MessageHandler((ushort)ServerToClientId.weaponSync)]
-    private static void SyncWeapons(Message message)
-    {
-        if (Player.list.TryGetValue(message.GetUShort(), out Player player))
-        {
-            player.playerShooting.PickSyncedWeapons((int)message.GetSByte(), (int)message.GetSByte(), (int)message.GetSByte());
-            player.playerShooting.SlotSwitch((int)message.GetByte(), message.GetUInt());
-        }
-    }
-
     [MessageHandler((ushort)ServerToClientId.gunChanged)]
     private static void ChangeGun(Message message)
     {
         if (NetworkManager.Singleton.Server.IsRunning) return;
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
-            if (!player.playerShooting.currentWeapon) return;
-            player.playerShooting.HandleServerWeaponSwitch(message.GetUInt(), (int)message.GetUShort(), message.GetInt(), (int)message.GetByte());
+            player.playerShooting.HandleServerWeaponSwitch((int)message.GetSByte(), (int)message.GetSByte(), (int)message.GetSByte(), (int)message.GetSByte(), (int)message.GetUShort(), message.GetInt(), message.GetUInt());
         }
     }
     #endregion
