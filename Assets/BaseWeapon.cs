@@ -177,6 +177,11 @@ public class BaseWeapon : MonoBehaviour
     protected float fireTime;
     public Vector3 startingRotation;
 
+    public void SwitchWeaponState(WeaponState desiredState)
+    {
+        currentWeaponState = desiredState;
+    }
+
     protected void AssignDefaultDamageMultiplier()
     {
         if (weaponDamageMultiplier.Length == 0) weaponDamageMultiplier = playerShooting.scriptablePlayer.bodyPartHitTagMultipliers;
@@ -271,6 +276,7 @@ public class BaseWeapon : MonoBehaviour
         return false;
     }
 
+    #region Reloading
     public virtual void CheckIfReloadIsNeeded()
     {
         if (currentAmmo <= 0) Reload();
@@ -278,27 +284,17 @@ public class BaseWeapon : MonoBehaviour
 
     public virtual void Reload()
     {
-        print("<color=red>RELOADDDDDD</color>");
         if (!CanReload()) return;
         SwitchWeaponState(WeaponState.Reloading);
 
         if (NetworkManager.Singleton.Server.IsRunning) playerShooting.SendReloading();
         else if (player.IsLocal) playerShooting.SendReload();
 
-        Tween reloadTween = transform.DOLocalRotate(new Vector3(-360 * reloadSpins, 0, 0), reloadTime, RotateMode.LocalAxisAdd);
+        Tween reloadTween = transform.DOLocalRotate(startingRotation - new Vector3(360 * reloadSpins, 0, 0), reloadTime, RotateMode.LocalAxisAdd);
+
         if (player.IsLocal) reloadTween.OnUpdate(() => playerHud.UpdateReloadSlider(reloadTween.ElapsedPercentage()));
+
         reloadTween.OnComplete(() => FinishReloading());
-    }
-
-    protected void FinishReloading()
-    {
-        ReplenishAmmo();
-        SwitchWeaponState(WeaponState.Idle);
-    }
-
-    public void ReplenishAmmo()
-    {
-        currentAmmo = maxAmmo;
     }
 
     public bool CanReload()
@@ -313,15 +309,23 @@ public class BaseWeapon : MonoBehaviour
     public void AbortReload()
     {
         transform.DOKill();
-        transform.localRotation = Quaternion.identity;
+        transform.localEulerAngles = startingRotation;
         if (player.IsLocal) playerShooting.playerHud.UpdateReloadSlider(0);
         SwitchWeaponState(WeaponState.Idle);
     }
 
-    public void SwitchWeaponState(WeaponState desiredState)
+    protected void FinishReloading()
     {
-        currentWeaponState = desiredState;
+        ReplenishAmmo();
+        SwitchWeaponState(WeaponState.Idle);
     }
+
+    public void ReplenishAmmo()
+    {
+        currentAmmo = maxAmmo;
+    }
+
+    #endregion
 
     #region Grip
     protected void SetupWeaponGrip()

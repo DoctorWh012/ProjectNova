@@ -199,7 +199,6 @@ public class PlayerShooting : MonoBehaviour
 
     private void CreateDebugGhosts(Player player, bool rewound, uint tick)
     {
-        print("<color=green>Spawning Debug Ghost</color>");
         DebugGhost debugGhost = Instantiate(NetworkManager.Singleton.debugGhost, player.playerMovement.playerCharacter.position, player.playerMovement.playerCharacter.rotation);
         debugGhost.SetupGhost(rewound, tick);
         debugGhosts.Add(debugGhost);
@@ -224,8 +223,6 @@ public class PlayerShooting : MonoBehaviour
     #region GunSwitching
     public void PickStartingWeapons()
     {
-        print($"PICK STARTING WEAPON FOR {player.name}");
-
         if (player.IsLocal) playerHud.ResetWeaponsOnSlots();
         if (currentWeapon) currentWeapon.DeactivateWeapon();
 
