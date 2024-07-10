@@ -38,7 +38,7 @@ RenderSettings:
   m_ReflectionIntensity: 1
   m_CustomReflection: {fileID: 0}
   m_Sun: {fileID: 0}
-  m_IndirectSpecularColor: {r: 0.12731749, g: 0.13414757, b: 0.1210787, a: 1}
+  m_IndirectSpecularColor: {r: 0.12731689, g: 0.13414702, b: 0.1210784, a: 1}
   m_UseRadianceAmbientProbe: 0
 --- !u!157 &3
 LightmapSettings:
@@ -7332,7 +7332,7 @@ PrefabInstance:
     m_Modifications:
     - target: {fileID: 12138146, guid: 8fdd1abff8c6e1f489175ab86ea5c9c6, type: 3}
       propertyPath: matchMaps.Array.size
-      value: 5
+      value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 12138146, guid: 8fdd1abff8c6e1f489175ab86ea5c9c6, type: 3}
       propertyPath: matchMaps.Array.data[0].sceneName
@@ -7375,6 +7375,14 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 12138146, guid: 8fdd1abff8c6e1f489175ab86ea5c9c6, type: 3}
+      propertyPath: matchMaps.Array.data[5].sceneName
+      value: BoilRig
+      objectReference: {fileID: 0}
+    - target: {fileID: 12138146, guid: 8fdd1abff8c6e1f489175ab86ea5c9c6, type: 3}
+      propertyPath: matchMaps.Array.data[5].spawnable
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 12138146, guid: 8fdd1abff8c6e1f489175ab86ea5c9c6, type: 3}
       propertyPath: matchMaps.Array.data[0].canSpawnOnJoin
       value: 1
       objectReference: {fileID: 0}
@@ -7392,6 +7400,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 12138146, guid: 8fdd1abff8c6e1f489175ab86ea5c9c6, type: 3}
       propertyPath: matchMaps.Array.data[4].canSpawnOnJoin
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 12138146, guid: 8fdd1abff8c6e1f489175ab86ea5c9c6, type: 3}
+      propertyPath: matchMaps.Array.data[5].canSpawnOnJoin
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 818466920786481714, guid: 8fdd1abff8c6e1f489175ab86ea5c9c6, type: 3}
