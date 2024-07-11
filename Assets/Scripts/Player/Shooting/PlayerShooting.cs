@@ -143,6 +143,8 @@ public class PlayerShooting : MonoBehaviour
     public void PlayerDied()
     {
         currentWeapon.DeactivateWeapon();
+        currentWeapons = new BaseWeapon[3];
+        currentWeapon = null;
     }
 
     public void PlayerRespawned()

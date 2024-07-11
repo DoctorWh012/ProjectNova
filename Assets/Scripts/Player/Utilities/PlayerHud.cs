@@ -14,13 +14,11 @@ public class PlayerHud : MonoBehaviour
     [Header("Components")]
     [Space(5)]
     [SerializeField] private ScriptablePlayer playerSettings;
-    [SerializeField] private PlayerHealth playerHealth;
     [SerializeField] private PlayerShooting playerShooting;
 
     [Header("Overlays")]
     [Space(5)]
     [SerializeField] private Image hurtOverlay;
-    [SerializeField] private Image focusedOverlay;
 
     [Header("Colors")]
     [Space(5)]
@@ -28,7 +26,7 @@ public class PlayerHud : MonoBehaviour
     [SerializeField] private Color highlitedColor;
     [SerializeField] private Color fadedColor;
 
-    [Header("Health Battery")]
+    [Header("Health")]
     [Space(5)]
     [SerializeField] private Slider healthBarFill;
 
@@ -65,7 +63,6 @@ public class PlayerHud : MonoBehaviour
     private Vector3 crosshairScale;
     private Vector3 crosshairShotScale;
     private float crosshairShrinkTime;
-    private float crosshairShrinkTimer;
 
     private void Start()
     {
@@ -83,12 +80,6 @@ public class PlayerHud : MonoBehaviour
         SettingsManager.updatedPlayerPrefs -= GetPreferences;
     }
 
-    private void Update()
-    {
-        ScaleDownCrosshair();
-    }
-
-    #region GameUi
     private void GetPreferences()
     {
         scoreboardIndicatorKeyTxt.SetText(SettingsManager.playerPreferences.scoreboardKey.ToString());
@@ -99,6 +90,14 @@ public class PlayerHud : MonoBehaviour
         else UpdateCrosshair((int)CrosshairType.dot, 1, 1, 0);
     }
 
+    #region TextsUI
+    private void ResetAllUITexts()
+    {
+        mediumBottomText.SetText("");
+    }
+    #endregion
+
+    #region HealthUI
     public void UpdateHealthDisplay(float health)
     {
         DOTween.To(() => healthBarFill.value, x => healthBarFill.value = x, health / playerSettings.maxHealth, 0.3f);
@@ -110,19 +109,12 @@ public class PlayerHud : MonoBehaviour
         tweener.OnComplete(() => hurtOverlay.DOFade(0, 0.3f).SetEase(Ease.OutSine));
     }
 
+    #endregion
+
+    #region WeaponUI
     public void UpdateAmmoDisplay(int currentAmmo, int maxAmmo)
     {
         ammoText.SetText($"{currentAmmo}/{maxAmmo}");
-    }
-
-    public void UpdateMediumBottomText(string text)
-    {
-        mediumBottomText.SetText(text);
-    }
-
-    private void ResetAllUITexts()
-    {
-        mediumBottomText.SetText("");
     }
 
     public void HighlightWeaponOnSlot(int slot)
@@ -160,6 +152,13 @@ public class PlayerHud : MonoBehaviour
             weaponsImages[i].enabled = false;
         }
     }
+    #endregion
+
+    #region AbilitiesUI
+    public void UpdateMediumBottomText(string text)
+    {
+        mediumBottomText.SetText(text);
+    }
 
     public void UpdateGroundSlamIcon(bool state)
     {
@@ -174,7 +173,9 @@ public class PlayerHud : MonoBehaviour
             dashSliders[i].value = i < availableDashes ? 1 : 0;
         }
     }
+    #endregion
 
+    #region CrosshairUI
     public void UpdateCrosshair(int crosshairIndex, float weaponCrosshairScale, float weaponcrosshairShotScale, float weaponcrosshairShrinkTime)
     {
         DisableAllCrosshairs();
@@ -182,7 +183,6 @@ public class PlayerHud : MonoBehaviour
         currentCrosshairIndex = crosshairIndex;
         crosshairs[currentCrosshairIndex].SetActive(true);
 
-        crosshairShrinkTimer = 0;
         crosshairScale = new Vector3(weaponCrosshairScale, weaponCrosshairScale, weaponCrosshairScale);
         crosshairShotScale = new Vector3(weaponcrosshairShotScale, weaponcrosshairShotScale, weaponcrosshairShotScale);
         crosshairShrinkTime = weaponcrosshairShrinkTime;
@@ -203,16 +203,9 @@ public class PlayerHud : MonoBehaviour
 
     public void ScaleCrosshairShot()
     {
-        crosshairs[currentCrosshairIndex].transform.localScale = crosshairShotScale;
-        crosshairShrinkTimer = 0;
-    }
-
-    private void ScaleDownCrosshair()
-    {
-        if (crosshairShrinkTimer >= crosshairShrinkTime) return;
-
-        crosshairShrinkTimer += Time.deltaTime;
-        crosshairs[currentCrosshairIndex].transform.localScale = Vector3.Lerp(crosshairShotScale, crosshairScale, crosshairShrinkTimer / crosshairShrinkTime);
+        if (crosshairShrinkTime == 0) return;
+        crosshairs[currentCrosshairIndex].transform.DOComplete();
+        crosshairs[currentCrosshairIndex].transform.DOPunchScale(crosshairShotScale, crosshairShrinkTime, 0, 0);
     }
 
     private void DisableAllCrosshairs()

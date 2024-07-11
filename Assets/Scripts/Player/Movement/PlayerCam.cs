@@ -4,8 +4,14 @@ using DG.Tweening;
 public class PlayerCam : MonoBehaviour
 {
     [Header("Components")]
+    [Header("Cameras")]
+    [Space(5)]
+    [SerializeField] private Camera mainCam;
+    [SerializeField] private Camera weaponCam;
+
+    [Header("Transforms")]
+    [Space(5)]
     [SerializeField] private Transform cameraPos;
-    [SerializeField] private Camera cam;
     [SerializeField] private Transform cameraTilt;
     [SerializeField] private Transform orientation;
 
@@ -18,9 +24,6 @@ public class PlayerCam : MonoBehaviour
     private void Awake()
     {
         SettingsManager.updatedPlayerPrefs += GetPreferences;
-
-        Cursor.lockState = CursorLockMode.Locked;
-        Cursor.visible = false;
     }
 
     private void OnDestroy()
@@ -50,7 +53,7 @@ public class PlayerCam : MonoBehaviour
     public void GetPreferences()
     {
         sensitivity = SettingsManager.playerPreferences.sensitivity / 10;
-        cam.fieldOfView = SettingsManager.playerPreferences.cameraFov;
+        mainCam.fieldOfView = SettingsManager.playerPreferences.cameraFov;
     }
 
     private void GetInput()
@@ -70,11 +73,19 @@ public class PlayerCam : MonoBehaviour
         orientation.rotation = Quaternion.Euler(0, yRotation, 0);
     }
 
+    #region Effects
+    public void AlterZoomMode(bool state, int fov = 0)
+    {
+        mainCam.fieldOfView = state ? fov : SettingsManager.playerPreferences.cameraFov;
+        weaponCam.enabled = !state;
+    }
+
     public void TiltCamera(int direction)
     {
         if (direction == rotatedDirection) return;
         cameraTilt.DOLocalRotate(new Vector3(0, 0, -direction * 3), 0.5f);
         rotatedDirection = direction;
     }
+    #endregion
 }
 

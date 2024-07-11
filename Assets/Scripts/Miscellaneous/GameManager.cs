@@ -134,15 +134,19 @@ public class GameManager : SettingsMenu
         if (Input.GetKeyDown(SettingsManager.playerPreferences.pauseKey)) PauseUnpause();
     }
 
+    public void AlterCursorState(bool free)
+    {
+        Cursor.lockState = free ? CursorLockMode.None : CursorLockMode.Locked;
+        Cursor.visible = free;
+    }
+
     #region Menus
     public void PauseUnpause()
     {
         Focused = !Focused;
         DisableAllMenus();
         pauseMenu.SetActive(!Focused);
-
-        Cursor.lockState = Focused ? CursorLockMode.Locked : CursorLockMode.None;
-        Cursor.visible = !Focused;
+        AlterCursorState(!Focused);
     }
 
     public void OpenSettingsMenu()
@@ -166,6 +170,7 @@ public class GameManager : SettingsMenu
     public void OpenCloseMatchSettingsMenu()
     {
         Focused = !Focused;
+        AlterCursorState(!Focused);
 
         startMatchBtn.SetActive(false);
         cancelMatchBtn.SetActive(false);
@@ -174,9 +179,6 @@ public class GameManager : SettingsMenu
         else cancelMatchBtn.SetActive(true);
 
         matchSettingsMenu.SetActive(!Focused);
-
-        Cursor.lockState = Focused ? CursorLockMode.Locked : CursorLockMode.None;
-        Cursor.visible = !Focused;
     }
 
     public void Respawn()

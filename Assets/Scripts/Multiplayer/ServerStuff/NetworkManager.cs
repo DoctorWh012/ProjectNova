@@ -181,6 +181,8 @@ public class NetworkManager : MonoBehaviour
     // Local Player Joined Server
     private void JoinedServer(object sender, EventArgs e)
     {
+        GameManager.Singleton.AlterCursorState(false);
+
         // Introduces Local Player Into Match
         MatchManager.Singleton.IntroducePlayerToMatch(Client.Id, SteamFriends.GetPersonaName(), SteamUser.GetSteamID());
 
@@ -192,6 +194,8 @@ public class NetworkManager : MonoBehaviour
     // Local Player Disconnected From Server
     private void PlayerDisconnected(object sender, DisconnectedEventArgs e)
     {
+        GameManager.Singleton.AlterCursorState(true);
+
         SteamMatchmaking.LeaveLobby(lobbyId);
 
         MatchManager.Singleton.EndMatch();
