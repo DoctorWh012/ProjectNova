@@ -9836,19 +9836,25 @@ MonoBehaviour:
   playerAudioSource: {fileID: 0}
   weaponAudioSource: {fileID: 0}
   weaponHumAudioSource: {fileID: 0}
-  switchingTime: 1
+  switchingTime: 0.2
   weaponHoldAnimation: ArmHoldLS50
   leftHandTarget: {fileID: 1651992487}
+  leftHandPole: {fileID: 0}
   rightHandTarget: {fileID: 1559470615}
+  rightHandPole: {fileID: 0}
   slot: 1
   weaponIcon: {fileID: 21300000, guid: 95bab84dcc90e1746958585d34874535, type: 3}
   weaponName: LS-50
+  weaponDamageMultiplier: []
   damage: 100
   range: 150
   fireRate: 1
   reloadTime: 2
   reloadSpins: 2
   maxAmmo: 3
+  ultimateIcon: {fileID: 0}
+  ultimateSlider: {fileID: 0}
+  ultimateIconImg: {fileID: 0}
   crosshairType: 3
   crosshairScale: 0.5
   crosshairShotScale: 0.5
@@ -9862,11 +9868,28 @@ MonoBehaviour:
   weaponSounds:
   - {fileID: 8300000, guid: e0521227f5ac943419cdc8132cdbfe85, type: 3}
   currentWeaponState: 0
+  killsPerformed: 0
+  startingRotation: {x: 0, y: 0, z: 0}
   muzzleFlash: {fileID: 565195523549110475}
   barrelTip: {fileID: 4386201688140296825}
   tracerType: 0
   tracerLasts: 0.15
   tracerWidth: 0.25
+  playerCam: {fileID: 0}
+  scopeOverlay: {fileID: 0}
+  shotPowerImg: {fileID: 0}
+  shotPowerTxt: {fileID: 0}
+  aimedInFov: 20
+  piercingAmount: 2
+  maxQuickscopeMultiplier: 1.5
+  minQuickscopeMultiplier: 0.75
+  quickscopeUseTime: 2
+  quickscopeRefillTime: 3
+  quickscopeMultiplier: 0
+  quickscopeMultiplierOnAim: 0
+  quickscopeMultiplierOnLeaveAim: 0
+  quickscopeUsePerTick: 0
+  quickscopeRefillPerTick: 0
 --- !u!1 &4386201688140296826
 GameObject:
   m_ObjectHideFlags: 0

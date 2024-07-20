@@ -68,11 +68,11 @@ public class PlayerMovementSettings : ScriptableObject
     [SerializeField] public AudioClip groundSlamAudioClip;
     [Range(0, 1)]
     [SerializeField] public float groundSlamAudioVolume = 0.4f;
-    [SerializeField] public AudioClip groundSlamRefilAudioClip;
+    [SerializeField] public AudioClip groundSlamRefillAudioClip;
     [Range(0, 1)]
-    [SerializeField] public float groundSlamRefilAudioVolume = 0.4f;
+    [SerializeField] public float groundSlamRefillAudioVolume = 0.4f;
     [SerializeField] public int groundSlamQuantity = 1;
-    [SerializeField] public float groundSlamRefilTime = 3f;
+    [SerializeField] public float groundSlamRefillTime = 3f;
     [SerializeField] public float groundSlamImpulse = 65;
     [SerializeField] public float groundSlamGravity = 50f;
 
@@ -81,11 +81,11 @@ public class PlayerMovementSettings : ScriptableObject
     [SerializeField] public AudioClip dashAudioClip;
     [Range(0, 1)]
     [SerializeField] public float dashAudioVolume = 0.4f;
-    [SerializeField] public AudioClip dashRefilAudioClip;
+    [SerializeField] public AudioClip dashRefillAudioClip;
     [Range(0, 1)]
-    [SerializeField] public float dashRefilAudioVolume = 0.4f;
+    [SerializeField] public float dashRefillAudioVolume = 0.4f;
     [SerializeField] public int dashQuantity = 2;
     [SerializeField] public float dashDuration = 1f;
     [SerializeField] public float dashForce = 30f;
-    [SerializeField] public float dashRefilTime = 2f;
+    [SerializeField] public float dashRefillTime = 2f;
 }

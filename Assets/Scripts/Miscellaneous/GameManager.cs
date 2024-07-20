@@ -171,7 +171,7 @@ public class GameManager : SettingsMenu
     {
         Focused = !Focused;
         AlterCursorState(!Focused);
-
+        
         startMatchBtn.SetActive(false);
         cancelMatchBtn.SetActive(false);
 

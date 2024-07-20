@@ -559,19 +559,19 @@ public class PlayerMovement : MonoBehaviour
         if (NetworkManager.Singleton.Server.IsRunning) SendServerGroundSlam();
     }
 
-    private void RefilGroundSlam()
+    private void RefillGroundSlam()
     {
         if (availableGroundSlams >= movementSettings.groundSlamQuantity || currentMovementState == MovementStates.Crouched) return;
 
         groundSlamTimer -= Time.deltaTime;
-        playerHud.groundSlamSlider.value = (movementSettings.groundSlamRefilTime - groundSlamTimer) / movementSettings.groundSlamRefilTime;
+        playerHud.groundSlamSlider.value = (movementSettings.groundSlamRefillTime - groundSlamTimer) / movementSettings.groundSlamRefillTime;
         if (groundSlamTimer <= 0)
         {
             playerHud.UpdateGroundSlamIcon(true);
             availableGroundSlams++;
-            groundSlamTimer = movementSettings.groundSlamRefilTime;
+            groundSlamTimer = movementSettings.groundSlamRefillTime;
             playerAudioSource.pitch = Utilities.GetRandomPitch();
-            playerAudioSource.PlayOneShot(movementSettings.groundSlamRefilAudioClip, movementSettings.groundSlamRefilAudioVolume);
+            playerAudioSource.PlayOneShot(movementSettings.groundSlamRefillAudioClip, movementSettings.groundSlamRefillAudioVolume);
         }
     }
 
@@ -637,19 +637,19 @@ public class PlayerMovement : MonoBehaviour
         if (NetworkManager.Singleton.Server.IsRunning) SendServerDash();
     }
 
-    private void RefilDash()
+    private void RefillDash()
     {
         if (availableDashes >= movementSettings.dashQuantity || currentMovementState == MovementStates.Crouched) return;
         dashTimer -= Time.deltaTime;
 
-        playerHud.dashSliders[availableDashes].value = (movementSettings.dashRefilTime - dashTimer) / movementSettings.dashRefilTime;
+        playerHud.dashSliders[availableDashes].value = (movementSettings.dashRefillTime - dashTimer) / movementSettings.dashRefillTime;
         if (dashTimer <= 0)
         {
             availableDashes++;
             playerHud.UpdateDashIcons(availableDashes);
-            dashTimer = movementSettings.dashRefilTime;
+            dashTimer = movementSettings.dashRefillTime;
             playerAudioSource.pitch = Utilities.GetRandomPitch(-0.05f, 0.1f);
-            playerAudioSource.PlayOneShot(movementSettings.dashRefilAudioClip, movementSettings.dashRefilAudioVolume);
+            playerAudioSource.PlayOneShot(movementSettings.dashRefillAudioClip, movementSettings.dashRefillAudioVolume);
         }
     }
     #endregion
@@ -691,8 +691,8 @@ public class PlayerMovement : MonoBehaviour
     {
         if (player.IsLocal)
         {
-            RefilDash();
-            RefilGroundSlam();
+            RefillDash();
+            RefillGroundSlam();
         }
     }
 
@@ -702,8 +702,8 @@ public class PlayerMovement : MonoBehaviour
         if (player.IsLocal)
         {
             EndCrouch();
-            dashTimer = movementSettings.dashRefilTime;
-            groundSlamTimer = movementSettings.groundSlamRefilTime;
+            dashTimer = movementSettings.dashRefillTime;
+            groundSlamTimer = movementSettings.groundSlamRefillTime;
             playerHud.UpdateDashIcons(availableDashes);
             playerHud.groundSlamSlider.value = availableGroundSlams;
         }

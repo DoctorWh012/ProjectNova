@@ -31,7 +31,7 @@ public class BaseWeaponRifle : BaseWeapon
         if (tick - tickFireRate < playerShooting.lastShotTick) return false;
 
         if (currentWeaponState == WeaponState.Ulting) return false;
-        
+
         if (!compensatingForSwitch && currentWeaponState == WeaponState.Switching) return false;
 
         if (currentWeaponState == WeaponState.Reloading) return false;
@@ -42,12 +42,12 @@ public class BaseWeaponRifle : BaseWeapon
 
     public override void PrimaryAction(uint tick, bool compensatingForSwitch = false)
     {
-        ShootNoSpread(tick, compensatingForSwitch);
+        if (!CanPerformPrimaryAction(tick, compensatingForSwitch)) return;
+        ShootNoSpread(tick);
     }
 
-    protected bool ShootNoSpread(uint tick, bool compensatingForSwitch)
+    protected bool ShootNoSpread(uint tick)
     {
-        if (!CanPerformPrimaryAction(tick, compensatingForSwitch)) return false;
         currentAmmo--;
         SwitchWeaponState(WeaponState.Shooting);
 
@@ -82,11 +82,11 @@ public class BaseWeaponRifle : BaseWeapon
         }
         else shotRayHit = FilteredRaycast(playerShooting.playerCam.forward);
 
-        ShootingTracer(shotRayHit.collider);
+        ShootingTracer(shotRayHit.collider, shotRayHit.point);
 
         // If it's a player damages it
         if (shotRayHit.collider && CheckPlayerHit(shotRayHit.collider)) GetHitPlayer(shotRayHit.collider.gameObject, damage);
-        else HitParticle();
+        else HitParticle(shotRayHit.point);
         ApplyKnockback();
 
         if (NetworkManager.Singleton.Server.IsRunning) playerShooting.SendServerFire();
@@ -95,7 +95,7 @@ public class BaseWeaponRifle : BaseWeapon
         return true;
     }
 
-    protected void ShootingTracer(bool didHit)
+    protected void ShootingTracer(bool didHit, Vector3 pos)
     {
         // Get The Tracer From Pool
         tracer = PoolingManager.Singleton.GetBulletTracer(tracerType);
@@ -107,7 +107,7 @@ public class BaseWeaponRifle : BaseWeapon
         tracer.transform.position = barrelTip.position;
         tracer.Clear();
 
-        Vector3 endPos = didHit ? shotRayHit.point : playerShooting.playerCam.forward * range + barrelTip.position;
+        Vector3 endPos = didHit ? pos : playerShooting.playerCam.forward * range + barrelTip.position;
 
         tracer.transform.DOMove(endPos, tracerLasts).SetEase(Ease.Linear);
         tracer.DOResize(tracerWidth, 0, 0.5f);
@@ -116,11 +116,11 @@ public class BaseWeaponRifle : BaseWeapon
         tracer.GetComponent<ReturnToPool>().ReturnToPoolIn(tracerLasts);
     }
 
-    protected void HitParticle()
+    protected void HitParticle(Vector3 pos)
     {
         hitParticle = PoolingManager.Singleton.GetHitParticle(tracerType);
 
-        hitParticle.transform.position = shotRayHit.point;
+        hitParticle.transform.position = pos;
         hitParticle.Play();
 
         hitParticle.GetComponent<ReturnToPool>().ReturnToPoolIn(hitParticle.main.duration);

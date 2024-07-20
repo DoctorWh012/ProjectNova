@@ -4,6 +4,7 @@ using UnityEngine.UI;
 using DG.Tweening;
 using System.Collections.Generic;
 using System;
+using System.Linq;
 
 public enum Gunslot : int
 {
@@ -349,6 +350,7 @@ public class BaseWeapon : MonoBehaviour
     }
     #endregion
 
+    #region Casts
     protected RaycastHit FilteredRaycast(Vector3 dir)
     {
         RaycastHit[] filterRayHits = Physics.SphereCastAll(playerShooting.playerCam.position, 0.1f, dir.normalized, range, ~playerShooting.layersToIgnoreShootRaycast);
@@ -357,7 +359,7 @@ public class BaseWeapon : MonoBehaviour
 
         for (int i = 0; i < filterRayHits.Length; i++)
         {
-            if (CompareHitCollider(filterRayHits[i].collider))
+            if (CompareHitColliderToSelf(filterRayHits[i].collider))
             {
                 // If this is the last obj the ray collided with and it is still the player returns that it didn't hit anything
                 if (filterRayHits.Length - 1 == i) return new RaycastHit();
@@ -368,6 +370,25 @@ public class BaseWeapon : MonoBehaviour
         return new RaycastHit();
     }
 
+    protected List<RaycastHit> FilteredRaycastPierced(Vector3 dir, int pierceAmount)
+    {
+        RaycastHit[] unfilteredHits = Physics.SphereCastAll(playerShooting.playerCam.position, 0.1f, dir.normalized, range, ~playerShooting.layersToIgnoreShootRaycast);
+        List<RaycastHit> filteredHits = new List<RaycastHit>();
+
+        Array.Sort(unfilteredHits, (x, y) => x.distance.CompareTo(y.distance));
+
+        for (int i = 0; i < unfilteredHits.Length; i++)
+        {
+            if (CompareHitColliderToSelf(unfilteredHits[i].collider)) continue;
+            if (CheckDuplicateHit(filteredHits, unfilteredHits[i])) continue;
+
+            filteredHits.Add(unfilteredHits[i]);
+            if (filteredHits.Count >= pierceAmount) break;
+        }
+
+        return filteredHits;
+    }
+
     protected List<Collider> FilteredOverlapSphere(Vector3 pos, float radius)
     {
         Collider[] unfilteredCol = Physics.OverlapSphere(pos, radius, ~playerShooting.layersToIgnoreShootRaycast);
@@ -375,8 +396,8 @@ public class BaseWeapon : MonoBehaviour
 
         for (int i = 0; i < unfilteredCol.Length; i++)
         {
-            if (CompareHitCollider(unfilteredCol[i])) continue;
-            if (CheckDuplicateCol(filteredCol, unfilteredCol[i])) continue;
+            if (CompareHitColliderToSelf(unfilteredCol[i])) continue;
+            if (CheckDuplicateCollider(filteredCol, unfilteredCol[i])) continue;
             filteredCol.Add(unfilteredCol[i]);
         }
 
@@ -392,10 +413,17 @@ public class BaseWeapon : MonoBehaviour
     {
         return Physics.Raycast(from, to - from, Vector3.Distance(from, to), playerShooting.obstacleLayers);
     }
+    #endregion
 
-    protected bool CheckDuplicateCol(List<Collider> filteredCol, Collider col)
+    protected bool CheckDuplicateCollider(List<Collider> filteredCol, Collider col)
     {
         foreach (Collider fcol in filteredCol) if (fcol.transform.root == col.transform.root) return true;
+        return false;
+    }
+
+    protected bool CheckDuplicateHit(List<RaycastHit> filteredHits, RaycastHit hit)
+    {
+        foreach (RaycastHit fcol in filteredHits) if (fcol.transform.root == hit.transform.root) return true;
         return false;
     }
 
@@ -430,7 +458,7 @@ public class BaseWeapon : MonoBehaviour
         return false;
     }
 
-    protected bool CompareHitCollider(Collider col)
+    protected bool CompareHitColliderToSelf(Collider col)
     {
         for (int i = 0; i < playerShooting.bodyColliders.Length; i++) if (col == playerShooting.bodyColliders[i]) return true;
         return false;

@@ -73,11 +73,6 @@ public class WeaponLR01 : BaseWeaponRifle
         UpdateUltIndicators();
     }
 
-    public override void PrimaryAction(uint tick, bool compensatingForSwitch = false)
-    {
-        if (!ShootNoSpread(tick, compensatingForSwitch)) return;
-    }
-
     public override bool CanPerformSecondaryAction(uint tick)
     {
         if (player.playerHealth.currentPlayerState == PlayerState.Dead) return false;
@@ -239,8 +234,19 @@ public class WeaponLR01 : BaseWeaponRifle
         UltEndEffects();
 
         // Ult Shot
-        shotRayHit = FilteredRaycast(playerShooting.playerCam.forward);
-        ShootingTracer(shotRayHit.collider);
+        if (!player.IsLocal && NetworkManager.Singleton.Server.IsRunning)
+        {
+            for (uint i = playerShooting.lastAltFireConfirmationTick - (uint)NetworkManager.overcompensationAmount; i < playerShooting.lastShotTick + NetworkManager.overcompensationAmount + 1; i++)
+            {
+                NetworkManager.Singleton.SetAllPlayersPositionsTo(i, player.Id);
+
+                shotRayHit = FilteredRaycast(playerShooting.playerCam.forward);
+                if (shotRayHit.collider && CheckPlayerHit(shotRayHit.collider)) break;
+            }
+            NetworkManager.Singleton.ResetPlayersPositions(player.Id);
+        }
+        else shotRayHit = FilteredRaycast(playerShooting.playerCam.forward);
+        ShootingTracer(shotRayHit.collider, shotRayHit.point);
 
         // If it's a player damages it
         if (shotRayHit.collider && CheckPlayerHit(shotRayHit.collider))
@@ -265,7 +271,7 @@ public class WeaponLR01 : BaseWeaponRifle
                 lastRicochetPos = playersOnRadius[i].transform.position;
             }
         }
-        else HitParticle();
+        else HitParticle(shotRayHit.point);
 
         SwitchWeaponState(WeaponState.Idle);
     }

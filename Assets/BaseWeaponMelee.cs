@@ -74,8 +74,6 @@ public class BaseWeaponMelee : BaseWeapon
         
         if (!player.IsLocal && NetworkManager.Singleton.Server.IsRunning) NetworkManager.Singleton.ResetPlayersPositions(player.Id);
 
-
-
         ApplyKnockback();
 
         if (NetworkManager.Singleton.Server.IsRunning) playerShooting.SendServerFire();
