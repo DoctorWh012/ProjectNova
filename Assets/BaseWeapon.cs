@@ -427,6 +427,13 @@ public class BaseWeapon : MonoBehaviour
         return false;
     }
 
+    protected bool CompareHitColliderToSelf(Collider col)
+    {
+        for (int i = 0; i < playerShooting.bodyColliders.Length; i++) if (col == playerShooting.bodyColliders[i]) return true;
+        return false;
+    }
+
+
     protected bool CheckAltFireConfirmation()
     {
         if (player.IsLocal) return Input.GetKey(SettingsManager.playerPreferences.altFireBtn);
@@ -443,24 +450,8 @@ public class BaseWeapon : MonoBehaviour
 
             damageMultiplier = weaponDamageMultiplier[i].bodyPartMultiplier;
 
-            if (!player.IsLocal) return true;
-
-            playerHud.FadeHitmarker(damageMultiplier > 1, 0.3f);
-
-            playerAudioSource.pitch = Utilities.GetRandomPitch(0.1f, 0.05f);
-            AudioClip hitmarkerSfx = damageMultiplier > 1 ? playerShooting.scriptablePlayer.playerHitMarkerSpecialAudio : playerShooting.scriptablePlayer.playerHitMarkerAudio;
-
-            if (hitmarkerSfx) playerAudioSource.PlayOneShot(hitmarkerSfx, playerShooting.scriptablePlayer.playerHitMarkerAudioVolume);
-
             return true;
         }
-
-        return false;
-    }
-
-    protected bool CompareHitColliderToSelf(Collider col)
-    {
-        for (int i = 0; i < playerShooting.bodyColliders.Length; i++) if (col == playerShooting.bodyColliders[i]) return true;
         return false;
     }
 
@@ -470,12 +461,24 @@ public class BaseWeapon : MonoBehaviour
 
         Player hitPlayer = playerHit.GetComponentInParent<Player>();
 
-        if (hitPlayer.playerHealth.ReceiveDamage(damage * damageMultiplier, player.Id))
+        playerShooting.SendHitPlayer(hitPlayer.Id, (int)(damage * damageMultiplier), damageMultiplier > 1, hitPlayer.playerHealth.currentPlayerState == PlayerState.Alive);
+        if (hitPlayer.playerHealth.ReceiveDamage(damage * damageMultiplier, damageMultiplier > 1, player.Id))
         {
             OnKillPerformed();
             MatchManager.Singleton.AddKillToPlayerScore(player.Id);
             player.playerHealth.RecoverHealth(playerShooting.scriptablePlayer.maxHealth);
         }
+        if (player.IsLocal) HitPlayerEffects(damageMultiplier > 1);
+    }
+
+    public void HitPlayerEffects(bool critical)
+    {
+        playerHud.FadeHitmarker(critical, 0.3f);
+
+        playerAudioSource.pitch = Utilities.GetRandomPitch(0.1f, 0.05f);
+        AudioClip hitmarkerSfx = damageMultiplier > 1 ? playerShooting.scriptablePlayer.playerHitMarkerSpecialAudio : playerShooting.scriptablePlayer.playerHitMarkerAudio;
+
+        if (hitmarkerSfx) playerAudioSource.PlayOneShot(hitmarkerSfx, playerShooting.scriptablePlayer.playerHitMarkerAudioVolume);
     }
 
     public void FinishPrimaryAction()

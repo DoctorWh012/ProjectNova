@@ -100,6 +100,12 @@ public class WeaponLR01 : BaseWeaponRifle
         FadeFocusedOverlay(0, 0.2f);
     }
 
+    public override void Reload()
+    {
+        if (currentWeaponState == WeaponState.Ulting) AbortSecondaryAction();
+        base.Reload();
+    }
+
     #region Effects
     private void UpdateUltIndicators()
     {

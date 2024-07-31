@@ -28,12 +28,12 @@ public enum ServerToClientId : ushort
 
     playerFired,
     playerAltFire,
+    playerHit,
     playerAltFireConfirmation,
     weaponKill,
     gunChanged,
     gunReloading,
     pickedGun,
-    weaponSync,
 
     healthChanged,
     playerDied,
@@ -84,7 +84,7 @@ public class NetworkManager : MonoBehaviour
     }
 
     public uint serverTick { get; private set; } // NEEDS CLEARING
-    public static uint lagCompensationCacheSize { get; private set; } = 25; //64 ticks every 1000ms
+    public static uint lagCompensationCacheSize { get; private set; } = 22; //64 ticks every 1000ms
     public static int overcompensationAmount { get; private set; } = 1;
 
     public Client Client { get; private set; }

@@ -1,11 +1,11 @@
 using System.Collections;
 using UnityEngine;
 using Riptide;
+using DG.Tweening;
 
 public enum PlayerState
 {
     Alive,
-    Stunned,
     Invincible,
     Dead
 }
@@ -23,6 +23,7 @@ public class PlayerHealth : MonoBehaviour
     [SerializeField] private Collider[] colliders;
 
     [Header("Particles/Effects")]
+    [SerializeField] DamageIndicator damageIndicator;
     [SerializeField] private Sprite suicideIcon;
     [SerializeField] private ParticleSystem hurtParticles;
     [SerializeField] private ParticleSystem deathParticles;
@@ -39,7 +40,8 @@ public class PlayerHealth : MonoBehaviour
     private uint lastReceivedRespawnTick;
     private uint lastReceivedHealthTick;
 
-    [SerializeField] private float _currentHealth;
+    [SerializeField]
+    private float _currentHealth;
     private float currentHealth
     {
         get { return _currentHealth; }
@@ -72,6 +74,7 @@ public class PlayerHealth : MonoBehaviour
         currentHealth = scriptablePlayer.maxHealth;
     }
 
+    #region Dying
     private void HandleServerPlayerDied(bool wasKilled, ushort killerId, uint tick)
     {
         if (tick <= lastReceivedDiedTick) return;
@@ -114,6 +117,16 @@ public class PlayerHealth : MonoBehaviour
         }
     }
 
+    public void InstaKill()
+    {
+        if (currentPlayerState == PlayerState.Dead) return;
+
+        currentHealth -= currentHealth;
+        Die(null);
+    }
+    #endregion
+
+    #region Respawning
     private void HandleServerPlayerRespawned(Vector3 pos, uint tick)
     {
         if (tick <= lastReceivedRespawnTick) return;
@@ -127,19 +140,24 @@ public class PlayerHealth : MonoBehaviour
     {
         StartCoroutine(Respawn());
     }
+    #endregion
 
+    #region Health
     private void HandleServerHealth(float health, uint tick)
     {
-        if (tick <= lastReceivedHealthTick)  return; 
+        if (tick <= lastReceivedHealthTick) return;
         lastReceivedHealthTick = tick;
 
         currentHealth = health;
     }
 
-    public bool ReceiveDamage(float damage, ushort? id)
+    public bool ReceiveDamage(float damage, bool critical, ushort? id)
     {
-        if (currentPlayerState == PlayerState.Dead || currentPlayerState == PlayerState.Invincible) return false;
+        if (currentPlayerState != PlayerState.Alive) return false;
+
         currentHealth -= damage;
+
+        if (!player.IsLocal) PlayerHitEffects((int)damage, critical);
 
         if (currentHealth <= 0)
         {
@@ -155,14 +173,17 @@ public class PlayerHealth : MonoBehaviour
 
         currentHealth += healAmount;
     }
+    #endregion
 
-    public void InstaKill()
+    #region Effects
+    public void PlayerHitEffects(int damage, bool critical)
     {
-        if (currentPlayerState == PlayerState.Dead) return;
-
-        currentHealth -= currentHealth;
-        Die(null);
+        DamageIndicator indicator = Instantiate(damageIndicator);
+        indicator.transform.position = transform.position;
+        indicator.transform.DOMove(indicator.transform.position + new Vector3(Random.Range(-2f, 2f), Random.Range(2f, 3f), Random.Range(-2f, 2f)), 0.4f).SetEase(Ease.OutSine);
+        indicator.DisplayDamage((int)damage, critical);
     }
+    #endregion
 
     private void EnableDisablePlayerColliders(bool state)
     {

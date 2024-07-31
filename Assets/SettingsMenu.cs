@@ -9,21 +9,32 @@ public class SettingsMenu : MonoBehaviour
     [SerializeField] private GameObject generalMenu;
     [SerializeField] private GameObject videoMenu;
     [SerializeField] private GameObject controlsMenu;
+
     [SerializeField] private Slider fovSlider;
     [SerializeField] private TextMeshProUGUI fovSliderTxt;
+
     [SerializeField] private Slider sensitivitySlider;
     [SerializeField] private TextMeshProUGUI sensitivitySliderTxt;
+    [SerializeField] private Slider zoomSensitivitySlider;
+    [SerializeField] private TextMeshProUGUI zoomSensitivitySliderTxt;
+
     [SerializeField] private Slider masterVolumeSlider;
     [SerializeField] private TextMeshProUGUI masterVolumeSliderTxt;
+
     [SerializeField] private Slider musicVolumeSlider;
     [SerializeField] private TextMeshProUGUI musicVolumeSliderTxt;
+
     [SerializeField] private Toggle vSyncToggle;
     [SerializeField] private Toggle fullScreenToggle;
     [SerializeField] private Toggle renderArmsToggle;
+
     [SerializeField] private TMP_Dropdown framerateDropdown;
     [SerializeField] private TMP_Dropdown resolutionDropdown;
+    [SerializeField] private TMP_Dropdown graphicsDropdown;
+
     [SerializeField] private TMP_Dropdown crosshairTypeDropdown;
     [SerializeField] private TMP_Dropdown crosshairColorDropdown;
+
     [SerializeField] private GameObject rebindPopUp;
 
     [Header("KeyRemappingButtons")]
@@ -49,6 +60,7 @@ public class SettingsMenu : MonoBehaviour
     {
         fovSlider.onValueChanged.AddListener(delegate { UpdateSliderDisplayTxt(fovSliderTxt, fovSlider); });
         sensitivitySlider.onValueChanged.AddListener(delegate { UpdateSliderDisplayTxt(sensitivitySliderTxt, sensitivitySlider); });
+        zoomSensitivitySlider.onValueChanged.AddListener(delegate { UpdateSliderDisplayTxt(zoomSensitivitySliderTxt, zoomSensitivitySlider); });
         masterVolumeSlider.onValueChanged.AddListener(delegate { UpdateSliderDisplayTxt(masterVolumeSliderTxt, masterVolumeSlider, 100); });
         musicVolumeSlider.onValueChanged.AddListener(delegate { UpdateSliderDisplayTxt(musicVolumeSliderTxt, musicVolumeSlider, 100); });
     }
@@ -74,6 +86,7 @@ public class SettingsMenu : MonoBehaviour
     {
         fovSlider.value = SettingsManager.playerPreferences.cameraFov;
         sensitivitySlider.value = SettingsManager.playerPreferences.sensitivity;
+        zoomSensitivitySlider.value = SettingsManager.playerPreferences.zoomSensitivity;
         masterVolumeSlider.value = SettingsManager.playerPreferences.masterVolume;
         musicVolumeSlider.value = SettingsManager.playerPreferences.musicVolume;
 
@@ -84,6 +97,7 @@ public class SettingsMenu : MonoBehaviour
         crosshairColorDropdown.value = SettingsManager.playerPreferences.crosshairColor;
 
         framerateDropdown.value = SettingsManager.playerPreferences.maxFrameRateIndex;
+        graphicsDropdown.value = SettingsManager.playerPreferences.graphics;
 
         forward.SetKey(SettingsManager.playerPreferences.forwardKey);
         backward.SetKey(SettingsManager.playerPreferences.backwardKey);
@@ -121,8 +135,38 @@ public class SettingsMenu : MonoBehaviour
 
     public void SaveAndApply()
     {
-        SettingsManager.UpdateJson(filteredResolutions[resolutionDropdown.value].width, filteredResolutions[resolutionDropdown.value].height, framerateDropdown.value, 0, vSyncToggle.isOn
-        , fullScreenToggle.isOn, sensitivitySlider.value, (int)fovSlider.value, masterVolumeSlider.value, musicVolumeSlider.value, renderArmsToggle.isOn, crosshairTypeDropdown.value, crosshairColorDropdown.value, forward.key, backward.key, left.key, right.key, jump.key, dash.key, crouch.key, interact.key, fire.key, altFire.key, reload.key, primarySlot.key, secondarySlot.key, tertiarySlot.key);
+        PlayerPreferences prefs = new PlayerPreferences();
+        prefs.resWidth = filteredResolutions[resolutionDropdown.value].width;
+        prefs.resHeight = filteredResolutions[resolutionDropdown.value].height;
+        prefs.maxFrameRateIndex = framerateDropdown.value;
+        prefs.graphics = graphicsDropdown.value;
+        prefs.vSync = vSyncToggle.isOn;
+        prefs.fullScreen = fullScreenToggle.isOn;
+        prefs.sensitivity = (int)sensitivitySlider.value;
+        prefs.zoomSensitivity = (int)zoomSensitivitySlider.value;
+        prefs.cameraFov = (int)fovSlider.value;
+        prefs.masterVolume = masterVolumeSlider.value;
+        prefs.musicVolume = musicVolumeSlider.value;
+        prefs.renderArms = renderArmsToggle.isOn;
+        prefs.crosshairType = crosshairTypeDropdown.value;
+        prefs.crosshairColor = crosshairColorDropdown.value;
+
+        prefs.forwardKey = forward.key;
+        prefs.backwardKey = backward.key;
+        prefs.rightKey = right.key;
+        prefs.leftKey = left.key;
+        prefs.jumpKey = jump.key;
+        prefs.dashKey = dash.key;
+        prefs.crouchKey = crouch.key;
+        prefs.interactKey = interact.key;
+        prefs.fireBtn = fire.key;
+        prefs.altFireBtn = altFire.key;
+        prefs.reloadKey = reload.key;
+        prefs.primarySlotKey = primarySlot.key;
+        prefs.secondarySlotKey = secondarySlot.key;
+        prefs.tertiarySlotKey = tertiarySlot.key;
+
+        SettingsManager.UpdateJson(prefs);
     }
 
     internal void GetAvailableResolutions()

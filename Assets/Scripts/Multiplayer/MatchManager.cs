@@ -124,15 +124,14 @@ public class MatchManager : MonoBehaviour
     private void Start()
     {
         avatarLoaded = Callback<AvatarImageLoaded_t>.Create(OnAvatarLoaded);
-        OpenCloseScoreBoard(false);
+        scoreboard.SetActive(false);
     }
 
     private void Update()
     {
         if (!NetworkManager.Singleton.Client.IsConnected) return;
 
-        if (Input.GetKeyDown(SettingsManager.playerPreferences.scoreboardKey)) OpenCloseScoreBoard(true);
-        if (Input.GetKeyUp(SettingsManager.playerPreferences.scoreboardKey)) OpenCloseScoreBoard(false);
+        if (Input.GetKeyDown(SettingsManager.playerPreferences.scoreboardKey)) OpenCloseScoreBoard();
 
         if (NetworkManager.Singleton.Server.IsRunning) AssignPingToCapsules();
     }
@@ -178,9 +177,9 @@ public class MatchManager : MonoBehaviour
     #endregion
 
     #region Scoreboard
-    public void OpenCloseScoreBoard(bool state)
+    public void OpenCloseScoreBoard()
     {
-        scoreboard.SetActive(state);
+        scoreboard.SetActive(!scoreboard.activeInHierarchy);
     }
 
     private void AssignPingToCapsules()

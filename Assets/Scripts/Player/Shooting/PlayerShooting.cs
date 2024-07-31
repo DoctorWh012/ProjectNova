@@ -184,6 +184,15 @@ public class PlayerShooting : MonoBehaviour
         lastAltFireConfirmationTick = tick;
     }
 
+    private void HandleServerPlayerHit(ushort victimId, ushort damage, bool critical, bool damaged)
+    {
+        currentWeapon.HitPlayerEffects(critical);
+        if (damaged && Player.list.TryGetValue(victimId, out Player player))
+        {
+            player.playerHealth.PlayerHitEffects(damage, critical);
+        }
+    }
+
     private void HandleServerWeaponKill(int slot, int kills, uint tick)
     {
         if (tick <= lastWeaponKillsTick) return;
@@ -354,6 +363,16 @@ public class PlayerShooting : MonoBehaviour
         message.AddByte((byte)currentWeapon.slot);
         message.AddUInt(lastAltFireConfirmationTick);
         NetworkManager.Singleton.Server.SendToAll(message);
+    }
+
+    public void SendHitPlayer(ushort victimId, int damage, bool critical, bool damaged)
+    {
+        Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.playerHit);
+        message.AddUShort(victimId);
+        message.AddUShort((ushort)damage);
+        message.AddBool(critical);
+        message.AddBool(damaged);
+        NetworkManager.Singleton.Server.Send(message, player.Id);
     }
 
     public void SendWeaponKill(int killCount)
@@ -542,6 +561,16 @@ public class PlayerShooting : MonoBehaviour
         {
             if (player.IsLocal) return;
             player.playerShooting.HandleClientAltFireConfirm((int)message.GetByte(), message.GetUInt());
+        }
+    }
+
+    [MessageHandler((ushort)ServerToClientId.playerHit)]
+    private static void PlayerHit(Message message)
+    {
+        if (NetworkManager.Singleton.Server.IsRunning) return;
+        if (Player.list.TryGetValue(NetworkManager.Singleton.Client.Id, out Player player))
+        {
+            player.playerShooting.HandleServerPlayerHit(message.GetUShort(), message.GetUShort(), message.GetBool(), message.GetBool());
         }
     }
 

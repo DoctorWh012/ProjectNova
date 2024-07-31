@@ -16,8 +16,9 @@ public class PlayerPreferences
     public bool fullScreen;
 
     // Camera
-    public float sensitivity;
-    public float cameraFov;
+    public int sensitivity;
+    public int zoomSensitivity;
+    public int cameraFov;
 
     // Audio
     public float masterVolume;
@@ -50,6 +51,57 @@ public class PlayerPreferences
     public KeyCode primarySlotKey;
     public KeyCode secondarySlotKey;
     public KeyCode tertiarySlotKey;
+
+    public PlayerPreferences()
+    {
+        // Resolutions and graphics
+        resHeight = 1080;
+        resWidth = 1920;
+
+        maxFrameRateIndex = 0;
+
+        graphics = 1;
+
+        vSync = false;
+        fullScreen = true;
+
+        // Camera
+        sensitivity = 20;
+        zoomSensitivity = 10;
+        cameraFov = 90;
+
+        // Audio
+        masterVolume = 1;
+        musicVolume = 1;
+
+        // Miscellaneous
+        renderArms = true;
+        crosshairType = 0;
+        crosshairColor = 0;
+
+        // Keybinds
+        // Interactions
+        pauseKey = KeyCode.Escape;
+        scoreboardKey = KeyCode.Tab;
+        interactKey = KeyCode.E;
+
+        // Movement
+        forwardKey = KeyCode.W;
+        backwardKey = KeyCode.S;
+        rightKey = KeyCode.D;
+        leftKey = KeyCode.A;
+        jumpKey = KeyCode.Space;
+        crouchKey = KeyCode.LeftControl;
+        dashKey = KeyCode.LeftShift;
+
+        // Shooting
+        fireBtn = KeyCode.Mouse0;
+        altFireBtn = KeyCode.Mouse1;
+        reloadKey = KeyCode.R;
+        primarySlotKey = KeyCode.Alpha1;
+        secondarySlotKey = KeyCode.Alpha2;
+        tertiarySlotKey = KeyCode.Alpha3;
+    }
 }
 
 public static class SettingsManager
@@ -61,49 +113,13 @@ public static class SettingsManager
 
     public static void VerifyJson()
     {
-        if (!System.IO.File.Exists($"{Application.dataPath}/PlayerPrefs.json")) UpdateJson();
+        if (!System.IO.File.Exists($"{Application.dataPath}/PlayerPrefs.json")) UpdateJson(null);
         else LoadFromJson();
     }
 
-    public static void UpdateJson(int resWidth = 0, int resHeight = 0, int maxFrameRateIndex = 0, int graphics = 1, bool vsync = true, bool fullScreen = true, float sensitivity = 20f, int cameraFov = 90
-    , float mastervolume = 1f, float musicVolume = 1, bool renderArms = true, int crosshairType = 0, int crosshairColor = 0, KeyCode forward = KeyCode.W, KeyCode backward = KeyCode.S, KeyCode left = KeyCode.A, KeyCode right = KeyCode.D, KeyCode jump = KeyCode.Space, KeyCode dash = KeyCode.LeftShift, KeyCode crouch = KeyCode.LeftControl, KeyCode interact = KeyCode.E, KeyCode fire = KeyCode.Mouse0, KeyCode altFire = KeyCode.Mouse1, KeyCode reload = KeyCode.R, KeyCode primarySlot = KeyCode.Alpha1, KeyCode secondarySlot = KeyCode.Alpha2, KeyCode tertiarySlot = KeyCode.Alpha3)
+    public static void UpdateJson(PlayerPreferences playerPrefs)
     {
-        PlayerPreferences playerPrefs = new PlayerPreferences();
-
-        playerPrefs.resWidth = resWidth == 0 ? Screen.width : resWidth;
-        playerPrefs.resHeight = resHeight == 0 ? Screen.height : resHeight;
-
-        playerPrefs.maxFrameRateIndex = maxFrameRateIndex;
-
-        playerPrefs.graphics = graphics;
-        playerPrefs.vSync = vsync;
-        playerPrefs.fullScreen = fullScreen;
-
-        playerPrefs.sensitivity = sensitivity;
-        playerPrefs.cameraFov = cameraFov;
-
-        playerPrefs.masterVolume = mastervolume;
-        playerPrefs.musicVolume = musicVolume;
-
-        playerPrefs.renderArms = renderArms;
-
-        playerPrefs.crosshairType = crosshairType;
-        playerPrefs.crosshairColor = crosshairColor;
-
-        playerPrefs.forwardKey = forward;
-        playerPrefs.backwardKey = backward;
-        playerPrefs.leftKey = left;
-        playerPrefs.rightKey = right;
-        playerPrefs.jumpKey = jump;
-        playerPrefs.dashKey = dash;
-        playerPrefs.crouchKey = crouch;
-        playerPrefs.interactKey = interact;
-        playerPrefs.fireBtn = fire;
-        playerPrefs.altFireBtn = altFire;
-        playerPrefs.reloadKey = reload;
-        playerPrefs.primarySlotKey = primarySlot;
-        playerPrefs.secondarySlotKey = secondarySlot;
-        playerPrefs.tertiarySlotKey = tertiarySlot;
+        if (playerPrefs == null) playerPrefs = new PlayerPreferences();
 
         string json = JsonUtility.ToJson(playerPrefs, true);
         File.WriteAllText($"{Application.dataPath}/PlayerPrefs.json", json);
@@ -118,6 +134,7 @@ public static class SettingsManager
 
         playerPreferences = playerPrefs;
 
+        QualitySettings.SetQualityLevel(playerPreferences.graphics);
         QualitySettings.vSyncCount = playerPreferences.vSync ? 1 : 0;
         Application.targetFrameRate = GetDesiredRefreshRate(playerPreferences.maxFrameRateIndex);
         Screen.SetResolution(playerPreferences.resWidth, playerPreferences.resHeight, playerPreferences.fullScreen);

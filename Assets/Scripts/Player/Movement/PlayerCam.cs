@@ -15,7 +15,8 @@ public class PlayerCam : MonoBehaviour
     [SerializeField] private Transform cameraTilt;
     [SerializeField] private Transform orientation;
 
-    private float yRotation, xRotation;
+    private float yRotation;
+    private float xRotation;
     private float sensitivity;
 
     private float desiredRotation;
@@ -78,6 +79,7 @@ public class PlayerCam : MonoBehaviour
     {
         mainCam.fieldOfView = state ? fov : SettingsManager.playerPreferences.cameraFov;
         weaponCam.enabled = !state;
+        sensitivity = (state ? SettingsManager.playerPreferences.zoomSensitivity : SettingsManager.playerPreferences.sensitivity) / 10;
     }
 
     public void TiltCamera(int direction)

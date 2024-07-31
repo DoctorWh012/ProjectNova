@@ -98,10 +98,23 @@ public class WeaponLS50 : BaseWeaponRifle
         return true;
     }
 
+    public override void AbortSecondaryAction()
+    {
+        SwitchWeaponState(WeaponState.Idle);
+        AbilityEndEffects();
+        StopAllCoroutines();
+    }
+
     public override void SecondaryAction(uint tick)
     {
         if (!CanPerformSecondaryAction(tick)) return;
         StartCoroutine(AbilityScope());
+    }
+
+    public override void Reload()
+    {
+        if (currentWeaponState == WeaponState.Ulting) AbortSecondaryAction();
+        base.Reload();
     }
 
     #region Ability
@@ -175,7 +188,7 @@ public class WeaponLS50 : BaseWeaponRifle
         // Effects
         muzzleFlash.Play();
         animator.Play("Recoil", 0, 0);
-        // Invoke(nameof(FinishPrimaryAction), fireTime);
+        Invoke(nameof(FinishPrimaryActionWhileScope), fireTime);
 
         if (weaponSounds.Length != 0)
         {
@@ -213,10 +226,8 @@ public class WeaponLS50 : BaseWeaponRifle
             // If it's a player damages it
             if (CheckPlayerHit(shotRayHits[i].collider)) GetHitPlayer(shotRayHits[i].collider.gameObject, damage * quickscopeMultiplier);
             else HitParticle(shotRayHits[i].point);
-
-
         }
-        ShootingTracer(shotRayHits[shotRayHits.Count - 1].collider,shotRayHits[shotRayHits.Count - 1].point );
+        ShootingTracer(shotRayHits[shotRayHits.Count - 1].collider, shotRayHits[shotRayHits.Count - 1].point);
 
         ApplyKnockback();
 
@@ -230,6 +241,12 @@ public class WeaponLS50 : BaseWeaponRifle
     {
         for (int i = 0; i < hits.Count; i++) if (CheckPlayerHit(hits[i].collider)) return true;
         return false;
+    }
+
+    protected void FinishPrimaryActionWhileScope()
+    {
+        if (currentWeaponState != WeaponState.Ulting) return;
+        CheckIfReloadIsNeeded();
     }
     #endregion
 }
