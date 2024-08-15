@@ -11,6 +11,8 @@ public enum ServerToClientId : ushort
     serverTick = 1,
 
     playerInfo,
+    playerPing,
+    playerChat,
 
     matchData,
     matchTimer,
@@ -47,6 +49,7 @@ public enum ClientToServerId : ushort
     clientHandShake = 1,
     playerLoadedScene,
 
+    playerChat,
     playerMovement,
     playerCrouch,
     playerDash,
@@ -184,7 +187,7 @@ public class NetworkManager : MonoBehaviour
         GameManager.Singleton.AlterCursorState(false);
 
         // Introduces Local Player Into Match
-        MatchManager.Singleton.IntroducePlayerToMatch(Client.Id, SteamFriends.GetPersonaName(), SteamUser.GetSteamID());
+        GameManager.Singleton.IntroducePlayerToMatch(Client.Id, SteamFriends.GetPersonaName(), SteamUser.GetSteamID());
 
         // Sends HandShake If Player Is A Client Or Loads The Lobby If Host
         if (!Server.IsRunning) SendClientHandShake();
@@ -198,8 +201,8 @@ public class NetworkManager : MonoBehaviour
 
         SteamMatchmaking.LeaveLobby(lobbyId);
 
-        MatchManager.Singleton.EndMatch();
-        MatchManager.Singleton.RemoveAllPlayersFromMatch();
+        GameManager.Singleton.EndMatch();
+        GameManager.Singleton.RemoveAllPlayersFromMatch();
         serverTick = 0;
 
         GameManager.Singleton.LoadScene(GameManager.menuScene, "PlayerDisconnected");
@@ -208,16 +211,16 @@ public class NetworkManager : MonoBehaviour
     // Non Local Player Disconnected From Server
     private void ClientDisconnected(object sender, ClientDisconnectedEventArgs e)
     {
-        MatchManager.Singleton.RemovePlayerFromMatch(e.Id);
+        GameManager.Singleton.RemovePlayerFromMatch(e.Id);
         Destroy(Player.list[e.Id].gameObject);
     }
 
     private void HandleClientHandShake(ushort id, string username, CSteamID steamId)
     {
-        if (MatchManager.playersOnLobby.ContainsKey(id)) return;
+        if (GameManager.playersOnLobby.ContainsKey(id)) return;
 
         // Introduces New Player To Match
-        MatchManager.Singleton.IntroducePlayerToMatch(id, username, steamId);
+        GameManager.Singleton.IntroducePlayerToMatch(id, username, steamId);
 
         // REPLY HANDSHAKE?
         GameManager.Singleton.SendSceneToPlayer(id, GameManager.currentScene);
@@ -230,13 +233,13 @@ public class NetworkManager : MonoBehaviour
     {
         for (int i = 0; i < ids.Length; i++)
         {
-            if (!MatchManager.playersOnLobby.ContainsKey(ids[i])) MatchManager.Singleton.IntroducePlayerToMatch(ids[i], playerDatas[i].playerName, playerDatas[i].playerSteamId);
-            MatchManager.playersOnLobby[ids[i]].onQueue = playerDatas[i].onQueue;
-            MatchManager.playersOnLobby[ids[i]].kills = playerDatas[i].kills;
-            MatchManager.playersOnLobby[ids[i]].deaths = playerDatas[i].deaths;
+            if (!GameManager.playersOnLobby.ContainsKey(ids[i])) GameManager.Singleton.IntroducePlayerToMatch(ids[i], playerDatas[i].playerName, playerDatas[i].playerSteamId);
+            GameManager.playersOnLobby[ids[i]].onQueue = playerDatas[i].onQueue;
+            GameManager.playersOnLobby[ids[i]].kills = playerDatas[i].kills;
+            GameManager.playersOnLobby[ids[i]].deaths = playerDatas[i].deaths;
         }
-        MatchManager.playersPlacing = placing;
-        MatchManager.Singleton.UpdateScoreBoardCapsules();
+        GameManager.playersPlacing = placing;
+        GameManager.Singleton.UpdateScoreBoardCapsules();
     }
     #endregion
 
@@ -254,7 +257,7 @@ public class NetworkManager : MonoBehaviour
 
         SteamMatchmaking.SetLobbyData(lobbyId, "HostCSteamId", SteamUser.GetSteamID().ToString());
         SteamMatchmaking.SetLobbyData(lobbyId, "name", lobbyName);
-        SteamMatchmaking.SetLobbyData(lobbyId, "status", MatchManager.currentMatchState.ToString());
+        SteamMatchmaking.SetLobbyData(lobbyId, "status", GameManager.currentMatchState.ToString());
 
         Server.Start(0, (ushort)maxPlayers);
         Client.Connect("127.0.0.1");
@@ -298,9 +301,9 @@ public class NetworkManager : MonoBehaviour
     private void SendPlayersInfoToPlayers()
     {
         Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.playerInfo);
-        message.AddUShorts(MatchManager.playersOnLobby.Keys.ToArray());
-        message.AddSerializables<PlayerData>(MatchManager.playersOnLobby.Values.ToArray());
-        message.AddUShorts(MatchManager.playersPlacing);
+        message.AddUShorts(GameManager.playersOnLobby.Keys.ToArray());
+        message.AddSerializables<PlayerData>(GameManager.playersOnLobby.Values.ToArray());
+        message.AddUShorts(GameManager.playersPlacing);
         Server.SendToAll(message);
     }
     #endregion

@@ -52,6 +52,10 @@ public class SettingsMenu : MonoBehaviour
     [SerializeField] private KeybindButton primarySlot;
     [SerializeField] private KeybindButton secondarySlot;
     [SerializeField] private KeybindButton tertiarySlot;
+    [SerializeField] private KeybindButton pause;
+    [SerializeField] private KeybindButton chat;
+    [SerializeField] private KeybindButton scoreboard;
+
 
     private List<MyResolution> filteredResolutions = new List<MyResolution>();
     private KeybindButton buttonWaitingForRebind;
@@ -113,6 +117,9 @@ public class SettingsMenu : MonoBehaviour
         primarySlot.SetKey(SettingsManager.playerPreferences.primarySlotKey);
         secondarySlot.SetKey(SettingsManager.playerPreferences.secondarySlotKey);
         tertiarySlot.SetKey(SettingsManager.playerPreferences.tertiarySlotKey);
+        pause.SetKey(SettingsManager.playerPreferences.pauseKey);
+        chat.SetKey(SettingsManager.playerPreferences.chatKey);
+        scoreboard.SetKey(SettingsManager.playerPreferences.scoreboardKey);
     }
 
     public void EnterGeneralMenu()
@@ -165,6 +172,10 @@ public class SettingsMenu : MonoBehaviour
         prefs.primarySlotKey = primarySlot.key;
         prefs.secondarySlotKey = secondarySlot.key;
         prefs.tertiarySlotKey = tertiarySlot.key;
+
+        prefs.pauseKey = pause.key;
+        prefs.chatKey = chat.key;
+        prefs.scoreboardKey = scoreboard.key;
 
         SettingsManager.UpdateJson(prefs);
     }

@@ -79,7 +79,8 @@ public class PlayerCam : MonoBehaviour
     {
         mainCam.fieldOfView = state ? fov : SettingsManager.playerPreferences.cameraFov;
         weaponCam.enabled = !state;
-        sensitivity = (state ? SettingsManager.playerPreferences.zoomSensitivity : SettingsManager.playerPreferences.sensitivity) / 10;
+        sensitivity = state ? SettingsManager.playerPreferences.zoomSensitivity : SettingsManager.playerPreferences.sensitivity;
+        sensitivity /= 10;
     }
 
     public void TiltCamera(int direction)

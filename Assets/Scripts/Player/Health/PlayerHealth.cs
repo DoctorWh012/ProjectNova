@@ -96,7 +96,7 @@ public class PlayerHealth : MonoBehaviour
         if (player.IsLocal)
         {
             playerCameraHolder.SetActive(false);
-            SpectateCameraManager.Singleton.EnableDeathSpectateMode(id, MatchManager.respawnTime);
+            SpectateCameraManager.Singleton.EnableDeathSpectateMode(id, GameManager.respawnTime);
         }
 
         //  Particles
@@ -111,8 +111,8 @@ public class PlayerHealth : MonoBehaviour
 
         if (NetworkManager.Singleton.Server.IsRunning)
         {
-            Invoke("StartRespawn", MatchManager.respawnTime);
-            MatchManager.Singleton.AddDeathToPlayerScore(player.Id);
+            Invoke("StartRespawn", GameManager.respawnTime);
+            GameManager.Singleton.AddDeathToPlayerScore(player.Id);
             SendPlayerDied(id);
         }
     }

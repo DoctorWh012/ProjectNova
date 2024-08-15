@@ -15,9 +15,11 @@ public class PlayerScoreCapsule : MonoBehaviour
     [SerializeField] public TextMeshProUGUI playerKDTxt;
     [SerializeField] public TextMeshProUGUI playerPingTxt;
 
+    [SerializeField] public ushort playerId;
 
     public void SetUpCapsule(ushort id, string playerName, Sprite image, int kills, int deaths)
     {
+        playerId = id;
         capsuleBackground.color = id == NetworkManager.Singleton.Client.Id ? localColor : netColor;
         playerNameTxt.SetText(playerName);
         playerImg.sprite = image;

@@ -465,7 +465,7 @@ public class BaseWeapon : MonoBehaviour
         if (hitPlayer.playerHealth.ReceiveDamage(damage * damageMultiplier, damageMultiplier > 1, player.Id))
         {
             OnKillPerformed();
-            MatchManager.Singleton.AddKillToPlayerScore(player.Id);
+            GameManager.Singleton.AddKillToPlayerScore(player.Id);
             player.playerHealth.RecoverHealth(playerShooting.scriptablePlayer.maxHealth);
         }
         if (player.IsLocal) HitPlayerEffects(damageMultiplier > 1);

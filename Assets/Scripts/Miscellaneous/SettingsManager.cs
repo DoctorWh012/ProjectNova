@@ -31,8 +31,9 @@ public class PlayerPreferences
 
     // Keybinds
     // Interactions
-    public KeyCode pauseKey = KeyCode.Escape;
-    public KeyCode scoreboardKey = KeyCode.Tab;
+    public KeyCode pauseKey;
+    public KeyCode scoreboardKey;
+    public KeyCode chatKey;
     public KeyCode interactKey;
 
     // Movement
@@ -55,8 +56,8 @@ public class PlayerPreferences
     public PlayerPreferences()
     {
         // Resolutions and graphics
-        resHeight = 1080;
-        resWidth = 1920;
+        resHeight = Screen.currentResolution.height;
+        resWidth = Screen.currentResolution.width;
 
         maxFrameRateIndex = 0;
 
@@ -83,6 +84,7 @@ public class PlayerPreferences
         // Interactions
         pauseKey = KeyCode.Escape;
         scoreboardKey = KeyCode.Tab;
+        chatKey = KeyCode.Return;
         interactKey = KeyCode.E;
 
         // Movement
