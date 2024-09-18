@@ -10,7 +10,8 @@ public enum ServerToClientId : ushort
 {
     serverTick = 1,
 
-    playerInfo,
+    newPlayer,
+    newPlayerCatchUp,
     playerPing,
     playerChat,
 
@@ -18,6 +19,7 @@ public enum ServerToClientId : ushort
     matchTimer,
     sceneChanged,
     scoreBoardChanged,
+    scoreBoardReset,
 
     playerMovement,
     playerCrouch,
@@ -186,18 +188,20 @@ public class NetworkManager : MonoBehaviour
     {
         GameManager.Singleton.AlterCursorState(false);
 
-        // Introduces Local Player Into Match
-        GameManager.Singleton.IntroducePlayerToMatch(Client.Id, SteamFriends.GetPersonaName(), SteamUser.GetSteamID());
-
-        // Sends HandShake If Player Is A Client Or Loads The Lobby If Host
-        if (!Server.IsRunning) SendClientHandShake();
-        else GameManager.Singleton.LoadScene(GameManager.lobbyScene, "Host Joined Server");
+        if (Server.IsRunning)
+        {
+            GameManager.Singleton.ServerIntroducePlayerToMatch(Client.Id, SteamFriends.GetPersonaName(), SteamUser.GetSteamID());
+            GameManager.Singleton.LoadScene(GameManager.lobbyScene, "Host Joined Server");
+        }
+        else SendClientHandShake();
     }
 
     // Local Player Disconnected From Server
     private void PlayerDisconnected(object sender, DisconnectedEventArgs e)
     {
         GameManager.Singleton.AlterCursorState(true);
+        GameManager.Singleton.chatKeyIndicator.SetActive(false);
+        GameManager.Singleton.ClearChat();
 
         SteamMatchmaking.LeaveLobby(lobbyId);
 
@@ -220,25 +224,77 @@ public class NetworkManager : MonoBehaviour
         if (GameManager.playersOnLobby.ContainsKey(id)) return;
 
         // Introduces New Player To Match
-        GameManager.Singleton.IntroducePlayerToMatch(id, username, steamId);
+        GameManager.Singleton.ServerIntroducePlayerToMatch(id, username, steamId);
 
         // REPLY HANDSHAKE?
         GameManager.Singleton.SendSceneToPlayer(id, GameManager.currentScene);
 
-        // Sends Players Data To Players
-        SendPlayersInfoToPlayers();
+        // Sends Match Data To Player
+        SendCatchUpToPlayer(id);
+
+        SendPlayerToPlayers(id);
     }
 
-    private void HandleServerPlayerInfo(ushort[] ids, PlayerData[] playerDatas, ushort[] placing)
+    private void HandleServerCatchUp(ushort[] ids, PlayerData[] playerDatas, ushort[] placingFFA, ushort[] serverAllies, ushort[] serverEnemies, byte respawnTime, GameMode gamemode, MatchState matchState, byte serverAlliesTeamId, byte serverEnemiesTeamId)
     {
-        for (int i = 0; i < ids.Length; i++)
+        GameManager.Singleton.CatchUpMatchData(respawnTime, gamemode, matchState);
+
+        GameManager.playersPlacingFFA = placingFFA;
+
+        if (serverAllies.Contains(Client.Id))
         {
-            if (!GameManager.playersOnLobby.ContainsKey(ids[i])) GameManager.Singleton.IntroducePlayerToMatch(ids[i], playerDatas[i].playerName, playerDatas[i].playerSteamId);
-            GameManager.playersOnLobby[ids[i]].onQueue = playerDatas[i].onQueue;
-            GameManager.playersOnLobby[ids[i]].kills = playerDatas[i].kills;
-            GameManager.playersOnLobby[ids[i]].deaths = playerDatas[i].deaths;
+            GameManager.Singleton.allyTeamId = serverAlliesTeamId;
+            GameManager.Singleton.enemyTeamId = serverEnemiesTeamId;
+
+            GameManager.playersPlacingAllyTeam = serverAllies;
+            GameManager.playersPlacingEnemyTeam = serverEnemies;
+
+            for (int i = 0; i < serverAllies.Length; i++) GameManager.allyTeam.Add(serverAllies[i], playerDatas[Array.IndexOf(ids, serverAllies[i])]);
+            for (int i = 0; i < serverEnemies.Length; i++) GameManager.enemyTeam.Add(serverEnemies[i], playerDatas[Array.IndexOf(ids, serverEnemies[i])]);
         }
-        GameManager.playersPlacing = placing;
+
+        else
+        {
+            GameManager.Singleton.allyTeamId = serverEnemiesTeamId;
+            GameManager.Singleton.enemyTeamId = serverAlliesTeamId;
+
+            GameManager.playersPlacingAllyTeam = serverEnemies;
+            GameManager.playersPlacingEnemyTeam = serverAllies;
+
+            for (int i = 0; i < serverEnemies.Length; i++) GameManager.allyTeam.Add(serverEnemies[i], playerDatas[Array.IndexOf(ids, serverEnemies[i])]);
+            for (int i = 0; i < serverAllies.Length; i++) GameManager.enemyTeam.Add(serverAllies[i], playerDatas[Array.IndexOf(ids, serverAllies[i])]);
+        }
+
+        GameManager.Singleton.enemyTeamNameTxt.SetText(GameManager.Singleton.teams[GameManager.Singleton.enemyTeamId].teamName);
+        GameManager.Singleton.allyTeamNameTxt.SetText(GameManager.Singleton.teams[GameManager.Singleton.allyTeamId].teamName);
+
+        for (int i = 0; i < ids.Length; i++) GameManager.Singleton.ClientIntroducePlayerToMatch(ids[i], playerDatas[i], GameManager.allyTeam.ContainsKey(ids[i]));
+        GameManager.Singleton.UpdateScoreBoardCapsules();
+    }
+
+    private void HandleServerPlayerInfo(ushort id, PlayerData playerData, ushort[] placingFFA, ushort[] serverAllies, ushort[] serverEnemies)
+    {
+        GameManager.playersPlacingFFA = placingFFA;
+
+        if (serverAllies.Contains(Client.Id))
+        {
+            GameManager.playersPlacingAllyTeam = serverAllies;
+            GameManager.playersPlacingEnemyTeam = serverEnemies;
+
+            if (serverAllies.Contains(id)) GameManager.allyTeam.Add(id, playerData);
+            else GameManager.enemyTeam.Add(id, playerData);
+        }
+
+        else
+        {
+            GameManager.playersPlacingAllyTeam = serverEnemies;
+            GameManager.playersPlacingEnemyTeam = serverAllies;
+
+            if (serverEnemies.Contains(id)) GameManager.allyTeam.Add(id, playerData);
+            else GameManager.enemyTeam.Add(id, playerData);
+        }
+
+        GameManager.Singleton.ClientIntroducePlayerToMatch(id, playerData, GameManager.allyTeam.ContainsKey(id));
         GameManager.Singleton.UpdateScoreBoardCapsules();
     }
     #endregion
@@ -298,12 +354,34 @@ public class NetworkManager : MonoBehaviour
         message.AddUInt(serverTick);
         Server.SendToAll(message);
     }
-    private void SendPlayersInfoToPlayers()
+
+    private void SendCatchUpToPlayer(ushort id)
     {
-        Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.playerInfo);
+        Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.newPlayerCatchUp);
         message.AddUShorts(GameManager.playersOnLobby.Keys.ToArray());
         message.AddSerializables<PlayerData>(GameManager.playersOnLobby.Values.ToArray());
-        message.AddUShorts(GameManager.playersPlacing);
+
+        message.AddUShorts(GameManager.playersPlacingFFA);
+        message.AddUShorts(GameManager.playersPlacingAllyTeam);
+        message.AddUShorts(GameManager.playersPlacingEnemyTeam);
+
+        message.AddByte((byte)GameManager.respawnTime);
+        message.AddByte((byte)GameManager.currentGamemode);
+        message.AddByte((byte)GameManager.currentMatchState);
+
+        message.AddByte(GameManager.Singleton.allyTeamId);
+        message.AddByte(GameManager.Singleton.enemyTeamId);
+        Server.Send(message, id);
+    }
+
+    private void SendPlayerToPlayers(ushort id)
+    {
+        Message message = Message.Create(MessageSendMode.Reliable, ServerToClientId.newPlayer);
+        message.AddUShort(id);
+        message.AddSerializable<PlayerData>(GameManager.playersOnLobby[id]);
+        message.AddUShorts(GameManager.playersPlacingFFA);
+        message.AddUShorts(GameManager.playersPlacingAllyTeam);
+        message.AddUShorts(GameManager.playersPlacingEnemyTeam);
         Server.SendToAll(message);
     }
     #endregion
@@ -318,11 +396,20 @@ public class NetworkManager : MonoBehaviour
         if (tick > NetworkManager.Singleton.serverTick) NetworkManager.Singleton.serverTick = tick;
     }
 
-    [MessageHandler((ushort)ServerToClientId.playerInfo)]
-    private static void GetPlayerInfo(Message message)
+    [MessageHandler((ushort)ServerToClientId.newPlayerCatchUp)]
+    private static void GetCatchUp(Message message)
     {
         if (NetworkManager.Singleton.Server.IsRunning) return;
-        NetworkManager.Singleton.HandleServerPlayerInfo(message.GetUShorts(), message.GetSerializables<PlayerData>(), message.GetUShorts());
+        NetworkManager.Singleton.HandleServerCatchUp(message.GetUShorts(), message.GetSerializables<PlayerData>(), message.GetUShorts(), message.GetUShorts(), message.GetUShorts(), message.GetByte(), (GameMode)message.GetByte(), (MatchState)message.GetByte(), message.GetByte(), message.GetByte());
+    }
+
+    [MessageHandler((ushort)ServerToClientId.newPlayer)]
+    private static void GetNewPlayer(Message message)
+    {
+        if (NetworkManager.Singleton.Server.IsRunning) return;
+        ushort id = message.GetUShort();
+        if (id == NetworkManager.Singleton.Client.Id) return;
+        NetworkManager.Singleton.HandleServerPlayerInfo(id, message.GetSerializable<PlayerData>(), message.GetUShorts(), message.GetUShorts(), message.GetUShorts());
     }
     #endregion
 

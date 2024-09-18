@@ -12,6 +12,9 @@ public class ScriptablePlayer : ScriptableObject
     [Range(0, 1f)]
     [SerializeField] public float playerHurtAudioVolume;
     [SerializeField] public AudioClip playerHurtAudio;
+    [Range(0, 1f)]
+    [SerializeField] public float playerHealAudioVolume;
+    [SerializeField] public AudioClip playerHealAudio;
     [SerializeField] public float invincibilityTime;
 
     [Range(0, 1f)]

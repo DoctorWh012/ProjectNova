@@ -19,6 +19,12 @@ public class PlayerHud : MonoBehaviour
     [Header("Overlays")]
     [Space(5)]
     [SerializeField] private Image hurtOverlay;
+    [SerializeField] private GameObject lMinusSymbol;
+    [SerializeField] private GameObject rMinusSymbol;
+
+    [SerializeField] private Image healOverlay;
+    [SerializeField] private GameObject lPlusSymbol;
+    [SerializeField] private GameObject rPlusSymbol;
 
     [Header("Colors")]
     [Space(5)]
@@ -40,8 +46,8 @@ public class PlayerHud : MonoBehaviour
     [Header("Weapons Panel")]
     [Space(5)]
     [SerializeField] private TextMeshProUGUI ammoText;
-    [SerializeField] private TextMeshProUGUI[] weaponsSlotsText;
-    [SerializeField] private TextMeshProUGUI[] weaponsNamesText;
+    [SerializeField] private TextMeshProUGUI[] weaponsSlotsTxt;
+    [SerializeField] private TextMeshProUGUI[] weaponsNamesTxt;
     [SerializeField] private Image[] weaponsImages;
 
     [Header("Crosshairs")]
@@ -52,8 +58,13 @@ public class PlayerHud : MonoBehaviour
 
     [Header("UI Texts")]
     [Space(5)]
+    [SerializeField] private TextMeshProUGUI killIndicatorTxt;
+    [SerializeField] private TextMeshProUGUI mediumBottomTxt;
+
+    [Header("Key Indicators")]
+    [Space(5)]
     [SerializeField] private TextMeshProUGUI scoreboardIndicatorKeyTxt;
-    [SerializeField] private TextMeshProUGUI mediumBottomText;
+    [SerializeField] private TextMeshProUGUI ultimateIndicatorKeyTxt;
 
     [Header("Menus")]
     [Space(5)]
@@ -83,6 +94,7 @@ public class PlayerHud : MonoBehaviour
     private void GetPreferences()
     {
         scoreboardIndicatorKeyTxt.SetText(SettingsManager.playerPreferences.scoreboardKey.ToString());
+        ultimateIndicatorKeyTxt.SetText(SettingsManager.playerPreferences.altFireBtn.ToString());
         if (SettingsManager.playerPreferences.crosshairType == 0 && playerShooting.currentWeapon)
         {
             UpdateCrosshair((int)playerShooting.currentWeapon.crosshairType, playerShooting.currentWeapon.crosshairScale, playerShooting.currentWeapon.crosshairShotScale, playerShooting.currentWeapon.crosshairShrinkTime);
@@ -93,7 +105,19 @@ public class PlayerHud : MonoBehaviour
     #region TextsUI
     private void ResetAllUITexts()
     {
-        mediumBottomText.SetText("");
+        mediumBottomTxt.SetText("");
+    }
+
+    public void UpdateMediumBottomText(string text)
+    {
+        mediumBottomTxt.SetText(text);
+    }
+
+    public void FadeKillIndicator(string playerName)
+    {
+        killIndicatorTxt.SetText($"Eliminated <<color=#C33C3C>{playerName}</color>>");
+        killIndicatorTxt.transform.DOComplete();
+        killIndicatorTxt.transform.DOScale(Vector3.one, 0.15f).OnComplete(() => killIndicatorTxt.transform.DOScale(Vector3.zero, 0.35f).SetDelay(2));
     }
     #endregion
 
@@ -105,8 +129,31 @@ public class PlayerHud : MonoBehaviour
 
     public void FadeHurtOverlay()
     {
-        Tweener tweener = hurtOverlay.DOFade(170f / 250, 0.1f).SetEase(Ease.OutSine);
-        tweener.OnComplete(() => hurtOverlay.DOFade(0, 0.3f).SetEase(Ease.OutSine));
+        hurtOverlay.DOComplete();
+        Tweener hurtTweener = hurtOverlay.DOFade(170f / 250, 0.1f).SetEase(Ease.OutSine);
+        hurtTweener.OnComplete(() => hurtOverlay.DOFade(0, 0.3f).SetEase(Ease.OutSine));
+        AnimateHealthOverlaySymbol(lMinusSymbol, rMinusSymbol, 0.25f, 30, 2);
+    }
+
+    private void AnimateHealthOverlaySymbol(GameObject lSymbol, GameObject rSymbol, float duration, float shakeStrenght, int vibrato)
+    {
+        lSymbol.transform.DOComplete();
+        lSymbol.transform.localScale = Vector3.zero;
+        lSymbol.transform.DOPunchScale(Vector3.one, duration, 0).SetEase(Ease.InOutElastic);
+        lSymbol.transform.DOShakePosition(duration, shakeStrenght, vibrato, fadeOut: false);
+
+        rSymbol.transform.DOComplete();
+        rSymbol.transform.localScale = Vector3.zero;
+        rSymbol.transform.DOPunchScale(Vector3.one, duration, 0).SetEase(Ease.InOutElastic);
+        rSymbol.transform.DOShakePosition(duration, shakeStrenght, vibrato, fadeOut: false);
+    }
+
+    public void FadeHealOverlay()
+    {
+        healOverlay.DOComplete();
+        Tweener healTweener = healOverlay.DOFade(170f / 250, 0.1f).SetEase(Ease.OutSine);
+        healTweener.OnComplete(() => healOverlay.DOFade(0, 0.3f).SetEase(Ease.OutSine));
+        AnimateHealthOverlaySymbol(lPlusSymbol, rPlusSymbol, 0.25f, 30, 2);
     }
 
     #endregion
@@ -121,45 +168,57 @@ public class PlayerHud : MonoBehaviour
     {
         FadeWeaponsSlots();
 
-        weaponsSlotsText[slot].color = highlitedColor;
-        weaponsNamesText[slot].color = highlitedColor;
+        weaponsSlotsTxt[slot].color = highlitedColor;
+        weaponsNamesTxt[slot].color = highlitedColor;
         weaponsImages[slot].color = highlitedColor;
     }
 
     private void FadeWeaponsSlots()
     {
-        for (int i = 0; i < weaponsSlotsText.Length; i++)
+        for (int i = 0; i < weaponsSlotsTxt.Length; i++)
         {
-            weaponsSlotsText[i].color = fadedColor;
-            weaponsNamesText[i].color = fadedColor;
+            weaponsSlotsTxt[i].color = fadedColor;
+            weaponsNamesTxt[i].color = fadedColor;
             weaponsImages[i].color = fadedColor;
         }
     }
 
-    public void UpdateWeaponOnSlot(int slot, string weaponName, Sprite weaponImage, bool switching)
+    public void UpdateWeaponsOnSlots(BaseWeapon firstWeapon, BaseWeapon secondWeapon, BaseWeapon thirdWeapon, int active)
     {
-        weaponsNamesText[slot].SetText(weaponName);
-        weaponsImages[slot].enabled = true;
-        weaponsImages[slot].sprite = weaponImage;
-        if (switching) HighlightWeaponOnSlot(slot);
+        ResetWeaponsOnSlots();
+        if (firstWeapon)
+        {
+            weaponsImages[0].enabled = true;
+            weaponsImages[0].sprite = firstWeapon.weaponIcon;
+            weaponsNamesTxt[0].SetText(firstWeapon.weaponName);
+        }
+        if (secondWeapon)
+        {
+            weaponsImages[1].enabled = true;
+            weaponsImages[1].sprite = secondWeapon.weaponIcon;
+            weaponsNamesTxt[1].SetText(secondWeapon.weaponName);
+        }
+        if (thirdWeapon)
+        {
+            weaponsImages[2].enabled = true;
+            weaponsImages[2].sprite = thirdWeapon.weaponIcon;
+            weaponsNamesTxt[2].SetText(thirdWeapon.weaponName);
+        }
+
+        HighlightWeaponOnSlot(active);
     }
 
     public void ResetWeaponsOnSlots()
     {
-        for (int i = 0; i < weaponsSlotsText.Length; i++)
+        for (int i = 0; i < weaponsSlotsTxt.Length; i++)
         {
-            weaponsNamesText[i].SetText("");
+            weaponsNamesTxt[i].SetText("");
             weaponsImages[i].enabled = false;
         }
     }
     #endregion
 
     #region AbilitiesUI
-    public void UpdateMediumBottomText(string text)
-    {
-        mediumBottomText.SetText(text);
-    }
-
     public void UpdateGroundSlamIcon(bool state)
     {
         groundSlamIcon.color = state ? groundSlamAvailableColor : fadedColor;

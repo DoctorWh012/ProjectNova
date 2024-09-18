@@ -1,5 +1,6 @@
 using UnityEngine;
 using DG.Tweening;
+using FirstGearGames.SmoothCameraShaker;
 
 public class BaseWeaponShotgun : BaseWeapon
 {
@@ -69,6 +70,13 @@ public class BaseWeaponShotgun : BaseWeapon
         {
             weaponAudioSource.pitch = Utilities.GetRandomPitch(-0.1f, 0.02f);
             weaponAudioSource.PlayOneShot(weaponSounds[UnityEngine.Random.Range(0, weaponSounds.Length)], weaponSoundVolume);
+        }
+
+
+        if (player.IsLocal)
+        {
+            if (screenShakeData) CameraShakerHandler.ShakeAll(screenShakeData);
+            playerHud.ScaleCrosshairShot();
         }
 
         // Shooting Logic

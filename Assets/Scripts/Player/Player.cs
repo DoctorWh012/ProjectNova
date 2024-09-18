@@ -21,10 +21,30 @@ public class Player : MonoBehaviour
     [SerializeField] public GameObject spectatorCamBrain;
     [SerializeField] public Transform playerCamera;
 
+    [Header("Team")]
+    [Space(5)]
+    [SerializeField] private Outliner outliner;
+    [SerializeField] public Color allyTeamColor;
+    [SerializeField] public Color enemyTeamColor;
+
     private void OnDestroy()
     {
         list.Remove(Id);
         SpectateCameraManager.availableCameras.Remove(spectatorCamBrain);
+    }
+
+    private void Start()
+    {
+        if (IsLocal) return;
+
+        if (GameManager.currentGamemode == GameMode.FreeForAll) OutlinePlayer(false);
+        else OutlinePlayer(GameManager.allyTeam.ContainsKey(Id));
+    }
+
+    private void OutlinePlayer(bool ally)
+    {
+        outliner.OutlineMode = ally ? Outliner.Mode.OutlineAll : Outliner.Mode.OutlineVisible;
+        outliner.OutlineColor = ally ? allyTeamColor : enemyTeamColor;
     }
 
     public static void SpawnPlayer(ushort id, string username, Vector3 position)

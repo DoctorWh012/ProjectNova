@@ -114,20 +114,26 @@ MonoBehaviour:
   switchingTime: 0
   weaponHoldAnimation: ArmHoldLK99
   leftHandTarget: {fileID: 3724043155809928131}
+  leftHandPole: {fileID: 0}
   rightHandTarget: {fileID: 3093056462411678885}
+  rightHandPole: {fileID: 0}
   slot: 2
   weaponIcon: {fileID: 21300000, guid: 31d2f2c1f81e008469ef376fb351bb70, type: 3}
   weaponName: LK-99
+  weaponDamageMultiplier: []
   damage: 100
   range: 0
   fireRate: 2
   reloadTime: 0
   reloadSpins: 0
   maxAmmo: 0
+  ultimateIcon: {fileID: 0}
+  ultimateSlider: {fileID: 0}
+  ultimateIconImg: {fileID: 0}
   crosshairType: 1
   crosshairScale: 0.5
-  crosshairShotScale: 1.2
-  crosshairShrinkTime: 0.5
+  crosshairShotScale: 0.7
+  crosshairShrinkTime: 0.3
   knockbackForce: 0
   knockbackMaxHitDistance: 0
   screenShakeData: {fileID: 11400000, guid: af234b1291e252d44987d5a052ae4c24, type: 2}
@@ -139,6 +145,7 @@ MonoBehaviour:
   - {fileID: 8300000, guid: d6db4b96005da4bb59dbcbc86068347f, type: 3}
   - {fileID: 8300000, guid: ff96fb6f956a743729c9599f17f5d00c, type: 3}
   currentWeaponState: 0
+  killsPerformed: 0
   startingRotation: {x: 0, y: 0, z: 0}
   attackRadius: 1.2
   primaryActionAnimations:

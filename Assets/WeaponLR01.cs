@@ -61,15 +61,15 @@ public class WeaponLR01 : BaseWeaponRifle
         UpdateUltIndicators();
     }
 
-    public override void HandleServerWeaponKill(int kills, uint tick)
+    public override void HandleServerWeaponKill(int kills, ushort victimId, uint tick)
     {
-        base.HandleServerWeaponKill(kills, tick);
+        base.HandleServerWeaponKill(kills, victimId, tick);
         UpdateUltIndicators();
     }
 
-    public override void OnKillPerformed()
+    public override void OnKillPerformed(ushort victimId)
     {
-        base.OnKillPerformed();
+        base.OnKillPerformed(victimId);
         UpdateUltIndicators();
     }
 

@@ -201,7 +201,6 @@ public class BaseWeapon : MonoBehaviour
     public virtual void OnWeaponPickUp()
     {
         killsPerformed = 0;
-        if (player.IsLocal) playerHud.UpdateWeaponOnSlot((int)slot, weaponName, weaponIcon, false);
     }
 
     public virtual void ActivateWeapon()
@@ -220,7 +219,6 @@ public class BaseWeapon : MonoBehaviour
         }
 
         if (!player.IsLocal) return;
-        playerHud.UpdateWeaponOnSlot((int)slot, weaponName, weaponIcon, true);
         playerHud.UpdateAmmoDisplay(currentAmmo, maxAmmo);
         if (ultimateIcon) ultimateIcon.SetActive(true);
 
@@ -254,17 +252,21 @@ public class BaseWeapon : MonoBehaviour
 
     }
 
-    public virtual void HandleServerWeaponKill(int kills, uint tick)
+    public virtual void HandleServerWeaponKill(int kills, ushort victimId, uint tick)
     {
         killsPerformed = kills;
+        if (player.IsLocal && Player.list[victimId]) player.playerHud.FadeKillIndicator(Player.list[victimId].username);
         playerShooting.lastWeaponKillsTick = tick;
     }
 
-    public virtual void OnKillPerformed()
+    public virtual void OnKillPerformed(ushort victimId)
     {
         killsPerformed++;
+
+        if (player.IsLocal && Player.list[victimId]) player.playerHud.FadeKillIndicator(Player.list[victimId].username);
+
         playerShooting.lastWeaponKillsTick = NetworkManager.Singleton.serverTick;
-        playerShooting.SendWeaponKill(killsPerformed);
+        playerShooting.SendWeaponKill(killsPerformed, victimId);
     }
 
     public virtual bool CanPerformPrimaryAction(uint tick, bool compensatingForSwitch)
@@ -291,7 +293,8 @@ public class BaseWeapon : MonoBehaviour
         if (NetworkManager.Singleton.Server.IsRunning) playerShooting.SendReloading();
         else if (player.IsLocal) playerShooting.SendReload();
 
-        Tween reloadTween = transform.DOLocalRotate(startingRotation - new Vector3(360 * reloadSpins, 0, 0), reloadTime, RotateMode.LocalAxisAdd);
+        transform.localEulerAngles = startingRotation;
+        Tween reloadTween = transform.DOLocalRotate(startingRotation - new Vector3(360 * reloadSpins, 0, 0), reloadTime, RotateMode.FastBeyond360);
 
         if (player.IsLocal) reloadTween.OnUpdate(() => playerHud.UpdateReloadSlider(reloadTween.ElapsedPercentage()));
 
@@ -365,6 +368,11 @@ public class BaseWeapon : MonoBehaviour
                 if (filterRayHits.Length - 1 == i) return new RaycastHit();
                 continue;
             }
+            if (GameManager.currentGamemode == GameMode.TeamDeathMatch && CompareTeamHitCollider(filterRayHits[i].collider, GameManager.allyTeam.ContainsKey(player.Id)))
+            {
+                if (filterRayHits.Length - 1 == i) return new RaycastHit();
+                continue;
+            }
             return filterRayHits[i];
         }
         return new RaycastHit();
@@ -380,6 +388,7 @@ public class BaseWeapon : MonoBehaviour
         for (int i = 0; i < unfilteredHits.Length; i++)
         {
             if (CompareHitColliderToSelf(unfilteredHits[i].collider)) continue;
+            if (GameManager.currentGamemode == GameMode.TeamDeathMatch && CompareTeamHitCollider(unfilteredHits[i].collider, GameManager.allyTeam.ContainsKey(player.Id))) continue;
             if (CheckDuplicateHit(filteredHits, unfilteredHits[i])) continue;
 
             filteredHits.Add(unfilteredHits[i]);
@@ -397,6 +406,7 @@ public class BaseWeapon : MonoBehaviour
         for (int i = 0; i < unfilteredCol.Length; i++)
         {
             if (CompareHitColliderToSelf(unfilteredCol[i])) continue;
+            if (GameManager.currentGamemode == GameMode.TeamDeathMatch && CompareTeamHitCollider(unfilteredCol[i], GameManager.allyTeam.ContainsKey(player.Id))) continue;
             if (CheckDuplicateCollider(filteredCol, unfilteredCol[i])) continue;
             filteredCol.Add(unfilteredCol[i]);
         }
@@ -433,6 +443,12 @@ public class BaseWeapon : MonoBehaviour
         return false;
     }
 
+    protected bool CompareTeamHitCollider(Collider col, bool ally)
+    {
+        ushort[] playersKeys = ally ? GameManager.allyTeam.Keys.ToArray() : GameManager.enemyTeam.Keys.ToArray();
+        for (int i = 0; i < playersKeys.Length; i++) { if (Player.list[playersKeys[i]]) if (col.transform.root == Player.list[playersKeys[i]].transform.root) return true; }
+        return false;
+    }
 
     protected bool CheckAltFireConfirmation()
     {
@@ -464,7 +480,7 @@ public class BaseWeapon : MonoBehaviour
         playerShooting.SendHitPlayer(hitPlayer.Id, (int)(damage * damageMultiplier), damageMultiplier > 1, hitPlayer.playerHealth.currentPlayerState == PlayerState.Alive);
         if (hitPlayer.playerHealth.ReceiveDamage(damage * damageMultiplier, damageMultiplier > 1, player.Id))
         {
-            OnKillPerformed();
+            OnKillPerformed(hitPlayer.Id);
             GameManager.Singleton.AddKillToPlayerScore(player.Id);
             player.playerHealth.RecoverHealth(playerShooting.scriptablePlayer.maxHealth);
         }

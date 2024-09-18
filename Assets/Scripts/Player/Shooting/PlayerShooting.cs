@@ -193,12 +193,12 @@ public class PlayerShooting : MonoBehaviour
         }
     }
 
-    private void HandleServerWeaponKill(int slot, int kills, uint tick)
+    private void HandleServerWeaponKill(int slot, int kills, ushort victimId, uint tick)
     {
         if (tick <= lastWeaponKillsTick) return;
         if ((int)currentWeapon.slot != slot) return;
 
-        currentWeapon.HandleServerWeaponKill(kills, tick);
+        currentWeapon.HandleServerWeaponKill(kills, victimId, tick);
     }
 
     private List<DebugGhost> debugGhosts = new List<DebugGhost>();
@@ -234,7 +234,6 @@ public class PlayerShooting : MonoBehaviour
     #region GunSwitching
     public void PickStartingWeapons()
     {
-        if (player.IsLocal) playerHud.ResetWeaponsOnSlots();
         if (currentWeapon) currentWeapon.DeactivateWeapon();
 
         currentWeapons = new BaseWeapon[3];
@@ -282,6 +281,8 @@ public class PlayerShooting : MonoBehaviour
         currentWeapon.ActivateWeapon();
 
         lastSlotChangeTick = tick;
+
+        if (player.IsLocal) playerHud.UpdateWeaponsOnSlots(currentWeapons[0], currentWeapons[1], currentWeapons[2], slotIndex);
 
         if (NetworkManager.Singleton.Server.IsRunning) SendGunSwitch();
         else if (player.IsLocal && !askedByServer) SendSlotSwitch();
@@ -375,12 +376,13 @@ public class PlayerShooting : MonoBehaviour
         NetworkManager.Singleton.Server.Send(message, player.Id);
     }
 
-    public void SendWeaponKill(int killCount)
+    public void SendWeaponKill(int killCount, ushort victimId)
     {
         Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.weaponKill);
         message.AddUShort(player.Id);
         message.AddByte((byte)currentWeapon.slot);
         message.AddInt(killCount);
+        message.AddUShort(victimId);
         message.AddUInt(lastWeaponKillsTick);
         NetworkManager.Singleton.Server.SendToAll(message);
     }
@@ -580,7 +582,7 @@ public class PlayerShooting : MonoBehaviour
         if (NetworkManager.Singleton.Server.IsRunning) return;
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
-            player.playerShooting.HandleServerWeaponKill((int)message.GetByte(), message.GetInt(), message.GetUInt());
+            player.playerShooting.HandleServerWeaponKill((int)message.GetByte(), message.GetInt(), message.GetUShort(), message.GetUInt());
         }
     }
 

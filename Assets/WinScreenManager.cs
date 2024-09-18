@@ -42,20 +42,20 @@ public class WinScreenManager : MonoBehaviour
         secondPlaceDisplayData.displayGameObject.SetActive(false);
         thirdPlaceDisplayData.displayGameObject.SetActive(false);
 
-        playerWonTxt.SetText($"[{GameManager.playersOnLobby[GameManager.playersPlacing[0]].playerName}]\n Wins!");
-        bestPlayerAvatar.sprite = GameManager.playersOnLobby[GameManager.playersPlacing[0]].playerAvatar;
-        bestPlayerTxt.SetText($"{GameManager.playersOnLobby[GameManager.playersPlacing[0]].playerName}");
-        firstPlaceDisplayData.playerNameTxt.SetText(GameManager.playersOnLobby[GameManager.playersPlacing[0]].playerName);
-        firstPlaceDisplayData.playerAvatarImg.sprite = GameManager.playersOnLobby[GameManager.playersPlacing[0]].playerAvatar;
+        playerWonTxt.SetText($"[{GameManager.playersOnLobby[GameManager.playersPlacingFFA[0]].playerName}]\n Wins!");
+        bestPlayerAvatar.sprite = GameManager.playersOnLobby[GameManager.playersPlacingFFA[0]].playerAvatar;
+        bestPlayerTxt.SetText($"{GameManager.playersOnLobby[GameManager.playersPlacingFFA[0]].playerName}");
+        firstPlaceDisplayData.playerNameTxt.SetText(GameManager.playersOnLobby[GameManager.playersPlacingFFA[0]].playerName);
+        firstPlaceDisplayData.playerAvatarImg.sprite = GameManager.playersOnLobby[GameManager.playersPlacingFFA[0]].playerAvatar;
 
-        if (GameManager.playersPlacing.Length < 2) return;
+        if (GameManager.playersPlacingFFA.Length < 2) return;
         secondPlaceDisplayData.displayGameObject.SetActive(true);
-        secondPlaceDisplayData.playerNameTxt.SetText(GameManager.playersOnLobby[GameManager.playersPlacing[1]].playerName);
-        secondPlaceDisplayData.playerAvatarImg.sprite = GameManager.playersOnLobby[GameManager.playersPlacing[1]].playerAvatar;
+        secondPlaceDisplayData.playerNameTxt.SetText(GameManager.playersOnLobby[GameManager.playersPlacingFFA[1]].playerName);
+        secondPlaceDisplayData.playerAvatarImg.sprite = GameManager.playersOnLobby[GameManager.playersPlacingFFA[1]].playerAvatar;
 
-        if (GameManager.playersPlacing.Length < 3) return;
+        if (GameManager.playersPlacingFFA.Length < 3) return;
         thirdPlaceDisplayData.displayGameObject.SetActive(true);
-        thirdPlaceDisplayData.playerNameTxt.SetText(GameManager.playersOnLobby[GameManager.playersPlacing[2]].playerName);
-        thirdPlaceDisplayData.playerAvatarImg.sprite = GameManager.playersOnLobby[GameManager.playersPlacing[2]].playerAvatar;
+        thirdPlaceDisplayData.playerNameTxt.SetText(GameManager.playersOnLobby[GameManager.playersPlacingFFA[2]].playerName);
+        thirdPlaceDisplayData.playerAvatarImg.sprite = GameManager.playersOnLobby[GameManager.playersPlacingFFA[2]].playerAvatar;
     }
 }

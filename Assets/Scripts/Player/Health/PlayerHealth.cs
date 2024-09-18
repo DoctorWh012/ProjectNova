@@ -58,8 +58,12 @@ public class PlayerHealth : MonoBehaviour
             }
 
             // Healing
-            if (value > _currentHealth)
+            if (value >= _currentHealth)
             {
+                if (player.IsLocal) playerHud.FadeHealOverlay();
+
+                playerAudioSource.pitch = Utilities.GetRandomPitch();
+                playerAudioSource.PlayOneShot(scriptablePlayer.playerHealAudio, scriptablePlayer.playerHealAudioVolume);
             }
 
             _currentHealth = value > scriptablePlayer.maxHealth ? scriptablePlayer.maxHealth : value < 0 ? 0 : value;
@@ -111,7 +115,7 @@ public class PlayerHealth : MonoBehaviour
 
         if (NetworkManager.Singleton.Server.IsRunning)
         {
-            Invoke("StartRespawn", GameManager.respawnTime);
+            Invoke(nameof(StartRespawn), GameManager.respawnTime);
             GameManager.Singleton.AddDeathToPlayerScore(player.Id);
             SendPlayerDied(id);
         }
