@@ -22,7 +22,8 @@ Material:
   m_PrefabAsset: {fileID: 0}
   m_Name: ModelToonMat
   m_Shader: {fileID: -6465566751694194690, guid: fb39a6791a5d686408dce030c81f83bf, type: 3}
-  m_ShaderKeywords: _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A
+  m_ShaderKeywords: _SMOOTHNESS_TEXTURE_ALBEDO_CHANNEL_A MAIN_LIGHT_CALCULATE_SHADOWS
+    MAIN_LIGHT_SHADOWS_CASCADE SHADOWS_SOFT ADDITIONAL_LIGHTS_CALCULATE_SHADOWS
   m_LightmapFlags: 4
   m_EnableInstancingVariants: 0
   m_DoubleSidedGI: 0
@@ -124,12 +125,24 @@ Material:
         m_Texture: {fileID: 2800000, guid: f450bfb5b35ab27408c19866f8d0a212, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
+    - _Texture2DAsset_0b0943c53ba44a32bf30cc6b08c55634_Out_0:
+        m_Texture: {fileID: 2800000, guid: a666d05dbe865574c9c74eddf5a0aaee, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Texture2DAsset_2e5fa95741a44756944f1ffde1ff0f69_Out_0:
+        m_Texture: {fileID: 2800000, guid: 580433e63e2e6d845bcbfa4e762b2f8d, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
     - _Texture2DAsset_50b7a1431734459e96b936df957235c8_Out_0:
         m_Texture: {fileID: 2800000, guid: f450bfb5b35ab27408c19866f8d0a212, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _Texture2DAsset_679c3f41ef854341919c18bc303b1ecb_Out_0:
         m_Texture: {fileID: 0}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _Texture2DAsset_ff416d4c457e41c390f07e8abd4aaad2_Out_0:
+        m_Texture: {fileID: 2800000, guid: a666d05dbe865574c9c74eddf5a0aaee, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - unity_Lightmaps:
@@ -157,15 +170,17 @@ Material:
     - Vector1_42b921c44f5a4079b2b05184d7e10ecc: 0
     - Vector1_4fde9739de614adc860008e67853c174: 2.44
     - Vector1_507af564863045388f30a1266d24a4ff: 3.29
-    - Vector1_5442e03f59794cc884b6a55964bcf3a1: 6.97
+    - Vector1_5442e03f59794cc884b6a55964bcf3a1: 10
     - Vector1_56c336b2ad8e4114b79daf317e6f731b: 0
-    - Vector1_57045e224d96454a8cc535f38a1309a9: 5
+    - Vector1_57045e224d96454a8cc535f38a1309a9: 8
     - Vector1_5f7c851ab68e4255bb2544cd9d8a52b3: 1.46
     - Vector1_711e698b15ca4806941618eeb421d63c: 4.85
     - Vector1_84a337597d3441f1a497af4e5a3299b0: -0.03
     - Vector1_a2b54dec886a42b28578f848c796b1f8: 0
     - Vector1_a8699da63964438e9a9da91f2506f7b0: 0.73
+    - Vector1_ae87b2322e5a4e2d94e2d4ea0f0751d0: 12.81
     - Vector1_aea46db55f9d4a3d9f71d7b547fe882f: 0.59
+    - Vector1_bcf4e8408e1b4019989c97b939d95fd8: 0.12
     - Vector1_c431c17eb77e4e2c876746a43407b426: 3
     - Vector1_d025b70c55df4827a6330afe36c9af05: 0.1
     - Vector1_d7386331c905471f88ec17b099d75785: 0.3

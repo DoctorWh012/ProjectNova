@@ -2089,7 +2089,7 @@ GameObject:
   - component: {fileID: 3146188306876841679}
   m_Layer: 5
   m_Name: UICamera
-  m_TagString: Untagged
+  m_TagString: WeaponCam
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -4695,7 +4695,7 @@ Camera:
   m_GameObject: {fileID: 5428018071975478735}
   m_Enabled: 1
   serializedVersion: 2
-  m_ClearFlags: 2
+  m_ClearFlags: 1
   m_BackGroundColor: {r: 0, g: 0, b: 0, a: 0}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
@@ -11974,6 +11974,9 @@ MonoBehaviour:
   rb: {fileID: 1826342366524124384}
   spectatorCamBrain: {fileID: 0}
   playerCamera: {fileID: 5428018071057322716}
+  outliner: {fileID: 0}
+  allyTeamColor: {r: 0.03137255, g: 0.6313726, b: 0.9843137, a: 1}
+  enemyTeamColor: {r: 0.99607843, g: 0.16470589, b: 0.1764706, a: 1}
 --- !u!114 &4818608312610071917
 MonoBehaviour:
   m_ObjectHideFlags: 0
