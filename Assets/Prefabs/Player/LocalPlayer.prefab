@@ -4822,7 +4822,7 @@ MonoBehaviour:
     m_Bits: 1
   m_VolumeTrigger: {fileID: 0}
   m_VolumeFrameworkUpdateModeOption: 2
-  m_RenderPostProcessing: 1
+  m_RenderPostProcessing: 0
   m_Antialiasing: 1
   m_AntialiasingQuality: 2
   m_StopNaN: 1
@@ -12328,12 +12328,12 @@ MonoBehaviour:
     handMesh: {fileID: 6828046858343000715}
     lowerArmMesh: {fileID: 5170053004610390040}
     upperArmMesh: {fileID: 7587319271684186197}
-    handIK: {fileID: 1777089373403696614}
+    handIK: {fileID: 5311439654804264022}
   rightArm:
     handMesh: {fileID: 1815353073939925750}
     lowerArmMesh: {fileID: 4662041250783399524}
     upperArmMesh: {fileID: 624712977993285369}
-    handIK: {fileID: 3892638852343506036}
+    handIK: {fileID: 2227813004739909010}
   playerLayer: 0
   netPlayerLayer: 0
   lastShotTick: 0
@@ -14088,10 +14088,10 @@ PrefabInstance:
       addedObject: {fileID: 2674473992397102943}
     - targetCorrespondingSourceObject: {fileID: 4891166935874106106, guid: 323993d28dd3fa54aa5a17645c236933, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 1777089373403696614}
+      addedObject: {fileID: 5311439654804264022}
     - targetCorrespondingSourceObject: {fileID: -7029424097033460990, guid: 323993d28dd3fa54aa5a17645c236933, type: 3}
       insertIndex: -1
-      addedObject: {fileID: 3892638852343506036}
+      addedObject: {fileID: 2227813004739909010}
   m_SourcePrefab: {fileID: 100100000, guid: 323993d28dd3fa54aa5a17645c236933, type: 3}
 --- !u!137 &624712977993285369 stripped
 SkinnedMeshRenderer:
@@ -14139,7 +14139,7 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: -7029424097033460990, guid: 323993d28dd3fa54aa5a17645c236933, type: 3}
   m_PrefabInstance: {fileID: 3032026938325783690}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &3892638852343506036
+--- !u!114 &2227813004739909010
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -14153,7 +14153,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ChainLength: 2
   Target: {fileID: 0}
-  Pole: {fileID: 4450073856755607874}
+  Pole: {fileID: 0}
   Iterations: 10
   Delta: 0.001
   SnapBackStrength: 1
@@ -14183,7 +14183,7 @@ GameObject:
   m_CorrespondingSourceObject: {fileID: 4891166935874106106, guid: 323993d28dd3fa54aa5a17645c236933, type: 3}
   m_PrefabInstance: {fileID: 3032026938325783690}
   m_PrefabAsset: {fileID: 0}
---- !u!114 &1777089373403696614
+--- !u!114 &5311439654804264022
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -14197,7 +14197,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ChainLength: 2
   Target: {fileID: 0}
-  Pole: {fileID: 2828927581532632893}
+  Pole: {fileID: 0}
   Iterations: 10
   Delta: 0.001
   SnapBackStrength: 1

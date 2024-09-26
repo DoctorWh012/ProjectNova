@@ -1,7 +1,7 @@
 fileFormatVersion: 2
 guid: 02fe31187cd1fef44a7b9145409c2487
 ModelImporter:
-  serializedVersion: 20300
+  serializedVersion: 22200
   internalIDToNameTable: []
   externalObjects:
   - first:
@@ -9,6 +9,41 @@ ModelImporter:
       assembly: UnityEngine.CoreModule
       name: GlowYellow
     second: {fileID: 2100000, guid: 24ca7c361f11cf443aafcb9c789ceda8, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Head
+    second: {fileID: 2100000, guid: 4afcc197601bd9b4c8e44a0ae65d2072, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LBiceps
+    second: {fileID: 2100000, guid: f379bc4b855e4fb4fbfac3c0295ddfaa, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LFoot
+    second: {fileID: 2100000, guid: 9b2e19348e84ae94795a9d89513a2c95, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LForearm
+    second: {fileID: 2100000, guid: 34ed5fbd2b60a144c881875c5fff7475, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LHand
+    second: {fileID: 2100000, guid: 78a2d7b1ca560f4498762af9716a6629, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LLeg
+    second: {fileID: 2100000, guid: 46ae0fc784a2cc2419f4543510ed0798, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: LLowerLeg
+    second: {fileID: 2100000, guid: 724ab4d821ec9624c9ab10af0c6dfb61, type: 2}
   - first:
       type: UnityEngine:Material
       assembly: UnityEngine.CoreModule
@@ -29,6 +64,46 @@ ModelImporter:
       assembly: UnityEngine.CoreModule
       name: MiniNovaHead
     second: {fileID: 2100000, guid: 93fb075e77a08ee48b5dd4078e9d4b6d, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: RBiceps
+    second: {fileID: 2100000, guid: 867a26c6f52c4b048b7ba0c135f2da0c, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: RFoot
+    second: {fileID: 2100000, guid: 249d4d48460d2ff4a8dbc9e545a1f73f, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: RForearm
+    second: {fileID: 2100000, guid: 938a9b5142cd2e54c8df455d16ebfab4, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: RHand
+    second: {fileID: 2100000, guid: 7acde8e18fd6aef47b4667ae3d283bf4, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: RLeg
+    second: {fileID: 2100000, guid: b934edb49dc83574c9ff931a3aedaa97, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: RLowerLeg
+    second: {fileID: 2100000, guid: b11ee6ebbf7472942b89109e8f5aadea, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: Torso
+    second: {fileID: 2100000, guid: 3f3c765f051a80d4382a410c91a6af64, type: 2}
+  - first:
+      type: UnityEngine:Material
+      assembly: UnityEngine.CoreModule
+      name: TorsoUnit
+    second: {fileID: 2100000, guid: 7bde63630b48ae949b41daee6b92f791, type: 2}
   materials:
     materialImportMode: 2
     materialName: 0
@@ -39,6 +114,7 @@ ModelImporter:
     bakeSimulation: 0
     resampleCurves: 1
     optimizeGameObjects: 0
+    removeConstantScaleCurves: 0
     motionNodeName: 
     rigImportErrors: 
     rigImportWarnings: 
@@ -64,10 +140,12 @@ ModelImporter:
     addColliders: 0
     useSRGBMaterialColor: 1
     sortHierarchyByName: 1
+    importPhysicalCameras: 1
     importVisibility: 1
     importBlendShapes: 1
     importCameras: 1
     importLights: 1
+    nodeNameCollisionStrategy: 0
     fileIdsGeneration: 2
     swapUVChannels: 0
     generateSecondaryUV: 1
@@ -79,6 +157,7 @@ ModelImporter:
     skinWeightsMode: 0
     maxBonesPerVertex: 4
     minBoneWeight: 0.001
+    optimizeBones: 1
     meshOptimizationFlags: -1
     indexFormat: 0
     secondaryUVAngleDistortion: 8
@@ -89,6 +168,7 @@ ModelImporter:
     secondaryUVMinObjectScale: 1
     secondaryUVPackMargin: 4
     useFileScale: 1
+    strictVertexDataChecks: 0
   tangentSpace:
     normalSmoothAngle: 0
     normalImportMode: 1
@@ -466,6 +546,7 @@ ModelImporter:
   humanoidOversampling: 1
   avatarSetup: 1
   addHumanoidExtraRootOnlyWhenUsingAvatar: 1
+  importBlendShapeDeformPercent: 0
   remapMaterialsIfMaterialImportModeIsNone: 0
   additionalBone: 0
   userData: 
