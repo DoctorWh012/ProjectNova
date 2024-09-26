@@ -8,7 +8,11 @@ using UnityEngine.Rendering.Universal;
 internal class ColorBlitPass : ScriptableRenderPass
 {
     ProfilingSampler m_ProfilingSampler = new ProfilingSampler("ColorBlit");
+<<<<<<< HEAD
     RTHandle m_CameraColorTarget;
+=======
+    RenderTargetIdentifier m_CameraColorTarget;
+>>>>>>> e0f72b9182fdb57dddbf09ee3a28ffa6af6518e2
     float m_Intensity;
     RenderTexture m_renderTexture = null;
 
@@ -18,7 +22,11 @@ internal class ColorBlitPass : ScriptableRenderPass
         m_renderTexture = renderTexture;
     }
 
+<<<<<<< HEAD
     public void SetTarget(RTHandle colorHandle, float intensity)
+=======
+    public void SetTarget(RenderTargetIdentifier colorHandle, float intensity)
+>>>>>>> e0f72b9182fdb57dddbf09ee3a28ffa6af6518e2
     {
         m_CameraColorTarget = colorHandle;
         m_Intensity = intensity;
@@ -57,6 +65,7 @@ internal class BlitToTextureRendererFeature : ScriptableRendererFeature
 
     ColorBlitPass m_RenderPass = null;
 
+<<<<<<< HEAD
     public override void AddRenderPasses(ScriptableRenderer renderer,
                                     ref RenderingData renderingData)
     {
@@ -66,14 +75,25 @@ internal class BlitToTextureRendererFeature : ScriptableRendererFeature
 
     public override void SetupRenderPasses(ScriptableRenderer renderer,
                                         in RenderingData renderingData)
+=======
+    public override void AddRenderPasses(ScriptableRenderer renderer, ref RenderingData renderingData)
+>>>>>>> e0f72b9182fdb57dddbf09ee3a28ffa6af6518e2
     {
         if (renderingData.cameraData.cameraType == CameraType.Game)
         {
             // Calling ConfigureInput with the ScriptableRenderPassInput.Color argument
             // ensures that the opaque texture is available to the Render Pass.
             m_RenderPass.ConfigureInput(ScriptableRenderPassInput.Color);
+<<<<<<< HEAD
             m_RenderPass.SetTarget(renderer.cameraColorTargetHandle, m_Intensity);
         }
+=======
+            m_RenderPass.SetTarget(renderer.cameraColorTarget, m_Intensity);
+        }
+
+        if (renderingData.cameraData.cameraType == CameraType.Game)
+            renderer.EnqueuePass(m_RenderPass);
+>>>>>>> e0f72b9182fdb57dddbf09ee3a28ffa6af6518e2
     }
 
     public override void Create()
