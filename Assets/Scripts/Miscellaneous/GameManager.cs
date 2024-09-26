@@ -154,7 +154,7 @@ public class GameManager : SettingsMenu
 
     // Scene
     public static Scenes menuScene = new Scenes("NewMenu", false, false);
-    public static Scenes lobbyScene = new Scenes("TestLobby", true, true);
+    public static Scenes lobbyScene = new Scenes("NewLobby", true, true);
     public static Scenes winScreen = new Scenes("WinScreen", false, false);
 
     public static Scenes currentScene;
