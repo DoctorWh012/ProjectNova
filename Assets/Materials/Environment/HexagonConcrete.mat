@@ -82,11 +82,15 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _BaseMap:
-        m_Texture: {fileID: 2800000, guid: aad5e03a815a1f749bf7fedc28149326, type: 3}
+        m_Texture: {fileID: 2800000, guid: a41bb374d4e2b3b45886a116c207277c, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _BumpMap:
-        m_Texture: {fileID: 2800000, guid: 77176c3d8f308cb409a1b0d717df8b45, type: 3}
+        m_Texture: {fileID: 2800000, guid: e077dd877a4f31e42908aea259517459, type: 3}
+        m_Scale: {x: 1, y: 1}
+        m_Offset: {x: 0, y: 0}
+    - _ClearCoatMap:
+        m_Texture: {fileID: 0}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _DetailAlbedoMap:
@@ -106,23 +110,23 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MainTex:
-        m_Texture: {fileID: 2800000, guid: aad5e03a815a1f749bf7fedc28149326, type: 3}
+        m_Texture: {fileID: 2800000, guid: a41bb374d4e2b3b45886a116c207277c, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _MetallicGlossMap:
-        m_Texture: {fileID: 2800000, guid: 511600596ca6ba04ca40960706cecc8a, type: 3}
+        m_Texture: {fileID: 2800000, guid: 1b76d46ae2ba3254f8f618c66711e772, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _OcclusionMap:
-        m_Texture: {fileID: 2800000, guid: 4753b364a4b5b104bb6429da76f080cb, type: 3}
+        m_Texture: {fileID: 2800000, guid: 932b6da4b1134b64c8e94ce9e23aa7be, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _ParallaxMap:
-        m_Texture: {fileID: 2800000, guid: 841a08ca42c45db409399399be34fb4d, type: 3}
+        m_Texture: {fileID: 2800000, guid: 53873c8c3a5ddc8418dc925ed01b47d1, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _SpecGlossMap:
-        m_Texture: {fileID: 0}
+        m_Texture: {fileID: 2800000, guid: 6576f2300bc286942b379da430e67abd, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     - _Texture2DAsset_053ce6419ce74457aa28c187d4be208f_Out_0:
@@ -178,7 +182,9 @@ Material:
     - _Ambient: 0
     - _Blend: 0
     - _BlendModePreserveSpecular: 1
-    - _BumpScale: 3
+    - _BlendOp: 0
+    - _BumpScale: 2
+    - _ClearCoat: 0
     - _ClearCoatMask: 0
     - _ClearCoatSmoothness: 0
     - _Cull: 2
@@ -192,6 +198,7 @@ Material:
     - _Glossiness: 0
     - _GlossyReflections: 0
     - _Metallic: 0
+    - _Mode: 0
     - _OcclusionStrength: 1
     - _Parallax: 0.005
     - _QueueControl: 0
@@ -205,12 +212,13 @@ Material:
     - _SrcBlendAlpha: 1
     - _Surface: 0
     - _Toon_Ramp_Offset_Point: 0.5
+    - _UVSec: 0
     - _UseAoMap: 0
-    - _UseColorMap: 0
+    - _UseColorMap: 1
     - _UseEmissiveMap: 0
     - _UseMetallicMap: 0
-    - _UseNormalMap: 0
-    - _UseRoughnessMap: 0
+    - _UseNormalMap: 1
+    - _UseRoughnessMap: 1
     - _WorkflowMode: 1
     - _ZWrite: 1
     m_Colors:

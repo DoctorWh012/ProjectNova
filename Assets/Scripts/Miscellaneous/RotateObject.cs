@@ -10,7 +10,11 @@ public class RotateObject : MonoBehaviour
     [SerializeField] bool y;
     [SerializeField] bool z;
 
-    // Update is called once per frame
+    private void Start()
+    {
+        if (!objectPos) objectPos = transform;
+    }
+
     void Update()
     {
         if (!rotate) return;
