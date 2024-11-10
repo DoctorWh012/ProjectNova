@@ -270,6 +270,7 @@ public class GameManager : SettingsMenu
     {
         Singleton = this;
         Physics.autoSyncTransforms = true;
+        // Time.timeScale = 0.1f;
     }
 
     private void Start()

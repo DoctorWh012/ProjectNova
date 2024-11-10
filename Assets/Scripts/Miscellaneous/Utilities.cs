@@ -11,6 +11,11 @@ public static class Utilities
         return 1 + Random.Range(minShift, maxShift);
     }
 
+    public static void GetRandomPitch(this AudioSource source, float minShift = -0.1f, float maxShift = 0.02f)
+    {
+        source.pitch = 1 + Random.Range(minShift, maxShift);
+    }
+
     public static float VolumeToDB(float v)
     {
         v = Mathf.Clamp(v, 0.0001f, 1f);

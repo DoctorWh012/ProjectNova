@@ -85,6 +85,13 @@ public struct BodyPartHitTagMultiplier
     public float bodyPartMultiplier;
 }
 
+[Serializable]
+public struct WeaponArmAnimation
+{
+    public string weaponAnimation;
+    public string armAnimation;
+}
+
 public class BaseWeapon : MonoBehaviour
 {
     public float tickFireRate { get; protected set; }
@@ -102,13 +109,15 @@ public class BaseWeapon : MonoBehaviour
     [Header("Grip")]
     [Space(5)]
     [SerializeField] public float switchingTime;
-    [SerializeField] public string weaponHoldAnimation;
+    [SerializeField] public bool renderRightArm;
+    [SerializeField] public bool renderLeftArm;
 
-    [SerializeField] public Transform leftHandTarget;
-    [SerializeField] public Transform leftHandPole;
-
-    [SerializeField] public Transform rightHandTarget;
-    [SerializeField] public Transform rightHandPole;
+    [Header("Animations")]
+    [Space(5)]
+    [SerializeField] protected WeaponArmAnimation[] raiseAnimations;
+    [SerializeField] protected WeaponArmAnimation idleAnimation;
+    [SerializeField] protected WeaponArmAnimation[] shootAnimations;
+    [SerializeField] protected WeaponArmAnimation[] reloadAnimations;
 
     [Header("Weapon")]
     [Space(5)]
@@ -178,6 +187,11 @@ public class BaseWeapon : MonoBehaviour
     protected float fireTime;
     public Vector3 startingRotation;
 
+    private void Start()
+    {
+        BaseStart();
+    }
+
     public void SwitchWeaponState(WeaponState desiredState)
     {
         currentWeaponState = desiredState;
@@ -188,7 +202,7 @@ public class BaseWeapon : MonoBehaviour
         if (weaponDamageMultiplier.Length == 0) weaponDamageMultiplier = playerShooting.scriptablePlayer.bodyPartHitTagMultipliers;
     }
 
-    protected void BaseStart()
+    protected virtual void BaseStart()
     {
         AssignDefaultDamageMultiplier();
         animator.keepAnimatorStateOnDisable = true;
@@ -206,11 +220,12 @@ public class BaseWeapon : MonoBehaviour
     public virtual void ActivateWeapon()
     {
         gameObject.SetActive(true);
-        SetupWeaponGrip();
         SwitchWeaponState(WeaponState.Switching);
         CancelInvoke(nameof(FinishSwitching));
         Invoke(nameof(FinishSwitching), switchingTime);
-        animator.Play("Raise", 0, 0);
+
+        playerShooting.EnableDisableArmsMeshes(renderLeftArm, renderRightArm);
+        if (raiseAnimations.Length != 0) WeaponArmAnimation(raiseAnimations[UnityEngine.Random.Range(0, raiseAnimations.Length)]);
 
         if (weaponPickupSound)
         {
@@ -237,9 +252,9 @@ public class BaseWeapon : MonoBehaviour
         if (ultimateIcon) ultimateIcon.SetActive(false);
     }
 
-    public virtual void PrimaryAction(uint tick, bool compensatingForSwitch = false)
+    public virtual bool PrimaryAction(uint tick, bool compensatingForSwitch = false)
     {
-
+        return false;
     }
 
     public virtual void SecondaryAction(uint tick)
@@ -293,12 +308,9 @@ public class BaseWeapon : MonoBehaviour
         if (NetworkManager.Singleton.Server.IsRunning) playerShooting.SendReloading();
         else if (player.IsLocal) playerShooting.SendReload();
 
-        transform.localEulerAngles = startingRotation;
-        Tween reloadTween = transform.DOLocalRotate(startingRotation - new Vector3(360 * reloadSpins, 0, 0), reloadTime, RotateMode.FastBeyond360);
+        if (reloadAnimations.Length != 0) WeaponArmAnimation(reloadAnimations[UnityEngine.Random.Range(0, reloadAnimations.Length)]);
 
-        if (player.IsLocal) reloadTween.OnUpdate(() => playerHud.UpdateReloadSlider(reloadTween.ElapsedPercentage()));
-
-        reloadTween.OnComplete(() => FinishReloading());
+        Invoke(nameof(FinishReloading), reloadTime);
     }
 
     public bool CanReload()
@@ -312,8 +324,7 @@ public class BaseWeapon : MonoBehaviour
 
     public void AbortReload()
     {
-        transform.DOKill();
-        transform.localEulerAngles = startingRotation;
+        CancelInvoke(nameof(FinishReloading));
         if (player.IsLocal) playerShooting.playerHud.UpdateReloadSlider(0);
         SwitchWeaponState(WeaponState.Idle);
     }
@@ -332,31 +343,17 @@ public class BaseWeapon : MonoBehaviour
     #endregion
 
     #region Grip
-    protected void SetupWeaponGrip()
+    protected void WeaponArmAnimation(WeaponArmAnimation animations)
     {
-        playerShooting.leftArm.handIK.enabled = leftHandTarget;
-        playerShooting.rightArm.handIK.enabled = rightHandTarget;
-
-        if (leftHandTarget) playerShooting.leftArm.handIK.Target = leftHandTarget;
-        if (leftHandPole) playerShooting.leftArm.handIK.Pole = leftHandPole;
-
-        if (rightHandTarget) playerShooting.rightArm.handIK.Target = rightHandTarget;
-        if (rightHandPole) playerShooting.rightArm.handIK.Pole = rightHandPole;
-
-        if (!string.IsNullOrEmpty(weaponHoldAnimation))
-        {
-            if (player.IsLocal) playerShooting.armsAnimator.Play(weaponHoldAnimation, 0, 0);
-            else playerShooting.armsAnimator.Play(weaponHoldAnimation, 1, 0);
-        }
-
-        if (player.IsLocal && SettingsManager.playerPreferences.renderArms) playerShooting.EnableDisableHandsMeshes(leftHandTarget, rightHandTarget);
+        playerShooting.armsAnimator.Play(animations.armAnimation, player.IsLocal ? 0 : 1, 0);
+        animator.Play(animations.weaponAnimation, 0, 0);
     }
     #endregion
 
     #region Casts
-    protected RaycastHit FilteredRaycast(Vector3 dir)
+    protected RaycastHit FilteredRaycast(Vector3 dir, float bulletWidht = 0.1f)
     {
-        RaycastHit[] filterRayHits = Physics.SphereCastAll(playerShooting.playerCam.position, 0.1f, dir.normalized, range, ~playerShooting.layersToIgnoreShootRaycast);
+        RaycastHit[] filterRayHits = Physics.SphereCastAll(playerShooting.playerCam.position, bulletWidht, dir.normalized, range, ~playerShooting.layersToIgnoreShootRaycast);
 
         Array.Sort(filterRayHits, (x, y) => x.distance.CompareTo(y.distance));
 
@@ -499,7 +496,7 @@ public class BaseWeapon : MonoBehaviour
 
     public void FinishPrimaryAction()
     {
-        if (currentWeaponState == WeaponState.Switching || currentWeaponState == WeaponState.Reloading) return;
+        if (currentWeaponState != WeaponState.Shooting) return;
         CheckIfReloadIsNeeded();
         SwitchWeaponState(WeaponState.Idle);
     }

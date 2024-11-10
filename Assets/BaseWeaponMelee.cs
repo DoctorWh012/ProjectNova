@@ -35,18 +35,19 @@ public class BaseWeaponMelee : BaseWeapon
         return true;
     }
 
-    public override void PrimaryAction(uint tick, bool compensatingForSwitch = false)
+    public override bool PrimaryAction(uint tick, bool compensatingForSwitch = false)
     {
-        MeleeAttack(tick, compensatingForSwitch);
+        if (!CanPerformPrimaryAction(tick, compensatingForSwitch)) return false;
+        MeleeAttack(tick);
+        return true;
     }
 
     public override void CheckIfReloadIsNeeded()
     {
     }
 
-    protected bool MeleeAttack(uint tick, bool compensatingForSwitch)
+    protected void MeleeAttack(uint tick)
     {
-        if (!CanPerformPrimaryAction(tick, compensatingForSwitch)) return false;
         SwitchWeaponState(WeaponState.Shooting);
 
         // Effects
@@ -71,15 +72,13 @@ public class BaseWeaponMelee : BaseWeapon
 
         filteredCol = FilteredOverlapSphere(playerShooting.playerCam.position + playerShooting.playerCam.forward * attackRadius, attackRadius);
         for (int j = 0; j < filteredCol.Count; j++) if (CheckPlayerHit(filteredCol[j])) GetHitPlayer(filteredCol[j].gameObject, damage);
-        
+
         if (!player.IsLocal && NetworkManager.Singleton.Server.IsRunning) NetworkManager.Singleton.ResetPlayersPositions(player.Id);
 
         ApplyKnockback();
 
         if (NetworkManager.Singleton.Server.IsRunning) playerShooting.SendServerFire();
         else if (player.IsLocal) playerShooting.SendClientFire();
-
-        return true;
     }
 
     private void OnDrawGizmos()

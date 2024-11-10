@@ -5,9 +5,17 @@ using FirstGearGames.SmoothCameraShaker;
 public class BaseWeaponRifle : BaseWeapon
 {
     [Header("Components")]
+    [Space(5)]
     [SerializeField] protected ParticleSystem muzzleFlash;
+    [SerializeField] protected Light muzzleFlashLight;
+
+    [Header("Settings")]
+    [Space(5)]
+    [SerializeField] protected float muzzleFlashLightIntensity;
+    [SerializeField] protected float muzzleFlashLightLasts;
 
     [Header("Tracer")]
+    [Space(5)]
     [SerializeField] protected Transform barrelTip;
     [SerializeField] public TracerType tracerType;
     [SerializeField] public float tracerLasts;
@@ -16,11 +24,6 @@ public class BaseWeaponRifle : BaseWeapon
     protected TrailRenderer tracer;
     protected ParticleSystem hitParticle;
     protected RaycastHit shotRayHit;
-
-    protected void Start()
-    {
-        BaseStart();
-    }
 
     public override bool CanPerformPrimaryAction(uint tick, bool compensatingForSwitch)
     {
@@ -40,10 +43,11 @@ public class BaseWeaponRifle : BaseWeapon
         return true;
     }
 
-    public override void PrimaryAction(uint tick, bool compensatingForSwitch = false)
+    public override bool PrimaryAction(uint tick, bool compensatingForSwitch = false)
     {
-        if (!CanPerformPrimaryAction(tick, compensatingForSwitch)) return;
+        if (!CanPerformPrimaryAction(tick, compensatingForSwitch)) return false;
         ShootNoSpread(tick);
+        return true;
     }
 
     protected bool ShootNoSpread(uint tick)
@@ -53,7 +57,14 @@ public class BaseWeaponRifle : BaseWeapon
 
         // Effects
         muzzleFlash.Play();
-        animator.Play("Recoil", 0, 0);
+        if (muzzleFlashLight)
+        {
+            muzzleFlashLight.intensity = muzzleFlashLightIntensity;
+            muzzleFlashLight.enabled = true;
+            muzzleFlashLight.DOIntensity(0, muzzleFlashLightLasts).SetEase(Ease.InOutQuad).OnComplete(() => muzzleFlashLight.enabled = false);
+        }
+
+        if (shootAnimations.Length != 0) WeaponArmAnimation(shootAnimations[Random.Range(0, shootAnimations.Length)]);
         Invoke(nameof(FinishPrimaryAction), fireTime);
 
         if (weaponSounds.Length != 0)
@@ -123,6 +134,6 @@ public class BaseWeaponRifle : BaseWeapon
         hitParticle.transform.position = pos;
         hitParticle.Play();
 
-        hitParticle.GetComponent<ReturnToPool>().ReturnToPoolIn(hitParticle.main.duration);
+        hitParticle.GetComponent<ReturnToPool>().ReturnToPoolIn(1);
     }
 }

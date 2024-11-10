@@ -4918,13 +4918,13 @@ Light:
   m_Lightmapping: 2
   m_LightShadowCasterMode: 0
   m_AreaSize: {x: 1, y: 1}
-  m_BounceIntensity: 1
+  m_BounceIntensity: 2
   m_ColorTemperature: 6570
   m_UseColorTemperature: 0
   m_BoundingSphereOverride: {x: 0, y: 0, z: 0, w: 0}
   m_UseBoundingSphereOverride: 0
   m_UseViewFrustumForShadowCasterCull: 1
-  m_ShadowRadius: 0
+  m_ShadowRadius: 1
   m_ShadowAngle: 0
 --- !u!114 &4682764557495798499
 MonoBehaviour:
@@ -9864,6 +9864,12 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 26c5e4f9fa4400a40900213a3fc62a4d, type: 3}
       insertIndex: -1
       addedObject: {fileID: 5263674952289339828}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 26c5e4f9fa4400a40900213a3fc62a4d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 8524060539939593163}
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: 26c5e4f9fa4400a40900213a3fc62a4d, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 3478471106624210117}
   m_SourcePrefab: {fileID: 100100000, guid: 26c5e4f9fa4400a40900213a3fc62a4d, type: 3}
 --- !u!4 &6132375078169450090 stripped
 Transform:
@@ -9896,3 +9902,114 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 0.2273103, y: 0.668354, z: 0.2624753}
   m_Center: {x: -0.000009641051, y: 0.33417693, z: -0.000007681549}
+--- !u!82 &8524060539939593163
+AudioSource:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6796285914957991120}
+  m_Enabled: 1
+  serializedVersion: 4
+  OutputAudioMixerGroup: {fileID: 1687141755608164516, guid: d13b909be868f334b8ac667c1b2a450e, type: 2}
+  m_audioClip: {fileID: 8300000, guid: aa34d84ecce43094e92c292a47c7ee1e, type: 3}
+  m_PlayOnAwake: 1
+  m_Volume: 1
+  m_Pitch: 1
+  Loop: 1
+  Mute: 0
+  Spatialize: 0
+  SpatializePostEffects: 0
+  Priority: 128
+  DopplerLevel: 1
+  MinDistance: 1
+  MaxDistance: 10
+  Pan2D: 0
+  rolloffMode: 2
+  BypassEffects: 0
+  BypassListenerEffects: 0
+  BypassReverbZones: 0
+  rolloffCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0.2
+      value: 1
+      inSlope: -2.836259
+      outSlope: -2.836259
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0.0745243
+    - serializedVersion: 3
+      time: 1
+      value: 0
+      inSlope: -0.43438596
+      outSlope: -0.43438596
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.13054967
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  panLevelCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  spreadCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  reverbZoneMixCustomCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0.33333334
+      outWeight: 0.33333334
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+--- !u!114 &3478471106624210117
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6796285914957991120}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 075d7ad8a91b8b747a73baef740886b2, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  audioVolume: 0.3
+  minShift: -0.1
+  maxShift: 0.02

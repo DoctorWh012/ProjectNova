@@ -1,54 +1,66 @@
-using System;
 using System.Collections;
 using UnityEngine;
 using DG.Tweening;
 using FirstGearGames.SmoothCameraShaker;
 using UnityEngine.UI;
+using System.Collections.Generic;
 
 public class WeaponLR01 : BaseWeaponRifle
 {
-    [Serializable]
-    protected struct UltimateGrip
-    {
-        public Transform grip;
-        public Transform pole;
-
-        public Vector3 startPos;
-        public Vector3 endPos;
-
-        public float time;
-    }
-
     [Header("Gizmos")]
     [SerializeField] private bool drawGizmos;
 
-    [Header("LR-01")]
-    [SerializeField] protected Transform rotatable;
-
-    [Header("Ultimate")]
+    [Space(10)]
     [Header("Settings")]
     [Space(5)]
     [SerializeField] protected int killsNeeded;
     [SerializeField] protected float ricochetRadius;
     [SerializeField] protected int ricochetAmount;
     [SerializeField] protected float timeBetweenRicochets;
-    [SerializeField] protected float weaponSpinSpoolTime;
 
-    [Header("Grip")]
+    [Header("Spin")]
     [Space(5)]
-    [SerializeField] protected string ultimateHoldAnimation;
-    [SerializeField] protected UltimateGrip lGrip;
+    [SerializeField] protected Transform drum;
+    [SerializeField] protected float drumRotateTime;
+    [SerializeField] protected Transform weaponRoot;
+    [SerializeField] protected float fullRotationTakes;
+    [SerializeField] protected float shakeTakes;
+    [SerializeField] protected Vector3 shakePower;
+
+    [Header("Audio")]
+    [SerializeField] protected AudioSource weaponSpinAudioSource;
+    [SerializeField] protected float spinSoundVolume;
+    [SerializeField] protected float spinSoundMaxPitch;
+    [SerializeField] protected float spinSoundPitchUpTakes;
 
     [Header("Components")]
     [Space(5)]
-    [SerializeField] protected ParticleSystem ultChargeParticle;
     [SerializeField] protected Image focusedOverlay;
+    [SerializeField] protected Material heatMat;
+    [SerializeField] protected float heatEmissionIntensity;
+    [SerializeField] protected SkinnedMeshRenderer bulletsHeat;
+    [SerializeField] protected Material backHeatMat;
+    [SerializeField] protected float backHeatEmissionIntensity;
+    [SerializeField] protected SkinnedMeshRenderer weaponMesh;
 
     [Header("Effects")]
-    [SerializeField] protected Material glowMat;
-    [SerializeField] protected Material fadedMat;
-    [SerializeField] protected MeshRenderer[] bullets;
-    [SerializeField] protected MeshRenderer backIndicator;
+    [Space(5)]
+    [SerializeField] protected WeaponArmAnimation ultimateAnimation;
+    [SerializeField] protected float ultimateMuzzleFlashIntensity;
+    [SerializeField] protected float ultimateMuzzleFlashLightLasts;
+    [SerializeField] protected TrailRenderer spinTrail;
+    [SerializeField] protected float spinTrailWidht;
+    [SerializeField] protected float spinTrailTime;
+    [SerializeField] protected float spinTrailFadeoutTime;
+
+    protected Vector3 rotatableStartPos;
+    protected Vector3 ultimateRGripStartRot;
+
+    protected override void BaseStart()
+    {
+        base.BaseStart();
+        AssignMaterials();
+    }
 
     public override void OnWeaponPickUp()
     {
@@ -59,6 +71,15 @@ public class WeaponLR01 : BaseWeaponRifle
     {
         base.ActivateWeapon();
         UpdateUltIndicators();
+    }
+
+    public override bool PrimaryAction(uint tick, bool compensatingForSwitch = false)
+    {
+        if (!CanPerformPrimaryAction(tick, compensatingForSwitch)) return false;
+        ShootNoSpread(tick);
+        UpdateBulletHeat();
+        SpinDrum();
+        return true;
     }
 
     public override void HandleServerWeaponKill(int kills, ushort victimId, uint tick)
@@ -92,8 +113,11 @@ public class WeaponLR01 : BaseWeaponRifle
     public override void AbortSecondaryAction()
     {
         SwitchWeaponState(WeaponState.Idle);
-        ultChargeParticle.Stop();
-        SetupWeaponGrip();
+
+        spinTrail.emitting = false;
+        weaponSpinAudioSource.Stop();
+
+        weaponRoot.DOKill();
         StopAllCoroutines();
 
         if (!player.IsLocal) return;
@@ -107,18 +131,58 @@ public class WeaponLR01 : BaseWeaponRifle
     }
 
     #region Effects
+    private void AssignMaterials()
+    {
+        List<Material> bulletsHeatMat = new List<Material>();
+        for (int i = 0; i < bulletsHeat.materials.Length; i++) bulletsHeatMat.Add(Instantiate(heatMat));
+        bulletsHeat.SetMaterials(bulletsHeatMat);
+        FadeAllBulletsHeat();
+
+        Material[] weaponMeshMats = weaponMesh.materials;
+        weaponMeshMats[1] = Instantiate(backHeatMat);
+        weaponMesh.materials = weaponMeshMats;
+        FadeBackIndicator();
+    }
+
+    private void UpdateBulletHeat()
+    {
+        bulletsHeat.materials[bulletsHeat.materials.Length - currentAmmo - 1].DOFloat(heatEmissionIntensity, "_EmissionIntensity", 0.2f).SetEase(Ease.OutQuad);
+        print(bulletsHeat.materials.Length - currentAmmo - 1);
+    }
+
+    public void FadeAllBulletsHeat()
+    {
+        for (int i = 0; i < bulletsHeat.materials.Length; i++) bulletsHeat.materials[i].DOFloat(0, "_EmissionIntensity", 0.7f).SetEase(Ease.OutQuad);
+    }
+
+    private void SpinDrum()
+    {
+        drum.DOComplete();
+        drum.DOLocalRotate(new Vector3(0, 360 * 3, 0), drumRotateTime, RotateMode.FastBeyond360).SetUpdate(UpdateType.Late).SetEase(Ease.OutQuad);
+    }
+
+    public void SpinWeapon()
+    {
+        weaponRoot.DOComplete();
+        weaponRoot.DOLocalRotate(new Vector3(-720, 0, 0), 0.75f, RotateMode.LocalAxisAdd).SetEase(Ease.Linear).SetUpdate(UpdateType.Late);
+    }
+
     private void UpdateUltIndicators()
     {
-        int kills = killsPerformed > 6 ? 6 : killsPerformed;
-
-        for (int i = 0; i < bullets.Length; i++) bullets[i].material = killsPerformed > i ? glowMat : fadedMat;
-        backIndicator.material = kills == 6 ? glowMat : fadedMat;
+        int kills = killsPerformed > killsNeeded ? killsNeeded : killsPerformed;
+        weaponMesh.materials[1].DOComplete();
+        weaponMesh.materials[1].DOFloat(((float)kills / (float)killsNeeded) * backHeatEmissionIntensity * (kills == killsNeeded ? 4 : 1), "_EmissionIntensity", 0.2f).SetEase(Ease.OutQuad);
 
         if (!player.IsLocal) return;
         ultimateSlider.value = (float)killsPerformed / killsNeeded;
 
         ultimateIconImg.material = kills == killsNeeded ? playerShooting.ultGlowMat : null;
         ultimateIconImg.color = kills == killsNeeded ? Color.white : playerShooting.fadedUltColor;
+    }
+
+    private void FadeBackIndicator()
+    {
+        weaponMesh.materials[1].DOFloat(0, "_EmissionIntensity", 0.2f).SetEase(Ease.OutQuad);
     }
 
     private void FadeFocusedOverlay(float value, float time)
@@ -137,12 +201,20 @@ public class WeaponLR01 : BaseWeaponRifle
 
     protected void UltStartEffects()
     {
-        ultChargeParticle.Play();
+        spinTrail.DOComplete();
+        spinTrail.time = spinTrailTime;
+        spinTrail.emitting = true;
+        spinTrail.startWidth = spinTrailWidht;
 
-        SetupUltimateGrip();
+        weaponSpinAudioSource.DOComplete();
+        weaponSpinAudioSource.pitch = 1;
+        weaponSpinAudioSource.volume = spinSoundVolume;
+        weaponSpinAudioSource.Play();
+        weaponSpinAudioSource.DOPitch(spinSoundMaxPitch, spinSoundPitchUpTakes).SetEase(Ease.InCubic);
 
-        lGrip.grip.localPosition = lGrip.startPos;
-        lGrip.grip.DOLocalMove(lGrip.endPos, lGrip.time).SetEase(Ease.InOutSine);
+        WeaponArmAnimation(ultimateAnimation);
+
+        weaponRoot.DOLocalRotate(new Vector3(-360, 0, 0), fullRotationTakes, RotateMode.LocalAxisAdd).SetEase(Ease.Linear).SetLoops(-1, LoopType.Restart).SetUpdate(UpdateType.Late);
 
         if (!player.IsLocal) return;
         FadeFocusedOverlay(1, 0.3f);
@@ -150,10 +222,23 @@ public class WeaponLR01 : BaseWeaponRifle
 
     protected void UltEndEffects()
     {
-        muzzleFlash.Play();
-        animator.Play("Recoil", 0, 0);
+        spinTrail.DOTime(0, spinTrailFadeoutTime);
+        spinTrail.DOResize(0.01f, 0, spinTrailFadeoutTime).OnComplete(() => spinTrail.emitting = false);
 
-        SetupWeaponGrip();
+        weaponSpinAudioSource.DOFade(0, 0.2f).SetEase(Ease.InCubic).OnComplete(() => weaponSpinAudioSource.Stop());
+
+        weaponRoot.DOKill();
+
+        muzzleFlash.Play();
+
+        if (muzzleFlashLight)
+        {
+            muzzleFlashLight.intensity = ultimateMuzzleFlashIntensity;
+            muzzleFlashLight.enabled = true;
+            muzzleFlashLight.DOIntensity(0, ultimateMuzzleFlashLightLasts).SetEase(Ease.InOutQuad).OnComplete(() => muzzleFlashLight.enabled = false);
+        }
+
+        if (shootAnimations.Length != 0) WeaponArmAnimation(shootAnimations[UnityEngine.Random.Range(0, shootAnimations.Length)]);
 
         if (weaponSounds.Length != 0)
         {
@@ -167,32 +252,8 @@ public class WeaponLR01 : BaseWeaponRifle
             playerHud.ScaleCrosshairShot();
         }
 
-        ultChargeParticle.Stop();
-
         if (!player.IsLocal) return;
         FadeFocusedOverlay(0, 0.2f);
-        focusedOverlay.DOComplete();
-        focusedOverlay.DOFade(0, 0.2f);
-    }
-
-    protected void SetupUltimateGrip()
-    {
-        playerShooting.leftArm.handIK.enabled = lGrip.grip;
-        // playerShooting.rightArm.handIK.enabled = rightHandTarget;
-
-        if (lGrip.grip) playerShooting.leftArm.handIK.Target = lGrip.grip;
-        if (lGrip.pole) playerShooting.leftArm.handIK.Pole = lGrip.pole;
-
-        // if (rightHandTarget) playerShooting.rightArm.handIK.Target = rightHandTarget;
-
-        if (!string.IsNullOrEmpty(ultimateHoldAnimation))
-        {
-            if (player.IsLocal) playerShooting.armsAnimator.Play(ultimateHoldAnimation, 0, 0);
-            else playerShooting.armsAnimator.Play(ultimateHoldAnimation, 1, 0);
-        }
-
-        if (player.IsLocal && SettingsManager.playerPreferences.renderArms) playerShooting.EnableDisableHandsMeshes(lGrip.grip, rightHandTarget);
-
     }
 
     protected void RicochetTracer(Vector3 from, Vector3 to)
@@ -216,6 +277,7 @@ public class WeaponLR01 : BaseWeaponRifle
 
     protected IEnumerator UltimatePayback()
     {
+        print("ULT START");
         // Ult Prep
         SwitchWeaponState(WeaponState.Ulting);
 
@@ -246,12 +308,12 @@ public class WeaponLR01 : BaseWeaponRifle
             {
                 NetworkManager.Singleton.SetAllPlayersPositionsTo(i, player.Id);
 
-                shotRayHit = FilteredRaycast(playerShooting.playerCam.forward);
+                shotRayHit = FilteredRaycast(playerShooting.playerCam.forward, 0.2f);
                 if (shotRayHit.collider && CheckPlayerHit(shotRayHit.collider)) break;
             }
             NetworkManager.Singleton.ResetPlayersPositions(player.Id);
         }
-        else shotRayHit = FilteredRaycast(playerShooting.playerCam.forward);
+        else shotRayHit = FilteredRaycast(playerShooting.playerCam.forward, 0.2f);
         ShootingTracer(shotRayHit.collider, shotRayHit.point);
 
         // If it's a player damages it

@@ -10,6 +10,12 @@ public class BaseWeaponShotgun : BaseWeapon
 
     [Header("Components")]
     [SerializeField] protected ParticleSystem muzzleFlash;
+    [SerializeField] protected Light muzzleFlashLight;
+
+    [Header("Settings")]
+    [Space(5)]
+    [SerializeField] protected float muzzleFlashLightIntensity;
+    [SerializeField] protected float muzzleFlashLightLasts;
 
     [Header("Tracer")]
     [SerializeField] protected Transform barrelTip;
@@ -24,9 +30,9 @@ public class BaseWeaponShotgun : BaseWeapon
     protected ParticleSystem hitParticle;
     protected RaycastHit shotRayHit;
 
-    protected void Start()
+    protected override void BaseStart()
     {
-        BaseStart();
+        base.BaseStart();
         spreadPatterns = new Vector2[pellets];
         individualPelletDamage = damage / pellets;
     }
@@ -49,21 +55,28 @@ public class BaseWeaponShotgun : BaseWeapon
         return true;
     }
 
-    public override void PrimaryAction(uint tick, bool compensatingForSwitch = false)
-    {
-        ShootWithVariableSpread(tick, compensatingForSwitch);
-    }
-
-    protected bool ShootWithVariableSpread(uint tick, bool compensatingForSwitch)
+    public override bool PrimaryAction(uint tick, bool compensatingForSwitch = false)
     {
         if (!CanPerformPrimaryAction(tick, compensatingForSwitch)) return false;
+        ShootWithVariableSpread(tick);
+        return true;
+    }
 
+    protected void ShootWithVariableSpread(uint tick)
+    {
         currentAmmo--;
         SwitchWeaponState(WeaponState.Shooting);
 
         // Effects
         muzzleFlash.Play();
-        animator.Play("Recoil", 0, 0);
+        if (muzzleFlashLight)
+        {
+            muzzleFlashLight.intensity = muzzleFlashLightIntensity;
+            muzzleFlashLight.enabled = true;
+            muzzleFlashLight.DOIntensity(0, muzzleFlashLightLasts).SetEase(Ease.InOutQuad).OnComplete(() => muzzleFlashLight.enabled = false);
+        }
+
+        if (shootAnimations.Length != 0) WeaponArmAnimation(shootAnimations[Random.Range(0, shootAnimations.Length)]);
         Invoke(nameof(FinishPrimaryAction), fireTime);
 
         if (weaponSounds.Length != 0)
@@ -101,8 +114,6 @@ public class BaseWeaponShotgun : BaseWeapon
 
         if (NetworkManager.Singleton.Server.IsRunning) playerShooting.SendServerFire();
         else if (player.IsLocal) playerShooting.SendClientFire();
-
-        return true;
     }
 
     protected void ShootingTracer(Vector3 dir, bool didHit)
@@ -135,7 +146,7 @@ public class BaseWeaponShotgun : BaseWeapon
         hitParticle.transform.position = shotRayHit.point;
         hitParticle.Play();
 
-        hitParticle.GetComponent<ReturnToPool>().ReturnToPoolIn(hitParticle.main.duration);
+        hitParticle.GetComponent<ReturnToPool>().ReturnToPoolIn(1);
     }
 
     protected void GenerateSpreadPattern(int seed)

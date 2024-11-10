@@ -32,9 +32,9 @@ public class WeaponLS50 : BaseWeaponRifle
     [SerializeField] protected float quickscopeUsePerTick;
     [SerializeField] protected float quickscopeRefillPerTick;
 
-    new protected void Start()
+    override protected void BaseStart()
     {
-        BaseStart();
+        base.BaseStart();
         float deltaMultiplier = (maxQuickscopeMultiplier - minQuickscopeMultiplier) / (1f / Time.fixedDeltaTime);
         quickscopeUsePerTick = deltaMultiplier / quickscopeUseTime;
         quickscopeRefillPerTick = deltaMultiplier / quickscopeRefillTime;
@@ -58,14 +58,15 @@ public class WeaponLS50 : BaseWeaponRifle
         base.ActivateWeapon();
     }
 
-    public override void PrimaryAction(uint tick, bool compensatingForSwitch = false)
+    public override bool PrimaryAction(uint tick, bool compensatingForSwitch = false)
     {
         if (currentWeaponState != WeaponState.Ulting) base.PrimaryAction(tick, compensatingForSwitch);
         else
         {
-            if (!CanPerformQuickscopeShot(tick, compensatingForSwitch)) return;
+            if (!CanPerformQuickscopeShot(tick, compensatingForSwitch)) return false;
             QuickscopeShootNoSpreadPiercing(tick);
         }
+        return true;
     }
 
     protected bool CanPerformQuickscopeShot(uint tick, bool compensatingForSwitch)

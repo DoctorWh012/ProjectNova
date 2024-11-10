@@ -21,11 +21,11 @@ MonoBehaviour:
   footStepStartVelocity: 9
   groundCheckPos: {x: 0, y: -0.8, z: 0}
   footStepRate: 3.4
-  movementMultiplier: 10
-  counterMovement: 0.5
-  excessSpeedCounterMovement: 0.2
+  movementMultiplier: 15
+  counterMovement: 0.6
+  excessSpeedCounterMovement: 0.1
   moveSpeed: 6
-  airMoveSpeed: 6
+  airMoveSpeed: 7
   maxSlopeAngle: 45
   jumpAudioClip: {fileID: 8300000, guid: 50a15e1f150c09a49ba4520b36ab7e9c, type: 3}
   jumpSoundVolume: 0.4
@@ -47,23 +47,23 @@ MonoBehaviour:
   slideAudioClip: {fileID: 8300000, guid: 858fd3a472d21844aacbabd0048e71f0, type: 3}
   slideSoundVolume: 0.4
   crouchedGroundCheckPos: {x: 0, y: -0.4, z: 0}
-  slidingMovementMultiplier: 2
-  slidingCounterMovement: 0.2
+  slidingMovementMultiplier: 3
+  slidingCounterMovement: 0
   crouchForce: 20
   slideParticlesThreshold: 5
   groundSlamAudioClip: {fileID: 8300000, guid: 20c6aadf261049841b6ce86b7f724c67, type: 3}
   groundSlamAudioVolume: 0.4
-  groundSlamRefilAudioClip: {fileID: 8300000, guid: 11390160d35a54d41926765e1ed95750, type: 3}
-  groundSlamRefilAudioVolume: 0.4
+  groundSlamRefillAudioClip: {fileID: 0}
+  groundSlamRefillAudioVolume: 0.4
   groundSlamQuantity: 1
-  groundSlamRefilTime: 2.5
+  groundSlamRefillTime: 3
   groundSlamImpulse: 65
   groundSlamGravity: 50
   dashAudioClip: {fileID: 8300000, guid: 86ba6ff01090e5b41bf6723a8a2d06d8, type: 3}
   dashAudioVolume: 0.4
-  dashRefilAudioClip: {fileID: 8300000, guid: 030c95f8303c17741bc96593828bbe4d, type: 3}
-  dashRefilAudioVolume: 0.4
+  dashRefillAudioClip: {fileID: 0}
+  dashRefillAudioVolume: 0.4
   dashQuantity: 2
-  dashDuration: 0.4
-  dashForce: 35
-  dashRefilTime: 2
+  dashDuration: 0.3
+  dashForce: 45
+  dashRefillTime: 2

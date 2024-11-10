@@ -1,18 +1,8 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Riptide;
 using UnityEngine;
-using DitzelGames.FastIK;
-
-[Serializable]
-public struct ArmMeshIK
-{
-    public SkinnedMeshRenderer handMesh;
-    public SkinnedMeshRenderer lowerArmMesh;
-    public SkinnedMeshRenderer upperArmMesh;
-
-    public FastIKFabric handIK;
-}
 
 [Serializable]
 public struct BodyIK
@@ -56,8 +46,9 @@ public class PlayerShooting : MonoBehaviour
     [Header("Arms")]
     [Space(5)]
     [SerializeField] public Animator armsAnimator;
-    [SerializeField] public ArmMeshIK leftArm;
-    [SerializeField] public ArmMeshIK rightArm;
+    [SerializeField] private SkinnedMeshRenderer[] leftArmMeshes;
+    [SerializeField] private SkinnedMeshRenderer[] rightArmMeshes;
+
     private bool renderArms;
 
     [Header("Debugging Serialized")]
@@ -105,10 +96,10 @@ public class PlayerShooting : MonoBehaviour
 
         if (!currentWeapon) return;
 
-        bool leftArm = renderArms ? currentWeapon.leftHandTarget : false;
-        bool rightArm = renderArms ? currentWeapon.rightHandTarget : false;
+        bool leftArm = renderArms ? currentWeapon.renderLeftArm : false;
+        bool rightArm = renderArms ? currentWeapon.renderRightArm : false;
 
-        EnableDisableHandsMeshes(leftArm, rightArm);
+        EnableDisableArmsMeshes(leftArm, rightArm);
     }
 
     private void Update()
@@ -302,16 +293,10 @@ public class PlayerShooting : MonoBehaviour
     #endregion
 
     #region IKStuff
-    public void EnableDisableHandsMeshes(bool leftState, bool rightState)
+    public void EnableDisableArmsMeshes(bool leftState, bool rightState)
     {
-        leftArm.handMesh.enabled = leftState;
-        leftArm.lowerArmMesh.enabled = leftState;
-        leftArm.upperArmMesh.enabled = leftState;
-
-
-        rightArm.handMesh.enabled = rightState;
-        rightArm.lowerArmMesh.enabled = rightState;
-        rightArm.upperArmMesh.enabled = rightState;
+        for (int i = 0; i < leftArmMeshes.Length; i++) leftArmMeshes[i].enabled = leftState;
+        for (int i = 0; i < rightArmMeshes.Length; i++) rightArmMeshes[i].enabled = rightState;
     }
 
     private Vector3 rootForward;
