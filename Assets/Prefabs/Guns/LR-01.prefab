@@ -19941,7 +19941,7 @@ MonoBehaviour:
   tracerLasts: 0.15
   tracerWidth: 0.2
   drawGizmos: 0
-  killsNeeded: 6
+  killsNeeded: 0
   ricochetRadius: 20
   ricochetAmount: 5
   timeBetweenRicochets: 0.1
@@ -24951,8 +24951,8 @@ PrefabInstance:
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -6049278537599698453, guid: a8035d3424da9454dbbe1e79b0267060, type: 3}
-      propertyPath: m_UpdateWhenOffscreen
-      value: 1
+      propertyPath: m_DynamicOccludee
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: -2867726984369696964, guid: a8035d3424da9454dbbe1e79b0267060, type: 3}
       propertyPath: m_Layer
@@ -24991,6 +24991,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 9100000, guid: f97ea69fc1671f84ebdec4631ea29d56, type: 2}
     - target: {fileID: 5866666021909216657, guid: a8035d3424da9454dbbe1e79b0267060, type: 3}
+      propertyPath: m_CullingMode
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 5866666021909216657, guid: a8035d3424da9454dbbe1e79b0267060, type: 3}
       propertyPath: m_ApplyRootMotion
       value: 0
       objectReference: {fileID: 0}
@@ -24999,8 +25003,8 @@ PrefabInstance:
       value: 6
       objectReference: {fileID: 0}
     - target: {fileID: 7763297909171844392, guid: a8035d3424da9454dbbe1e79b0267060, type: 3}
-      propertyPath: m_UpdateWhenOffscreen
-      value: 1
+      propertyPath: m_DynamicOccludee
+      value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 8879528566716807029, guid: a8035d3424da9454dbbe1e79b0267060, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x

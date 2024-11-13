@@ -43,11 +43,10 @@ public class BaseWeaponRifle : BaseWeapon
         return true;
     }
 
-    public override bool PrimaryAction(uint tick, bool compensatingForSwitch = false)
+    public override void PrimaryAction(uint tick, bool compensatingForSwitch = false)
     {
-        if (!CanPerformPrimaryAction(tick, compensatingForSwitch)) return false;
+        if (!CanPerformPrimaryAction(tick, compensatingForSwitch)) return;
         ShootNoSpread(tick);
-        return true;
     }
 
     protected bool ShootNoSpread(uint tick)

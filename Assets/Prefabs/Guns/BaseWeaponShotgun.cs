@@ -55,11 +55,10 @@ public class BaseWeaponShotgun : BaseWeapon
         return true;
     }
 
-    public override bool PrimaryAction(uint tick, bool compensatingForSwitch = false)
+    public override void PrimaryAction(uint tick, bool compensatingForSwitch = false)
     {
-        if (!CanPerformPrimaryAction(tick, compensatingForSwitch)) return false;
+        if (!CanPerformPrimaryAction(tick, compensatingForSwitch)) return ;
         ShootWithVariableSpread(tick);
-        return true;
     }
 
     protected void ShootWithVariableSpread(uint tick)

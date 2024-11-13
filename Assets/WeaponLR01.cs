@@ -24,8 +24,6 @@ public class WeaponLR01 : BaseWeaponRifle
     [SerializeField] protected float drumRotateTime;
     [SerializeField] protected Transform weaponRoot;
     [SerializeField] protected float fullRotationTakes;
-    [SerializeField] protected float shakeTakes;
-    [SerializeField] protected Vector3 shakePower;
 
     [Header("Audio")]
     [SerializeField] protected AudioSource weaponSpinAudioSource;
@@ -53,9 +51,6 @@ public class WeaponLR01 : BaseWeaponRifle
     [SerializeField] protected float spinTrailTime;
     [SerializeField] protected float spinTrailFadeoutTime;
 
-    protected Vector3 rotatableStartPos;
-    protected Vector3 ultimateRGripStartRot;
-
     protected override void BaseStart()
     {
         base.BaseStart();
@@ -73,13 +68,12 @@ public class WeaponLR01 : BaseWeaponRifle
         UpdateUltIndicators();
     }
 
-    public override bool PrimaryAction(uint tick, bool compensatingForSwitch = false)
+    public override void PrimaryAction(uint tick, bool compensatingForSwitch = false)
     {
-        if (!CanPerformPrimaryAction(tick, compensatingForSwitch)) return false;
+        if (!CanPerformPrimaryAction(tick, compensatingForSwitch)) return;
         ShootNoSpread(tick);
         UpdateBulletHeat();
         SpinDrum();
-        return true;
     }
 
     public override void HandleServerWeaponKill(int kills, ushort victimId, uint tick)
@@ -158,13 +152,7 @@ public class WeaponLR01 : BaseWeaponRifle
     private void SpinDrum()
     {
         drum.DOComplete();
-        drum.DOLocalRotate(new Vector3(0, 360 * 3, 0), drumRotateTime, RotateMode.FastBeyond360).SetUpdate(UpdateType.Late).SetEase(Ease.OutQuad);
-    }
-
-    public void SpinWeapon()
-    {
-        weaponRoot.DOComplete();
-        weaponRoot.DOLocalRotate(new Vector3(-720, 0, 0), 0.75f, RotateMode.LocalAxisAdd).SetEase(Ease.Linear).SetUpdate(UpdateType.Late);
+        drum.DOLocalRotate(new Vector3(0, 360 * Random.Range(3, 5), 0), drumRotateTime, RotateMode.FastBeyond360).SetUpdate(UpdateType.Late).SetEase(Ease.OutQuad);
     }
 
     private void UpdateUltIndicators()
@@ -238,12 +226,12 @@ public class WeaponLR01 : BaseWeaponRifle
             muzzleFlashLight.DOIntensity(0, ultimateMuzzleFlashLightLasts).SetEase(Ease.InOutQuad).OnComplete(() => muzzleFlashLight.enabled = false);
         }
 
-        if (shootAnimations.Length != 0) WeaponArmAnimation(shootAnimations[UnityEngine.Random.Range(0, shootAnimations.Length)]);
+        if (shootAnimations.Length != 0) WeaponArmAnimation(shootAnimations[Random.Range(0, shootAnimations.Length)]);
 
         if (weaponSounds.Length != 0)
         {
             weaponAudioSource.pitch = Utilities.GetRandomPitch(-0.1f, 0.02f);
-            weaponAudioSource.PlayOneShot(weaponSounds[UnityEngine.Random.Range(0, weaponSounds.Length)], weaponSoundVolume);
+            weaponAudioSource.PlayOneShot(weaponSounds[Random.Range(0, weaponSounds.Length)], weaponSoundVolume);
         }
 
         if (player.IsLocal)
@@ -277,7 +265,6 @@ public class WeaponLR01 : BaseWeaponRifle
 
     protected IEnumerator UltimatePayback()
     {
-        print("ULT START");
         // Ult Prep
         SwitchWeaponState(WeaponState.Ulting);
 

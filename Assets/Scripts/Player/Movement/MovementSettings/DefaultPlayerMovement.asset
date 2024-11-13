@@ -13,28 +13,25 @@ MonoBehaviour:
   m_Name: DefaultPlayerMovement
   m_EditorClassIdentifier: 
   mass: 5
-  groundedDrag: 0
-  airDrag: 0
-  gravity: 22
-  footStepSounds: {fileID: 8300000, guid: 55e1fb8562b46564983d6295389941be, type: 3}
-  footStepSoundVolume: 0.1
-  footStepStartVelocity: 9
-  groundCheckPos: {x: 0, y: -0.8, z: 0}
-  footStepRate: 3.4
+  gravity: 30
+  cameraHeight: 1.35
+  crouchedCameraHeight: 0.8
+  cameraSideMovementTilt: 1
+  cameraWallRunTilt: 3
   movementMultiplier: 15
-  counterMovement: 0.6
+  counterMovement: 6
   excessSpeedCounterMovement: 0.1
   moveSpeed: 6
   airMoveSpeed: 7
   maxSlopeAngle: 45
-  jumpAudioClip: {fileID: 8300000, guid: 50a15e1f150c09a49ba4520b36ab7e9c, type: 3}
+  jumpSound: {fileID: 0}
   jumpSoundVolume: 0.4
   jumpForce: 16
-  groundCheckHeight: 0.4
+  groundCheckHeight: 0.7
   jumpCooldown: 0.3
   coyoteTime: 0.15
   jumpBufferTime: 0.1
-  wallrunJumpAudioClip: {fileID: 8300000, guid: 93a6ee0bd8cb40e46bae55997d8d2ff2, type: 3}
+  wallrunJumpSound: {fileID: 0}
   wallJumpSoundVolume: 0.4
   wallRunMoveMultiplier: 2
   wallDistance: 0.7
@@ -44,26 +41,24 @@ MonoBehaviour:
   wallJumpSideForce: 9
   wallClimbSpeed: 3
   wallRunGravity: 5
-  slideAudioClip: {fileID: 8300000, guid: 858fd3a472d21844aacbabd0048e71f0, type: 3}
+  slideSound: {fileID: 0}
   slideSoundVolume: 0.4
   crouchedGroundCheckPos: {x: 0, y: -0.4, z: 0}
-  slidingMovementMultiplier: 3
+  slidingMovementMultiplier: 2
   slidingCounterMovement: 0
   crouchForce: 20
   slideParticlesThreshold: 5
-  groundSlamAudioClip: {fileID: 8300000, guid: 20c6aadf261049841b6ce86b7f724c67, type: 3}
-  groundSlamAudioVolume: 0.4
-  groundSlamRefillAudioClip: {fileID: 0}
-  groundSlamRefillAudioVolume: 0.4
-  groundSlamQuantity: 1
-  groundSlamRefillTime: 3
+  maxStamina: 3
+  staminaRefillTime: 4
+  groundSlamStaminaCost: 1
+  groundSlamSound: {fileID: 0}
+  groundSlamSoundVolume: 0.4
   groundSlamImpulse: 65
   groundSlamGravity: 50
-  dashAudioClip: {fileID: 8300000, guid: 86ba6ff01090e5b41bf6723a8a2d06d8, type: 3}
-  dashAudioVolume: 0.4
-  dashRefillAudioClip: {fileID: 0}
-  dashRefillAudioVolume: 0.4
-  dashQuantity: 2
+  slideStaminaCost: 1.5
+  dashSound: {fileID: 0}
+  dashSoundVolume: 0.4
   dashDuration: 0.3
   dashForce: 45
   dashRefillTime: 2
+  staminaRefillRate: 0.75

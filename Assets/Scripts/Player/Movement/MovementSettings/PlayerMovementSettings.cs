@@ -8,18 +8,16 @@ public class PlayerMovementSettings : ScriptableObject
     [Header("Physics")]
     [Space(5)]
     [SerializeField] public float mass = 5f;
-    [SerializeField] public float groundedDrag = 5;
-    [SerializeField] public float airDrag = 1;
     [SerializeField] public float gravity = 25;
+
+    [Header("Camera")]
+    [SerializeField] public float cameraHeight;
+    [SerializeField] public float crouchedCameraHeight;
+    [SerializeField] public float cameraSideMovementTilt;
+    [SerializeField] public float cameraWallRunTilt;
 
     [Header("Movement")]
     [Space(5)]
-    [SerializeField] public AudioClip footStepSounds;
-    [Range(0, 1)]
-    [SerializeField] public float footStepSoundVolume = 0.3f;
-    [SerializeField] public float footStepStartVelocity;
-    [SerializeField] public Vector3 groundCheckPos;
-    [SerializeField] public float footStepRate = 2.5f;
     [SerializeField] public float movementMultiplier = 10;
     [SerializeField] public float counterMovement = 0.2f;
     [SerializeField] public float excessSpeedCounterMovement = 0.05f;
@@ -29,7 +27,7 @@ public class PlayerMovementSettings : ScriptableObject
 
     [Header("Jumping")]
     [Space(5)]
-    [SerializeField] public AudioClip jumpAudioClip;
+    [SerializeField] public AudioClip jumpSound;
     [Range(0, 1)]
     [SerializeField] public float jumpSoundVolume = 0.4f;
     [SerializeField] public float jumpForce = 15;
@@ -40,7 +38,7 @@ public class PlayerMovementSettings : ScriptableObject
 
     [Header("Wallruning")]
     [Space(5)]
-    [SerializeField] public AudioClip wallrunJumpAudioClip;
+    [SerializeField] public AudioClip wallrunJumpSound;
     [Range(0, 1)]
     [SerializeField] public float wallJumpSoundVolume = 0.4f;
     [SerializeField] public float wallRunMoveMultiplier = 1.5f;
@@ -54,7 +52,7 @@ public class PlayerMovementSettings : ScriptableObject
 
     [Header("Sliding")]
     [Space(5)]
-    [SerializeField] public AudioClip slideAudioClip;
+    [SerializeField] public AudioClip slideSound;
     [Range(0, 1)]
     [SerializeField] public float slideSoundVolume = 0.4f;
     [SerializeField] public Vector3 crouchedGroundCheckPos;
@@ -63,29 +61,34 @@ public class PlayerMovementSettings : ScriptableObject
     [SerializeField] public float crouchForce = 20f;
     [SerializeField] public float slideParticlesThreshold = 5f;
 
+    [Header("Actions")]
+    [Space(5)]
+    [SerializeField] public float maxStamina = 3;
+    [SerializeField] public float staminaRefillTime = 4;
+
     [Header("Ground Slam")]
     [Space(5)]
-    [SerializeField] public AudioClip groundSlamAudioClip;
+    [SerializeField] public float groundSlamStaminaCost = 1;
+    [SerializeField] public AudioClip groundSlamSound;
     [Range(0, 1)]
-    [SerializeField] public float groundSlamAudioVolume = 0.4f;
-    [SerializeField] public AudioClip groundSlamRefillAudioClip;
-    [Range(0, 1)]
-    [SerializeField] public float groundSlamRefillAudioVolume = 0.4f;
-    [SerializeField] public int groundSlamQuantity = 1;
-    [SerializeField] public float groundSlamRefillTime = 3f;
+    [SerializeField] public float groundSlamSoundVolume = 0.4f;
     [SerializeField] public float groundSlamImpulse = 65;
     [SerializeField] public float groundSlamGravity = 50f;
 
     [Header("Dashing")]
     [Space(5)]
-    [SerializeField] public AudioClip dashAudioClip;
+    [SerializeField] public float slideStaminaCost = 1.5f;
+    [SerializeField] public AudioClip dashSound;
     [Range(0, 1)]
-    [SerializeField] public float dashAudioVolume = 0.4f;
-    [SerializeField] public AudioClip dashRefillAudioClip;
-    [Range(0, 1)]
-    [SerializeField] public float dashRefillAudioVolume = 0.4f;
-    [SerializeField] public int dashQuantity = 2;
+    [SerializeField] public float dashSoundVolume = 0.4f;
     [SerializeField] public float dashDuration = 1f;
     [SerializeField] public float dashForce = 30f;
     [SerializeField] public float dashRefillTime = 2f;
+
+    [HideInInspector] public float staminaRefillRate;
+
+    private void Awake()
+    {
+        staminaRefillRate = maxStamina / staminaRefillTime;
+    }
 }

@@ -157,7 +157,7 @@ public class NetworkManager : MonoBehaviour
             SendTick();
 
             uint cacheIndex = serverTick % lagCompensationCacheSize;
-            foreach (Player player in Player.list.Values) player.playerMovement.playerSimulationState[cacheIndex] = player.playerMovement.CurrentSimulationState();
+            foreach (Player player in Player.list.Values) player.playerMovement.SaveSimulationState(cacheIndex);
         }
         Client.Update();
     }

@@ -58,15 +58,14 @@ public class WeaponLS50 : BaseWeaponRifle
         base.ActivateWeapon();
     }
 
-    public override bool PrimaryAction(uint tick, bool compensatingForSwitch = false)
+    public override void PrimaryAction(uint tick, bool compensatingForSwitch = false)
     {
         if (currentWeaponState != WeaponState.Ulting) base.PrimaryAction(tick, compensatingForSwitch);
         else
         {
-            if (!CanPerformQuickscopeShot(tick, compensatingForSwitch)) return false;
+            if (!CanPerformQuickscopeShot(tick, compensatingForSwitch)) return;
             QuickscopeShootNoSpreadPiercing(tick);
         }
-        return true;
     }
 
     protected bool CanPerformQuickscopeShot(uint tick, bool compensatingForSwitch)

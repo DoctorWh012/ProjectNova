@@ -3,12 +3,6 @@ using UnityEngine.UI;
 using TMPro;
 using DG.Tweening;
 
-/* WORK REMINDER
-
-    Implement Crosshair Color Customization
-
-*/
-
 public class PlayerHud : MonoBehaviour
 {
     [Header("Components")]
@@ -28,20 +22,16 @@ public class PlayerHud : MonoBehaviour
 
     [Header("Colors")]
     [Space(5)]
-    [SerializeField] private Color groundSlamAvailableColor;
     [SerializeField] private Color highlitedColor;
     [SerializeField] private Color fadedColor;
 
     [Header("Health")]
     [Space(5)]
-    [SerializeField] private Slider healthBarFill;
+    [SerializeField] private Image healthBar;
 
     [Header("Abilities Panel")]
     [Space(5)]
-    [SerializeField] private Image[] dashIcons;
-    [SerializeField] public Slider[] dashSliders;
-    [SerializeField] private Image groundSlamIcon;
-    [SerializeField] public Slider groundSlamSlider;
+    [SerializeField] private Image[] staminaBars;
 
     [Header("Weapons Panel")]
     [Space(5)]
@@ -54,7 +44,7 @@ public class PlayerHud : MonoBehaviour
     [Space(5)]
     [SerializeField] private GameObject[] crosshairs;
     [SerializeField] private Image[] hitmarkers;
-    [SerializeField] private Slider reloadSlider;
+    [SerializeField] private Image reloadSlider;
 
     [Header("UI Texts")]
     [Space(5)]
@@ -124,7 +114,7 @@ public class PlayerHud : MonoBehaviour
     #region HealthUI
     public void UpdateHealthDisplay(float health)
     {
-        DOTween.To(() => healthBarFill.value, x => healthBarFill.value = x, health / playerSettings.maxHealth, 0.3f);
+        DOTween.To(() => healthBar.fillAmount, x => healthBar.fillAmount = x, health / playerSettings.maxHealth, 0.3f);
     }
 
     public void FadeHurtOverlay()
@@ -219,18 +209,14 @@ public class PlayerHud : MonoBehaviour
     #endregion
 
     #region AbilitiesUI
-    public void UpdateGroundSlamIcon(bool state)
+    public void UpdateStamina(float stamina)
     {
-        groundSlamIcon.color = state ? groundSlamAvailableColor : fadedColor;
-    }
-
-    public void UpdateDashIcons(int availableDashes)
-    {
-        for (int i = 0; i < dashIcons.Length; i++)
+        for (int i = 0; i < staminaBars.Length; i++)
         {
-            dashIcons[i].color = i < availableDashes ? highlitedColor : fadedColor;
-            dashSliders[i].value = i < availableDashes ? 1 : 0;
+            staminaBars[i].color = stamina >= i ? highlitedColor : fadedColor;
+            staminaBars[i].fillAmount = stamina >= i ? 1 : stamina % 1;
         }
+
     }
     #endregion
 
@@ -249,15 +235,14 @@ public class PlayerHud : MonoBehaviour
         crosshairs[currentCrosshairIndex].transform.localScale = crosshairScale;
     }
 
-    public void UpdateReloadSlider(float val)
+    public void ReloadIndicatorFill(float time)
     {
-        if (val >= 1)
-        {
-            reloadSlider.value = 0;
-            return;
-        }
+        reloadSlider.DOFillAmount(1, time).SetEase(Ease.Linear).OnComplete(() => reloadSlider.fillAmount = 0);
+    }
 
-        reloadSlider.value = val;
+    public void KillRealoadIndicatorFill()
+    {
+        reloadSlider.DOComplete();
     }
 
     public void ScaleCrosshairShot()

@@ -135,7 +135,6 @@ public class BaseWeapon : MonoBehaviour
     [Header("Reload")]
     [Space(5)]
     [SerializeField] public float reloadTime;
-    [SerializeField] public int reloadSpins;
     [SerializeField] public int maxAmmo;
     [HideInInspector] protected int _currentAmmo;
 
@@ -185,7 +184,6 @@ public class BaseWeapon : MonoBehaviour
     public int killsPerformed;
     protected float damageMultiplier;
     protected float fireTime;
-    public Vector3 startingRotation;
 
     private void Start()
     {
@@ -206,7 +204,6 @@ public class BaseWeapon : MonoBehaviour
     {
         AssignDefaultDamageMultiplier();
         animator.keepAnimatorStateOnDisable = true;
-        startingRotation = transform.localEulerAngles;
         tickFireRate = (1f / fireRate) / Time.fixedDeltaTime;
         fireTime = 1f / fireRate;
         currentAmmo = maxAmmo;
@@ -252,9 +249,9 @@ public class BaseWeapon : MonoBehaviour
         if (ultimateIcon) ultimateIcon.SetActive(false);
     }
 
-    public virtual bool PrimaryAction(uint tick, bool compensatingForSwitch = false)
+    public virtual void PrimaryAction(uint tick, bool compensatingForSwitch = false)
     {
-        return false;
+        
     }
 
     public virtual void SecondaryAction(uint tick)
@@ -309,6 +306,7 @@ public class BaseWeapon : MonoBehaviour
         else if (player.IsLocal) playerShooting.SendReload();
 
         if (reloadAnimations.Length != 0) WeaponArmAnimation(reloadAnimations[UnityEngine.Random.Range(0, reloadAnimations.Length)]);
+        playerHud.ReloadIndicatorFill(reloadTime);
 
         Invoke(nameof(FinishReloading), reloadTime);
     }
@@ -325,7 +323,7 @@ public class BaseWeapon : MonoBehaviour
     public void AbortReload()
     {
         CancelInvoke(nameof(FinishReloading));
-        if (player.IsLocal) playerShooting.playerHud.UpdateReloadSlider(0);
+        if (player.IsLocal) playerHud.KillRealoadIndicatorFill();
         SwitchWeaponState(WeaponState.Idle);
     }
 
@@ -497,7 +495,7 @@ public class BaseWeapon : MonoBehaviour
     public void FinishPrimaryAction()
     {
         if (currentWeaponState != WeaponState.Shooting) return;
-        CheckIfReloadIsNeeded();
+        if (gameObject.activeInHierarchy) CheckIfReloadIsNeeded();
         SwitchWeaponState(WeaponState.Idle);
     }
 

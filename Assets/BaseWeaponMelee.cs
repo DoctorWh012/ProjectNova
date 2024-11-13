@@ -35,11 +35,10 @@ public class BaseWeaponMelee : BaseWeapon
         return true;
     }
 
-    public override bool PrimaryAction(uint tick, bool compensatingForSwitch = false)
+    public override void PrimaryAction(uint tick, bool compensatingForSwitch = false)
     {
-        if (!CanPerformPrimaryAction(tick, compensatingForSwitch)) return false;
+        if (!CanPerformPrimaryAction(tick, compensatingForSwitch)) return;
         MeleeAttack(tick);
-        return true;
     }
 
     public override void CheckIfReloadIsNeeded()

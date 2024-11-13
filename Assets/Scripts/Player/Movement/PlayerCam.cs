@@ -12,15 +12,11 @@ public class PlayerCam : MonoBehaviour
     [Header("Transforms")]
     [Space(5)]
     [SerializeField] private Transform cameraPos;
-    [SerializeField] private Transform cameraTilt;
     [SerializeField] private Transform orientation;
 
     private float yRotation;
     private float xRotation;
     private float sensitivity;
-
-    private float desiredRotation;
-    private int rotatedDirection;
 
     private void Awake()
     {
@@ -81,13 +77,6 @@ public class PlayerCam : MonoBehaviour
         weaponCam.enabled = !state;
         sensitivity = state ? SettingsManager.playerPreferences.zoomSensitivity : SettingsManager.playerPreferences.sensitivity;
         sensitivity /= 10;
-    }
-
-    public void TiltCamera(int direction)
-    {
-        if (direction == rotatedDirection) return;
-        cameraTilt.DOLocalRotate(new Vector3(0, 0, -direction * 3), 0.5f);
-        rotatedDirection = direction;
     }
     #endregion
 }
