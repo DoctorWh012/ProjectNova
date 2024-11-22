@@ -98,7 +98,7 @@ public class BaseWeaponShotgun : BaseWeapon
 
         for (int i = 0; i < spreadPatterns.Length; i++)
         {
-            dirSpread = playerShooting.playerCam.forward + Quaternion.LookRotation(playerShooting.playerCam.forward) * spreadPatterns[i] * spread;
+            dirSpread = playerShooting.cameraHolder.forward + Quaternion.LookRotation(playerShooting.cameraHolder.forward) * spreadPatterns[i] * spread;
             shotRayHit = FilteredRaycast(dirSpread);
             ShootingTracer(dirSpread, shotRayHit.collider);
 

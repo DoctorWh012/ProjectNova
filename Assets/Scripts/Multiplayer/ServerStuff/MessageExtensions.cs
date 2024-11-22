@@ -48,6 +48,33 @@ public static class MessageExtensions
     {
         return new Vector3(message.GetFloat(), message.GetFloat(), message.GetFloat());
     }
+
+    /// <summary>Adds an array of <see cref="Vector3"/> to the message.</summary>
+    /// <param name="values">The Array of <see cref="Vector3"/> to add.</param>
+    /// <returns>The message that the array of <see cref="Vector3"/> was added to.</returns>
+    public static Message AddVector3s(this Message message, Vector3[] values)
+    {
+        message.AddInt(values.Length);
+
+        for (int i = 0; i < values.Length; i++)
+        {
+            message.AddFloat(values[i].x);
+            message.AddFloat(values[i].y);
+            message.AddFloat(values[i].z);
+        }
+        return message;
+    }
+
+    /// <summary>Retrieves an Array of <see cref="Vector3"/> from the message.</summary>
+    /// <returns>The array of <see cref="Vector3"/> that was retrieved.</returns>
+    public static Vector3[] GetVector3s(this Message message)
+    {
+        int length = message.GetInt();
+
+        Vector3[] values = new Vector3[length];
+        for (int i = 0; i < length; i++) values[i] = message.GetVector3();
+        return values;
+    }
     #endregion
 
     #region Quaternion

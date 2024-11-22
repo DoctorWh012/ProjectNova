@@ -1,15 +1,42 @@
-using DG.Tweening;
-using Riptide;
+using System.Linq;
 using UnityEngine;
+using Riptide;
+using DG.Tweening;
 
-public class SimulationState
+public class SimulationState : IMessageSerializable
 {
-    public Vector3 position = Vector3.zero;
-    public Vector3 orientation = Vector3.zero;
-    public Vector3 camRotation = Vector3.zero;
-    public bool alive = true;
-    public Transform[] characterColliderBones;
-    public uint currentTick = 0;
+    public Vector3 position;
+    public Vector3 velocity;
+    public Vector3 orientationForward;
+    public Vector3 cameraHolderForward;
+    public bool alive;
+    public Vector3[] characterColliderBonesPos;
+    public Vector3[] characterColliderBonesForward;
+    public uint currentTick;
+
+    public void Deserialize(Message message)
+    {
+        position = message.GetVector3();
+        velocity = message.GetVector3();
+        orientationForward = message.GetVector3();
+        cameraHolderForward = message.GetVector3();
+        alive = message.GetBool();
+        characterColliderBonesPos = message.GetVector3s();
+        characterColliderBonesForward = message.GetVector3s();
+        currentTick = message.GetUInt();
+    }
+
+    public void Serialize(Message message)
+    {
+        message.AddVector3(position);
+        message.AddVector3(velocity);
+        message.AddVector3(orientationForward);
+        message.AddVector3(cameraHolderForward);
+        message.AddBool(alive);
+        message.AddVector3s(characterColliderBonesPos);
+        message.AddVector3s(characterColliderBonesForward);
+        message.AddUInt(currentTick);
+    }
 }
 
 public class PlayerMovement : MonoBehaviour
@@ -44,14 +71,14 @@ public class PlayerMovement : MonoBehaviour
     [Space(5)]
     [SerializeField] private Player player;
     [SerializeField] private PlayerHealth playerHealth;
-    [SerializeField] private PlayerHud playerHud;
+    [SerializeField] private PlayerHud localPlayerHud;
     [SerializeField] private Animator playerAnimator;
     [SerializeField] public Rigidbody rb;
 
     [Header("Transforms")]
-    [SerializeField] private Transform cameraPos;
+    [SerializeField] private Transform localPlayerCameraPos;
     [SerializeField] private Transform cameraHolder;
-    [SerializeField] private Transform cameraTilt;
+    [SerializeField] private Transform localPlayerCameraTilt;
 
     [SerializeField] public Transform playerCharacter;
     [SerializeField] private Transform[] playerCharacterColliderBones;
@@ -75,11 +102,12 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private ScriptablePlayer scriptablePlayer;
 
     [Header("Particles")]
+    [SerializeField] private Transform slideParticlesPivot;
     [SerializeField] private ParticleSystem slideParticles;
     [SerializeField] private ParticleSystem jumpParticles;
     [SerializeField] private ParticleSystem groundSlamParticles;
     [SerializeField] private ParticleSystem groundSlamAirParticles;
-    [SerializeField] private ParticleSystem speedLinesEffect;
+    [SerializeField] private ParticleSystem localPlayerSpeedLinesEffect;
     [SerializeField] private float speedLineStartAtSpeed;
     [SerializeField] private float speedLineMultiplier;
     [SerializeField] private float speedLineSpoolSpeed;
@@ -88,11 +116,13 @@ public class PlayerMovement : MonoBehaviour
     [Header("Audio")]
     [SerializeField] private AudioSource playerAudioSource;
     [SerializeField] private AudioSource slideAudioSouce;
+    [SerializeField] private AudioSource groundSlamAudioSource;
 
     [Header("Debugging Serialized")]
     [SerializeField] bool movingDumb = false;
 
     // Movement Variables
+    Vector3 netPlayerVelocity;
     private float cameraSideMovementTiltDir;
 
     private float stamina;
@@ -133,7 +163,7 @@ public class PlayerMovement : MonoBehaviour
     {
         ApplyMass();
         GetMultipliers();
-        SetupSlideAudioSource();
+        SetupAudioSources();
         stamina = movementSettings.maxStamina;
     }
 
@@ -141,45 +171,23 @@ public class PlayerMovement : MonoBehaviour
     {
         if (playerHealth.currentPlayerState == PlayerState.Dead || currentMovementState == MovementStates.Inactive) return;
         CheckIfGrounded();
+        AnimatePlayer();
+        if (!player.IsLocal) { Interpolate(); return; }
         RefillStamina();
-        if (!player.IsLocal)
-        {
-            Interpolate();
-            return;
-        }
-
         CheckCameraTilt();
-        SlideEffects(rb.velocity);
-        UpdateSpeedLinesEmission();
-
-        if (currentAnimationState == PlayerAnimationsStates.RunForward || currentAnimationState == PlayerAnimationsStates.Idle)
-        {
-            if (flatVel.magnitude < 4) SwitchAnimationState(PlayerAnimationsStates.Idle, 0.2f);
-            else SwitchAnimationState(PlayerAnimationsStates.RunForward, 0.02f);
-        }
-
-        if (!GameManager.Focused)
-        {
-            verticalInput = 0;
-            horizontalInput = 0;
-            jumpBufferCounter = 0;
-            EndCrouch();
-            // if (!movingDumb) MoveDumb();
-            return;
-        }
+        if (!GameManager.Focused) { ZeroInput(); return; }
         GetInput();
     }
 
     private void FixedUpdate()
     {
         if (!player.IsLocal || playerHealth.currentPlayerState == PlayerState.Dead || currentMovementState == MovementStates.Inactive) return;
-
         CheckWallRun();
         ApplyMovement();
         if (CanJump()) Jump();
         IncreaseGravity();
 
-        if (NetworkManager.Singleton.Server.IsRunning) SendServerMovement(transform.position, rb.velocity, orientation.forward, cameraHolder.forward);
+        if (NetworkManager.Singleton.Server.IsRunning) SendServerMovement(CurrentSimulationState());
         else SendClientMovement();
     }
 
@@ -197,12 +205,20 @@ public class PlayerMovement : MonoBehaviour
         jumpBufferCounter = Input.GetKey(SettingsManager.playerPreferences.jumpKey) ? movementSettings.jumpBufferTime : jumpBufferCounter > 0 ? jumpBufferCounter - Time.deltaTime : 0;
 
         // Crouching / GroundSlam
-        if (Input.GetKey(SettingsManager.playerPreferences.crouchKey) && coyoteTimeCounter > 0 && jumpBufferCounter == 0) StartCrouch();
+        if (Input.GetKeyDown(SettingsManager.playerPreferences.crouchKey) && coyoteTimeCounter > 0 && jumpBufferCounter == 0) StartCrouch();
         if (Input.GetKeyDown(SettingsManager.playerPreferences.crouchKey) && coyoteTimeCounter == 0) GroundSlam();
-        if (!Input.GetKey(SettingsManager.playerPreferences.crouchKey) && currentMovementState == MovementStates.Crouching) EndCrouch();
+        if (!Input.GetKey(SettingsManager.playerPreferences.crouchKey) && (currentMovementState == MovementStates.Crouching || currentMovementState == MovementStates.Sliding)) EndCrouch();
 
         // Dashing
         if (Input.GetKeyDown(SettingsManager.playerPreferences.dashKey)) Dash();
+    }
+
+    private void ZeroInput()
+    {
+        verticalInput = 0;
+        horizontalInput = 0;
+        jumpBufferCounter = 0;
+        EndCrouch();
     }
 
     public void PlayerDied()
@@ -217,6 +233,7 @@ public class PlayerMovement : MonoBehaviour
         {
             FreePlayerMovement();
             stamina = movementSettings.maxStamina;
+            localPlayerHud.UpdateStamina(stamina);
         }
         else FreeNetPlayerMovement();
     }
@@ -246,7 +263,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if (currentAnimationState == state) return;
         currentAnimationState = state;
-        playerAnimator.CrossFade(state.ToString(), transitionDuration);
+        playerAnimator.CrossFade(state.ToString(), transitionDuration, 0);
     }
 
     public void FreezeNetPlayerMovement()
@@ -264,17 +281,10 @@ public class PlayerMovement : MonoBehaviour
     {
         if (currentMovementState == MovementStates.Inactive) return;
 
-        if (currentMovementState == MovementStates.Sliding) EndCrouch();
+        currentMovementState = MovementStates.Inactive;
         CancelInvoke("FinishDashing");
         CancelInvoke("RestoreJump");
-        readyToJump = false;
-        if (currentMovementState == MovementStates.Dashing) FinishDashing();
-        if (currentMovementState == MovementStates.GroundSlamming) FinishGroundSlam();
-
-        currentMovementState = MovementStates.Inactive;
-
         StopAllEffects();
-
         rb.velocity = Vector3.zero;
     }
 
@@ -311,30 +321,33 @@ public class PlayerMovement : MonoBehaviour
         Vector3 trueForward = GetTrueForward();
 
         // Sticks The Player To The Wall When Wallrunning
-        if (currentMovementState == MovementStates.Wallrunning && !(onWallLeft && horizontalInput > 0) && !(onWallRight && horizontalInput < 0) && readyToJump)
+        if (currentMovementState == MovementStates.Wallrunning && (onWallLeft && horizontalInput < 0) && (onWallRight && horizontalInput > 0) && readyToJump)
             rb.AddForce(-wallNormal * movementSettings.wallStickForce * movementSettings.mass, ForceMode.Force);
 
         // Counter Movement
         flatVel = new Vector3(rb.velocity.x, 0, rb.velocity.z);
-
-        // if (OnSlope()) rb.AddForce(trueForward * movementSettings.mass * movementSettings.slopeCounterSlide);
-
         rb.AddForce(-flatVel * movementSettings.mass * movementSettings.counterMovement);
 
         // if (flatVel.magnitude > movementSettings.moveSpeed)
-        // {
         //     rb.AddForce(-flatVel * (flatVel.magnitude - movementSettings.moveSpeed) * movementSettings.mass * movementSettings.excessSpeedCounterMovement);
-        // }
 
         // Apply Movement Force
         float multiplier = currentMovementState == MovementStates.Sliding ? movementSettings.slidingMovementMultiplier : currentMovementState == MovementStates.Wallrunning ? movementSettings.wallRunMoveMultiplier : 1;
 
-        moveDir = trueForward * verticalInput + orientation.right * horizontalInput;
-        moveDir = moveDir.sqrMagnitude > 0 ? moveDir.normalized : moveDir;
+        if (currentMovementState != MovementStates.Sliding)
+        {
+            moveDir = trueForward * verticalInput + orientation.right * horizontalInput;
+            moveDir = moveDir.sqrMagnitude > 0 ? moveDir.normalized : moveDir;
+        }
+
+        else
+        {
+            if (Physics.Raycast(orientation.position, slideDir, movementSettings.slideWallBlockDistance, groundLayer)) EndCrouch();
+            else moveDir = trueForward;
+        }
 
         if (coyoteTimeCounter > 0) rb.AddForce(moveDir * groundedMovementMultiplier * multiplier, ForceMode.Force);
         else rb.AddForce(moveDir * airMovementMultiplier, ForceMode.Force);
-        Debug.DrawRay(groundCheck.position, trueForward * 3, Color.magenta);
     }
 
     private void Jump()
@@ -352,6 +365,7 @@ public class PlayerMovement : MonoBehaviour
         }
         else
         {
+            jumpParticles.Play();
             rb.AddForce(transform.up * movementSettings.jumpForce * movementSettings.mass, ForceMode.Impulse);
             playerAudioSource.pitch = Utilities.GetRandomPitch(-0.1f, 0.2f);
             playerAudioSource.PlayOneShot(movementSettings.jumpSound, movementSettings.wallJumpSoundVolume);
@@ -377,8 +391,6 @@ public class PlayerMovement : MonoBehaviour
 
     private Vector3 GetTrueForward()
     {
-        if (OnSlope()) return GetSlopeMoveDirection();
-
         if (currentMovementState == MovementStates.Wallrunning)
         {
             wallNormal = onWallRight ? rightWallHit.normal : leftWallHit.normal;
@@ -388,7 +400,9 @@ public class PlayerMovement : MonoBehaviour
             return wallForward;
         }
 
-        return orientation.forward;
+        Vector3 forward = currentMovementState != MovementStates.Sliding ? orientation.forward : slideDir;
+        if (OnSlope()) return GetSlopeMoveDirection(forward);
+        return forward;
     }
     #endregion
 
@@ -403,12 +417,13 @@ public class PlayerMovement : MonoBehaviour
         return new SimulationState
         {
             position = transform.position,
-            orientation = orientation.forward,
-            camRotation = cameraHolder.forward,
+            velocity = player.IsLocal ? rb.velocity : netPlayerVelocity,
+            orientationForward = orientation.forward,
+            cameraHolderForward = cameraHolder.forward,
             alive = playerHealth.currentPlayerState == PlayerState.Alive,
-            characterColliderBones = playerCharacterColliderBones,
+            characterColliderBonesPos = playerCharacterColliderBones.Select(a => a.position).ToArray(),
+            characterColliderBonesForward = playerCharacterColliderBones.Select(a => a.forward).ToArray(),
             currentTick = NetworkManager.Singleton.serverTick
-
         };
     }
 
@@ -424,8 +439,8 @@ public class PlayerMovement : MonoBehaviour
 
         for (int i = 0; i < playerCharacterColliderBones.Length; i++)
         {
-            playerCharacterColliderBones[i].position = playerSimulationState[cacheIndex].characterColliderBones[i].position;
-            playerCharacterColliderBones[i].rotation = playerSimulationState[cacheIndex].characterColliderBones[i].rotation;
+            // playerCharacterColliderBones[i].position = playerSimulationState[cacheIndex].characterColliderBones[i].position;
+            // playerCharacterColliderBones[i].rotation = playerSimulationState[cacheIndex].characterColliderBones[i].rotation;
         }
 
         // EditorApplication.isPaused = true;
@@ -443,21 +458,26 @@ public class PlayerMovement : MonoBehaviour
         if (currentMovementState == MovementStates.Sliding || stamina >= movementSettings.maxStamina) return;
         stamina += movementSettings.staminaRefillRate * Time.deltaTime;
         if (stamina > movementSettings.maxStamina) stamina = movementSettings.maxStamina;
-        playerHud.UpdateStamina(stamina);
+        localPlayerHud.UpdateStamina(stamina);
     }
 
     private void StartCrouch()
     {
-        if (currentMovementState == MovementStates.Sliding || currentMovementState == MovementStates.Crouching || currentMovementState == MovementStates.Dashing) return;
+        if (currentMovementState == MovementStates.Sliding || currentMovementState == MovementStates.Dashing) return;
 
-        SwitchMovementState(MovementStates.Crouching);
-        SwitchAnimationState(PlayerAnimationsStates.Slide, 0.05f);
+        SwitchMovementState(MovementStates.Sliding);
+
+        slideDir = orientation.forward;
+        slideParticlesPivot.forward = slideDir;
+        slideParticles.Play();
+        slideAudioSouce.GetRandomPitch();
+        slideAudioSouce.Play();
 
         standingCol.SetActive(false);
         crouchedCol.SetActive(true);
 
-        cameraPos.DOKill();
-        cameraPos.DOLocalMoveY(movementSettings.crouchedCameraHeight, 0.1f).SetEase(Ease.OutQuad);
+        localPlayerCameraPos.DOKill();
+        localPlayerCameraPos.DOLocalMoveY(movementSettings.crouchedCameraHeight, 0.1f).SetEase(Ease.OutQuad);
 
         if (NetworkManager.Singleton.Server.IsRunning) SendServerCrouch();
         else SendClientCrouch();
@@ -465,17 +485,19 @@ public class PlayerMovement : MonoBehaviour
 
     private void EndCrouch()
     {
+        if (currentMovementState == MovementStates.Sliding) SwitchMovementState(MovementStates.Crouching);
+        slideParticles.Stop();
+        slideAudioSouce.Stop();
         if (currentMovementState != MovementStates.Crouching) return;
         if (Physics.Raycast(ceilingCheck.position, Vector3.up, 1.1f, groundLayer)) return;
 
         SwitchMovementState(MovementStates.Active);
-        SwitchAnimationState(PlayerAnimationsStates.Idle, 0.05f);
 
         standingCol.SetActive(true);
         crouchedCol.SetActive(false);
 
-        cameraPos.DOKill();
-        cameraPos.DOLocalMoveY(movementSettings.cameraHeight, 0.1f).SetEase(Ease.OutQuad);
+        localPlayerCameraPos.DOKill();
+        localPlayerCameraPos.DOLocalMoveY(movementSettings.cameraHeight, 0.1f).SetEase(Ease.OutQuad);
 
         if (NetworkManager.Singleton.Server.IsRunning) SendServerCrouch();
         else SendClientCrouch();
@@ -489,7 +511,6 @@ public class PlayerMovement : MonoBehaviour
         if (state)
         {
             SwitchMovementState(MovementStates.Sliding);
-            SwitchAnimationState(PlayerAnimationsStates.Slide, 0.05f);
 
             standingCol.SetActive(false);
             crouchedCol.SetActive(true);
@@ -498,7 +519,6 @@ public class PlayerMovement : MonoBehaviour
         else
         {
             SwitchMovementState(MovementStates.Active);
-            SwitchAnimationState(PlayerAnimationsStates.Idle, 0.05f);
 
             standingCol.SetActive(true);
             crouchedCol.SetActive(false);
@@ -510,10 +530,13 @@ public class PlayerMovement : MonoBehaviour
     private void GroundSlam()
     {
         if (currentMovementState != MovementStates.Active) return;
-
         if (stamina < movementSettings.groundSlamStaminaCost) return;
+
         stamina -= movementSettings.groundSlamStaminaCost;
-        playerHud.UpdateStamina(stamina);
+        localPlayerHud.UpdateStamina(stamina);
+
+        groundSlamAudioSource.GetRandomPitch();
+        groundSlamAudioSource.Play();
 
         rb.velocity = Vector3.zero;
         rb.AddForce(Vector3.down * movementSettings.groundSlamImpulse * movementSettings.mass, ForceMode.Impulse);
@@ -530,11 +553,14 @@ public class PlayerMovement : MonoBehaviour
         if (currentMovementState != MovementStates.GroundSlamming) return;
 
         SwitchMovementState(MovementStates.Active);
+
+        groundSlamAudioSource.Stop();
         if (movementSettings.groundSlamSound)
         {
             playerAudioSource.pitch = Utilities.GetRandomPitch(-0.1f, 0.05f);
             playerAudioSource.PlayOneShot(movementSettings.groundSlamSound, movementSettings.groundSlamSoundVolume);
         }
+
         groundSlamAirParticles.Stop();
         groundSlamParticles.Play();
 
@@ -574,7 +600,7 @@ public class PlayerMovement : MonoBehaviour
         if (stamina < movementSettings.slideStaminaCost) return;
 
         stamina -= movementSettings.slideStaminaCost;
-        playerHud.UpdateStamina(stamina);
+        localPlayerHud.UpdateStamina(stamina);
 
         SwitchMovementState(MovementStates.Dashing);
         CancelInvoke("FinishDashing");
@@ -632,8 +658,6 @@ public class PlayerMovement : MonoBehaviour
     #region Checks
     private void CheckIfGrounded()
     {
-        Debug.DrawRay(groundCheck.position, Vector3.down * movementSettings.groundCheckHeight, Color.green);
-
         if (Physics.Raycast(groundCheck.position, Vector3.down, movementSettings.groundCheckHeight, groundLayer))
         {
             if (coyoteTimeCounter == 0) OnEnterGrounded();
@@ -657,8 +681,7 @@ public class PlayerMovement : MonoBehaviour
 
     private void OnEnterGrounded()
     {
-        SwitchAnimationState(PlayerAnimationsStates.Land, 0);
-        Invoke(nameof(PlayIdleAnimation), 0.5f);
+        localPlayerCameraPos.DOPunchPosition(new Vector3(0, -movementSettings.landCameraOffset), movementSettings.landCameraOffsetTime, 0, 0).SetEase(Ease.OutQuad);
         jumpParticles.Play();
         if (player.IsLocal) FinishGroundSlam();
     }
@@ -670,9 +693,6 @@ public class PlayerMovement : MonoBehaviour
 
     private void OnLeaveGrounded()
     {
-        CancelInvoke(nameof(PlayIdleAnimation));
-        SwitchAnimationState(PlayerAnimationsStates.Jump, 0);
-        jumpParticles.Play();
         if (player.IsLocal) EndCrouch();
     }
 
@@ -692,9 +712,9 @@ public class PlayerMovement : MonoBehaviour
         return false;
     }
 
-    private Vector3 GetSlopeMoveDirection()
+    private Vector3 GetSlopeMoveDirection(Vector3 forward)
     {
-        return Vector3.ProjectOnPlane(orientation.forward, slopeHit.normal).normalized;
+        return Vector3.ProjectOnPlane(forward, slopeHit.normal).normalized;
     }
 
     private void CheckWallRun()
@@ -715,143 +735,91 @@ public class PlayerMovement : MonoBehaviour
     #endregion
 
     #region Effects
+    private void AnimatePlayer()
+    {
+        Vector3 velocity = player.IsLocal ? rb.velocity : netPlayerVelocity;
+        switch (currentMovementState)
+        {
+            case MovementStates.Active:
+                if (coyoteTimeCounter == 0) { SwitchAnimationState(PlayerAnimationsStates.Jump, 0); break; }
+                if (velocity.magnitude < movementSettings.runAnimationStartSpeed) SwitchAnimationState(PlayerAnimationsStates.Idle, 0.01f);
+                else SwitchAnimationState(PlayerAnimationsStates.RunForward, 0.01f);
+                break;
+            case MovementStates.Sliding:
+                SwitchAnimationState(PlayerAnimationsStates.Slide, 0.03f);
+                break;
+        }
+    }
+
     private void StopAllEffects()
     {
         // Stops Sliding Particles
-        if (slideParticles.isEmitting)
-        {
-            slideParticles.Stop();
-            slideAudioSouce.Stop();
-        }
+        slideParticles.Stop();
+        slideAudioSouce.Stop();
 
         groundSlamAirParticles.Stop();
+        groundSlamAudioSource.Stop();
+
         dashParticles.Stop();
     }
 
-    private void SlideEffects(Vector3 velocity)
-    {
-        if (currentMovementState == MovementStates.Sliding && velocity.magnitude > movementSettings.slideParticlesThreshold && coyoteTimeCounter > 0f)
-        {
-            if (!slideParticles.isEmitting)
-            {
-                slideParticles.Play();
-                slideAudioSouce.pitch = Utilities.GetRandomPitch(-0.1f, 0.02f);
-                slideAudioSouce.Play();
-            }
-        }
-        else if (slideParticles.isEmitting)
-        {
-            slideParticles.Stop();
-            slideAudioSouce.Stop();
-        }
-    }
-
-    private void SetupSlideAudioSource()
+    private void SetupAudioSources()
     {
         slideAudioSouce.loop = true;
         slideAudioSouce.clip = movementSettings.slideSound;
         slideAudioSouce.volume = movementSettings.slideSoundVolume;
+
+        groundSlamAudioSource.loop = true;
+        groundSlamAudioSource.clip = movementSettings.groundSlamFallingSound;
+        groundSlamAudioSource.volume = movementSettings.groundSlamSoundVolume;
     }
 
     private void CheckCameraTilt()
     {
-        if (currentMovementState == MovementStates.Wallrunning)
-        {
-            float desiredTilt = horizontalInput * movementSettings.cameraWallRunTilt;
-            if (cameraSideMovementTiltDir == desiredTilt) return;
-            cameraTilt.DOKill();
-            cameraTilt.DOLocalRotate(new Vector3(0, 0, desiredTilt), 0.5f);
-            cameraSideMovementTiltDir = desiredTilt;
-        }
-        else
-        {
-            float desiredTilt = horizontalInput * movementSettings.cameraSideMovementTilt;
-            if (cameraSideMovementTiltDir == desiredTilt) return;
-            cameraTilt.DOKill();
-            cameraTilt.DOLocalRotate(new Vector3(0, 0, desiredTilt), 0.5f);
-            cameraSideMovementTiltDir = desiredTilt;
-        }
-    }
-
-    private void UpdateSpeedLinesEmission()
-    {
-        // float target = flatVel.magnitude > speedLineStartAtSpeed ? flatVel.magnitude * speedLineMultiplier : 0;
-        // speedLineEmission.rateOverTime = Mathf.Lerp(speedLineEmission.rateOverTime.constant, target, speedLineSpoolSpeed * Time.deltaTime);
-        // speedLinesEffect.do
-    }
-
-    private void PlayIdleAnimation()
-    {
-        SwitchAnimationState(PlayerAnimationsStates.Idle, 0.5f);
+        float desiredTilt;
+        if (currentMovementState == MovementStates.Wallrunning) desiredTilt = horizontalInput * movementSettings.cameraWallRunTilt;
+        else desiredTilt = horizontalInput * movementSettings.cameraSideMovementTilt;
+        if (cameraSideMovementTiltDir == desiredTilt) return;
+        localPlayerCameraTilt.DOKill();
+        localPlayerCameraTilt.DOLocalRotate(new Vector3(0, 0, desiredTilt), 0.5f);
+        cameraSideMovementTiltDir = desiredTilt;
     }
     #endregion
 
     #region Interpolation
-    private void HandleMovementData(Vector3 receivedPosition, Vector3 receivedVelocity, Vector3 receivedOrientation, Vector3 receivedCamForward, uint tick)
+    private void HandleMovementData(SimulationState simulationState)
     {
-        if (tick <= interpolationGoal.currentTick) return;
+        if (simulationState.currentTick <= interpolationGoal.currentTick) return;
         if (currentMovementState == MovementStates.Inactive || playerHealth.currentPlayerState == PlayerState.Dead) return;
 
+        netPlayerVelocity = simulationState.velocity;
+        cameraHolder.forward = simulationState.cameraHolderForward;
+        orientation.forward = simulationState.orientationForward;
+
         timeSinceReceivedMovement = 0;
-
         interpolationStartingState = CurrentSimulationState();
-        interpolationGoal = new SimulationState
-        {
-            position = receivedPosition,
-            orientation = receivedOrientation,
-            camRotation = receivedCamForward,
-            currentTick = tick
-        };
+        interpolationGoal = simulationState;
 
-        flatVel = new Vector3(receivedVelocity.x, 0, receivedVelocity.z);
-        moveDir = flatVel.normalized;
-        if (currentAnimationState == PlayerAnimationsStates.RunForward || currentAnimationState == PlayerAnimationsStates.Idle)
-        {
-            if (flatVel.magnitude < 4) SwitchAnimationState(PlayerAnimationsStates.Idle, 0.2f);
-            else SwitchAnimationState(PlayerAnimationsStates.RunForward, 0.02f);
-        }
-
-        SlideEffects(receivedVelocity);
-
-        if (NetworkManager.Singleton.Server.IsRunning) SendServerMovement(receivedPosition, receivedVelocity, receivedOrientation, receivedCamForward);
+        if (NetworkManager.Singleton.Server.IsRunning) SendServerMovement(simulationState);
     }
 
     private void Interpolate()
     {
-        if (interpolationGoal.currentTick == 0) return;
-        if (currentMovementState == MovementStates.Inactive) return;
+        if (currentMovementState == MovementStates.Inactive || playerHealth.currentPlayerState == PlayerState.Dead) return;
 
         timeSinceReceivedMovement += Time.deltaTime;
         float interpolationAmount = timeSinceReceivedMovement / timeToReachPos;
 
-        if (Vector3.Distance(interpolationStartingState.position, interpolationGoal.position) > interpolationThreshold)
-        {
-            transform.position = Vector3.Lerp(interpolationStartingState.position, interpolationGoal.position, interpolationAmount);
-        }
-
-        if (Vector3.Distance(interpolationStartingState.orientation, interpolationGoal.orientation) > interpolationThreshold)
-        {
-            orientation.forward = Vector3.Lerp(interpolationStartingState.orientation, interpolationGoal.orientation, interpolationAmount);
-        }
-
-        if (Vector3.Distance(interpolationStartingState.camRotation, interpolationGoal.camRotation) > interpolationThreshold)
-        {
-            cameraHolder.forward = Vector3.Lerp(interpolationStartingState.camRotation, interpolationGoal.camRotation, interpolationAmount);
-        }
-
+        transform.position = Vector3.Lerp(interpolationStartingState.position, interpolationGoal.position, interpolationAmount);
     }
     #endregion
 
     #region ServerSenders
-    private void SendServerMovement(Vector3 position, Vector3 velocity, Vector3 orientation, Vector3 camForward)
+    private void SendServerMovement(SimulationState simulationState)
     {
         Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.playerMovement);
         message.AddUShort(player.Id);
-        message.AddVector3(position);
-        message.AddVector3(velocity);
-        message.AddVector3(orientation);
-        message.AddVector3(camForward);
-        message.AddUInt(NetworkManager.Singleton.serverTick);
+        message.AddSerializable(simulationState);
         NetworkManager.Singleton.Server.SendToAll(message);
     }
 
@@ -859,7 +827,7 @@ public class PlayerMovement : MonoBehaviour
     {
         Message message = Message.Create(MessageSendMode.Unreliable, ServerToClientId.playerCrouch);
         message.AddUShort(player.Id);
-        message.AddBool(currentMovementState == MovementStates.Sliding);
+        message.AddBool(currentMovementState == MovementStates.Sliding || currentMovementState == MovementStates.Crouching);
         message.AddUInt(NetworkManager.Singleton.serverTick);
         NetworkManager.Singleton.Server.SendToAll(message);
     }
@@ -887,18 +855,14 @@ public class PlayerMovement : MonoBehaviour
     private void SendClientMovement()
     {
         Message message = Message.Create(MessageSendMode.Unreliable, ClientToServerId.playerMovement);
-        message.AddVector3(transform.position);
-        message.AddVector3(rb.velocity);
-        message.AddVector3(orientation.forward);
-        message.AddVector3(cameraHolder.forward);
-        message.AddUInt(NetworkManager.Singleton.serverTick);
+        message.AddSerializable(CurrentSimulationState());
         NetworkManager.Singleton.Client.Send(message);
     }
 
     private void SendClientCrouch()
     {
         Message message = Message.Create(MessageSendMode.Unreliable, ClientToServerId.playerCrouch);
-        message.AddBool(currentMovementState == MovementStates.Sliding);
+        message.AddBool(currentMovementState == MovementStates.Sliding || currentMovementState == MovementStates.Crouching);
         message.AddUInt(NetworkManager.Singleton.serverTick);
         NetworkManager.Singleton.Client.Send(message);
     }
@@ -928,7 +892,7 @@ public class PlayerMovement : MonoBehaviour
         if (Player.list.TryGetValue(message.GetUShort(), out Player player))
         {
             if (player.IsLocal) return;
-            player.playerMovement.HandleMovementData(message.GetVector3(), message.GetVector3(), message.GetVector3(), message.GetVector3(), message.GetUInt());
+            player.playerMovement.HandleMovementData(message.GetSerializable<SimulationState>());
         }
     }
 
@@ -992,7 +956,7 @@ public class PlayerMovement : MonoBehaviour
     {
         if (Player.list.TryGetValue(fromClientId, out Player player))
         {
-            player.playerMovement.HandleMovementData(message.GetVector3(), message.GetVector3(), message.GetVector3(), message.GetVector3(), message.GetUInt());
+            player.playerMovement.HandleMovementData(message.GetSerializable<SimulationState>());
         }
     }
 
@@ -1023,4 +987,14 @@ public class PlayerMovement : MonoBehaviour
         }
     }
     #endregion
+
+    private void OnDrawGizmos()
+    {
+        Gizmos.color = Color.red;
+        Gizmos.DrawRay(groundCheck.position, -Vector3.up * movementSettings.groundCheckHeight);
+        Gizmos.DrawRay(orientation.position, orientation.forward * 3);
+
+        Gizmos.color = Color.magenta;
+        Gizmos.DrawRay(orientation.position, slideDir * movementSettings.slideWallBlockDistance);
+    }
 }

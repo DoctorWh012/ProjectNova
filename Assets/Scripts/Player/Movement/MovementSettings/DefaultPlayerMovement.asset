@@ -16,6 +16,8 @@ MonoBehaviour:
   gravity: 30
   cameraHeight: 1.35
   crouchedCameraHeight: 0.8
+  landCameraOffset: 0.5
+  landCameraOffsetTime: 0.8
   cameraSideMovementTilt: 1
   cameraWallRunTilt: 3
   movementMultiplier: 15
@@ -24,14 +26,14 @@ MonoBehaviour:
   moveSpeed: 6
   airMoveSpeed: 7
   maxSlopeAngle: 45
-  jumpSound: {fileID: 0}
+  jumpSound: {fileID: 8300000, guid: 4a944dd47723cbb4cb504c37bf50edee, type: 3}
   jumpSoundVolume: 0.4
   jumpForce: 16
   groundCheckHeight: 0.7
   jumpCooldown: 0.3
   coyoteTime: 0.15
   jumpBufferTime: 0.1
-  wallrunJumpSound: {fileID: 0}
+  wallrunJumpSound: {fileID: 8300000, guid: ef18b511d9f7d304b9a7cab654ecf123, type: 3}
   wallJumpSoundVolume: 0.4
   wallRunMoveMultiplier: 2
   wallDistance: 0.7
@@ -41,17 +43,17 @@ MonoBehaviour:
   wallJumpSideForce: 9
   wallClimbSpeed: 3
   wallRunGravity: 5
-  slideSound: {fileID: 0}
+  slideWallBlockDistance: 1
+  slideSound: {fileID: 8300000, guid: e934febb4fdc72040bb63a514b07b5f0, type: 3}
   slideSoundVolume: 0.4
-  crouchedGroundCheckPos: {x: 0, y: -0.4, z: 0}
   slidingMovementMultiplier: 2
   slidingCounterMovement: 0
-  crouchForce: 20
-  slideParticlesThreshold: 5
   maxStamina: 3
   staminaRefillTime: 4
   groundSlamStaminaCost: 1
-  groundSlamSound: {fileID: 0}
+  groundSlamFallingSound: {fileID: 8300000, guid: 0bf9be4e1b6e490488730a10e1c9bae2, type: 3}
+  groundSlamFallingSoundVolume: 1
+  groundSlamSound: {fileID: 8300000, guid: 20c6aadf261049841b6ce86b7f724c67, type: 3}
   groundSlamSoundVolume: 0.4
   groundSlamImpulse: 65
   groundSlamGravity: 50
@@ -61,4 +63,5 @@ MonoBehaviour:
   dashDuration: 0.3
   dashForce: 45
   dashRefillTime: 2
+  runAnimationStartSpeed: 1
   staminaRefillRate: 0.75

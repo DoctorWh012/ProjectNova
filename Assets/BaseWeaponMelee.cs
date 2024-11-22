@@ -69,7 +69,7 @@ public class BaseWeaponMelee : BaseWeapon
         List<Collider> filteredCol = new List<Collider>();
         if (!player.IsLocal && NetworkManager.Singleton.Server.IsRunning) NetworkManager.Singleton.SetAllPlayersPositionsTo(playerShooting.lastShotTick, player.Id);
 
-        filteredCol = FilteredOverlapSphere(playerShooting.playerCam.position + playerShooting.playerCam.forward * attackRadius, attackRadius);
+        filteredCol = FilteredOverlapSphere(playerShooting.cameraHolder.position + playerShooting.cameraHolder.forward * attackRadius, attackRadius);
         for (int j = 0; j < filteredCol.Count; j++) if (CheckPlayerHit(filteredCol[j])) GetHitPlayer(filteredCol[j].gameObject, damage);
 
         if (!player.IsLocal && NetworkManager.Singleton.Server.IsRunning) NetworkManager.Singleton.ResetPlayersPositions(player.Id);
@@ -84,6 +84,6 @@ public class BaseWeaponMelee : BaseWeapon
     {
         if (!playerShooting) return;
         Gizmos.color = Color.green;
-        Gizmos.DrawWireSphere(playerShooting.playerCam.position + playerShooting.playerCam.forward * attackRadius, attackRadius);
+        Gizmos.DrawWireSphere(playerShooting.cameraHolder.position + playerShooting.cameraHolder.forward * attackRadius, attackRadius);
     }
 }

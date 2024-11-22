@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using Riptide;
+using Unity.Mathematics;
 using UnityEngine;
 
 [Serializable]
@@ -22,12 +23,12 @@ public class PlayerShooting : MonoBehaviour
     [SerializeField] public LayerMask obstacleLayers;
     [SerializeField] public LayerMask playersLayer;
     [SerializeField] public Rigidbody rb;
-    [SerializeField] public Transform playerCam;
+    [SerializeField] public Transform cameraHolder;
     [SerializeField] public PlayerHealth playerHealth;
     [SerializeField] private PlayerMovement playerMovement;
 
     [Header("Materials")]
-    [SerializeField] public Material ultGlowMat;
+    [SerializeField] public Material localPlayerUltGlowMat;
     [SerializeField] public Color fadedUltColor;
 
     [Header("IK")]
@@ -45,6 +46,7 @@ public class PlayerShooting : MonoBehaviour
     [Header("Arms")]
     [Space(5)]
     [SerializeField] public Animator armsAnimator;
+    [SerializeField] public Animator characterAnimator;
     [SerializeField] private SkinnedMeshRenderer[] leftArmMeshes;
     [SerializeField] private SkinnedMeshRenderer[] rightArmMeshes;
 
@@ -305,16 +307,16 @@ public class PlayerShooting : MonoBehaviour
     private void BodyInverseKinematics()
     {
         playerRoot.bodyPart.forward = rootForward;
-        if (playerMovement.moveDir != Vector3.zero) playerRoot.bodyPart.forward = Vector3.Lerp(playerRoot.bodyPart.forward, -playerMovement.moveDir, playerRoot.rotateSpeed * Time.deltaTime);
-
         playerTorso.bodyPart.forward = torsoForward;
         playerHead.bodyPart.forward = headForward;
 
-        playerHead.bodyPart.forward = Vector3.Lerp(playerHead.bodyPart.forward, -playerCam.forward * 30, playerHead.rotateSpeed * Time.deltaTime);
+        playerRoot.bodyPart.forward = Vector3.Lerp(playerRoot.bodyPart.forward, -playerMovement.moveDir, playerRoot.rotateSpeed * Time.deltaTime);
 
-        playerTorso.bodyPart.forward = Vector3.Lerp(playerTorso.bodyPart.forward, -playerCam.forward, playerTorso.rotateSpeed * Time.deltaTime);
-        if (playerTorso.bodyPart.forward.y * 90f > 25) playerTorso.bodyPart.forward = new Vector3(playerTorso.bodyPart.forward.x, 25f / 90f, playerTorso.bodyPart.forward.z);
-        if (playerTorso.bodyPart.forward.y * 90f < -25) playerTorso.bodyPart.forward = new Vector3(playerTorso.bodyPart.forward.x, -25f / 90f, playerTorso.bodyPart.forward.z);
+        playerTorso.bodyPart.forward = Vector3.Lerp(playerTorso.bodyPart.forward, -cameraHolder.forward, playerTorso.rotateSpeed * Time.deltaTime);
+        float torsoEulerX = playerTorso.bodyPart.localEulerAngles.x > 180 ? playerTorso.bodyPart.localEulerAngles.x - 360 : playerTorso.bodyPart.localEulerAngles.x;
+        playerTorso.bodyPart.localEulerAngles = new Vector3(Mathf.Clamp(torsoEulerX, -20f, 20f), playerTorso.bodyPart.localEulerAngles.y, playerTorso.bodyPart.localEulerAngles.z);
+
+        playerHead.bodyPart.forward = Vector3.Lerp(playerHead.bodyPart.forward, -cameraHolder.forward * 30, playerHead.rotateSpeed * Time.deltaTime);
 
         rootForward = playerRoot.bodyPart.forward;
         torsoForward = playerTorso.bodyPart.forward;

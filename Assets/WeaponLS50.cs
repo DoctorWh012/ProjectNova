@@ -211,13 +211,13 @@ public class WeaponLS50 : BaseWeaponRifle
             {
                 NetworkManager.Singleton.SetAllPlayersPositionsTo(i, player.Id);
 
-                shotRayHits = FilteredRaycastPierced(playerShooting.playerCam.forward, piercingAmount);
+                shotRayHits = FilteredRaycastPierced(playerShooting.cameraHolder.forward, piercingAmount);
 
                 if (CheckIfPiercedShotHitPlayer(shotRayHits)) break;
             }
             NetworkManager.Singleton.ResetPlayersPositions(player.Id);
         }
-        else shotRayHits = FilteredRaycastPierced(playerShooting.playerCam.forward, piercingAmount);
+        else shotRayHits = FilteredRaycastPierced(playerShooting.cameraHolder.forward, piercingAmount);
 
         foreach (RaycastHit col in shotRayHits) print(col.collider.gameObject.name);
 

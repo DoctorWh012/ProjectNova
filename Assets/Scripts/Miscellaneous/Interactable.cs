@@ -14,7 +14,7 @@ public class Interactable : MonoBehaviour
         if (!other.CompareTag("Player")) return;
 
         player = other.GetComponentInParent<Player>();
-        if (player.IsLocal) player.playerHud.UpdateMediumBottomText(string.Format(popUpMessage, SettingsManager.playerPreferences.interactKey));
+        if (player.IsLocal) player.localPlayerHud.UpdateMediumBottomText(string.Format(popUpMessage, SettingsManager.playerPreferences.interactKey));
         players.Add(player);
     }
 
@@ -23,7 +23,7 @@ public class Interactable : MonoBehaviour
         if (!other.CompareTag("Player")) return;
 
         player = other.GetComponentInParent<Player>();
-        if (player.IsLocal) player.playerHud.UpdateMediumBottomText("");
+        if (player.IsLocal) player.localPlayerHud.UpdateMediumBottomText("");
         players.Remove(player);
     }
 }

@@ -251,7 +251,7 @@ public class BaseWeapon : MonoBehaviour
 
     public virtual void PrimaryAction(uint tick, bool compensatingForSwitch = false)
     {
-        
+
     }
 
     public virtual void SecondaryAction(uint tick)
@@ -267,7 +267,7 @@ public class BaseWeapon : MonoBehaviour
     public virtual void HandleServerWeaponKill(int kills, ushort victimId, uint tick)
     {
         killsPerformed = kills;
-        if (player.IsLocal && Player.list[victimId]) player.playerHud.FadeKillIndicator(Player.list[victimId].username);
+        if (player.IsLocal && Player.list[victimId]) player.localPlayerHud.FadeKillIndicator(Player.list[victimId].username);
         playerShooting.lastWeaponKillsTick = tick;
     }
 
@@ -275,7 +275,7 @@ public class BaseWeapon : MonoBehaviour
     {
         killsPerformed++;
 
-        if (player.IsLocal && Player.list[victimId]) player.playerHud.FadeKillIndicator(Player.list[victimId].username);
+        if (player.IsLocal && Player.list[victimId]) player.localPlayerHud.FadeKillIndicator(Player.list[victimId].username);
 
         playerShooting.lastWeaponKillsTick = NetworkManager.Singleton.serverTick;
         playerShooting.SendWeaponKill(killsPerformed, victimId);
@@ -343,7 +343,13 @@ public class BaseWeapon : MonoBehaviour
     #region Grip
     protected void WeaponArmAnimation(WeaponArmAnimation animations)
     {
-        playerShooting.armsAnimator.Play(animations.armAnimation, player.IsLocal ? 0 : 1, 0);
+        if (player.IsLocal)
+        {
+            playerShooting.armsAnimator.Play(animations.armAnimation, 0, 0);
+            playerShooting.characterAnimator.Play(animations.armAnimation, 1, 0);
+        }
+        else playerShooting.characterAnimator.Play(animations.armAnimation, 0, 0);
+
         animator.Play(animations.weaponAnimation, 0, 0);
     }
     #endregion
@@ -351,7 +357,7 @@ public class BaseWeapon : MonoBehaviour
     #region Casts
     protected RaycastHit FilteredRaycast(Vector3 dir, float bulletWidht = 0.1f)
     {
-        RaycastHit[] filterRayHits = Physics.SphereCastAll(playerShooting.playerCam.position, bulletWidht, dir.normalized, range, ~playerShooting.layersToIgnoreShootRaycast);
+        RaycastHit[] filterRayHits = Physics.SphereCastAll(playerShooting.cameraHolder.position, bulletWidht, dir.normalized, range, ~playerShooting.layersToIgnoreShootRaycast);
 
         Array.Sort(filterRayHits, (x, y) => x.distance.CompareTo(y.distance));
 
@@ -368,6 +374,7 @@ public class BaseWeapon : MonoBehaviour
                 if (filterRayHits.Length - 1 == i) return new RaycastHit();
                 continue;
             }
+            // if (CheckHitGhostPlayer(filterRayHits[i].collider, tick)) continue;
             return filterRayHits[i];
         }
         return new RaycastHit();
@@ -375,7 +382,7 @@ public class BaseWeapon : MonoBehaviour
 
     protected List<RaycastHit> FilteredRaycastPierced(Vector3 dir, int pierceAmount)
     {
-        RaycastHit[] unfilteredHits = Physics.SphereCastAll(playerShooting.playerCam.position, 0.1f, dir.normalized, range, ~playerShooting.layersToIgnoreShootRaycast);
+        RaycastHit[] unfilteredHits = Physics.SphereCastAll(playerShooting.cameraHolder.position, 0.1f, dir.normalized, range, ~playerShooting.layersToIgnoreShootRaycast);
         List<RaycastHit> filteredHits = new List<RaycastHit>();
 
         Array.Sort(unfilteredHits, (x, y) => x.distance.CompareTo(y.distance));
@@ -429,6 +436,22 @@ public class BaseWeapon : MonoBehaviour
     protected bool CheckDuplicateHit(List<RaycastHit> filteredHits, RaycastHit hit)
     {
         foreach (RaycastHit fcol in filteredHits) if (fcol.transform.root == hit.transform.root) return true;
+        return false;
+    }
+
+    protected bool CheckHitGhostPlayer(Collider col, uint tick)
+    {
+        for (int i = 0; i < weaponDamageMultiplier.Length; i++)
+        {
+            if (!col.CompareTag(weaponDamageMultiplier[i].bodyPartTag)) continue;
+
+            PlayerMovement playerMovement = col.GetComponent<PlayerMovement>();
+            for (uint j = tick; j < NetworkManager.Singleton.serverTick; j++)
+            {
+                if (playerMovement.playerSimulationState[j % NetworkManager.lagCompensationCacheSize].currentTick != j) continue;
+                if (!playerMovement.playerSimulationState[j % NetworkManager.lagCompensationCacheSize].alive) return true;
+            }
+        }
         return false;
     }
 
@@ -508,6 +531,6 @@ public class BaseWeapon : MonoBehaviour
     protected void ApplyKnockback()
     {
         if (!player.IsLocal) return;
-        if (FilteredRaycast(playerShooting.playerCam.forward).collider) playerShooting.rb.AddForce(-playerShooting.playerCam.forward * knockbackForce * playerShooting.rb.mass, ForceMode.Impulse);
+        if (FilteredRaycast(playerShooting.cameraHolder.forward).collider) playerShooting.rb.AddForce(-playerShooting.cameraHolder.forward * knockbackForce * playerShooting.rb.mass, ForceMode.Impulse);
     }
 }

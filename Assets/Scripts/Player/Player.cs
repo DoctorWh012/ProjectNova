@@ -14,23 +14,23 @@ public class Player : MonoBehaviour
     [Space(5)]
     [SerializeField] public PlayerHealth playerHealth;
     [SerializeField] public PlayerInteractions playerInteractions;
-    [SerializeField] public PlayerHud playerHud;
+    [SerializeField] public PlayerHud localPlayerHud;
     [SerializeField] public PlayerMovement playerMovement;
     [SerializeField] public PlayerShooting playerShooting;
     [SerializeField] public Rigidbody rb;
-    [SerializeField] public GameObject spectatorCamBrain;
-    [SerializeField] public Transform playerCamera;
+    [SerializeField] public GameObject netPlayerSpectatorCamBrain;
+    [SerializeField] public Transform localPlayerCamera;
 
     [Header("Team")]
     [Space(5)]
-    [SerializeField] private Outliner outliner;
+    [SerializeField] private Outliner netOutliner;
     [SerializeField] public Color allyTeamColor;
     [SerializeField] public Color enemyTeamColor;
 
     private void OnDestroy()
     {
         list.Remove(Id);
-        SpectateCameraManager.availableCameras.Remove(spectatorCamBrain);
+        SpectateCameraManager.availableCameras.Remove(netPlayerSpectatorCamBrain);
     }
 
     private void Start()
@@ -43,8 +43,8 @@ public class Player : MonoBehaviour
 
     private void OutlinePlayer(bool ally)
     {
-        outliner.OutlineMode = ally ? Outliner.Mode.OutlineAll : Outliner.Mode.OutlineVisible;
-        outliner.OutlineColor = ally ? allyTeamColor : enemyTeamColor;
+        netOutliner.OutlineMode = ally ? Outliner.Mode.OutlineAll : Outliner.Mode.OutlineVisible;
+        netOutliner.OutlineColor = ally ? allyTeamColor : enemyTeamColor;
     }
 
     public static void SpawnPlayer(ushort id, string username, Vector3 position)
@@ -58,7 +58,7 @@ public class Player : MonoBehaviour
         {
             player = Instantiate(NetworkManager.Singleton.localPlayerPrefab, spawnPos, Quaternion.identity).GetComponent<Player>();
             player.IsLocal = true;
-            SpectateCameraManager.Singleton.playerCamera = player.playerCamera;
+            SpectateCameraManager.Singleton.playerCamera = player.localPlayerCamera;
         }
 
         else
@@ -69,7 +69,7 @@ public class Player : MonoBehaviour
             player.rb.collisionDetectionMode = CollisionDetectionMode.ContinuousSpeculative;
             player.rb.interpolation = RigidbodyInterpolation.None;
             player.rb.isKinematic = true;
-            SpectateCameraManager.availableCameras.Add(player.spectatorCamBrain);
+            SpectateCameraManager.availableCameras.Add(player.netPlayerSpectatorCamBrain);
         }
 
         player.name = $"Player {id} ({username})";

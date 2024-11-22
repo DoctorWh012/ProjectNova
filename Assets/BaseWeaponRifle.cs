@@ -85,12 +85,12 @@ public class BaseWeaponRifle : BaseWeapon
             {
                 NetworkManager.Singleton.SetAllPlayersPositionsTo(i, player.Id);
 
-                shotRayHit = FilteredRaycast(playerShooting.playerCam.forward);
+                shotRayHit = FilteredRaycast(playerShooting.cameraHolder.forward);
                 if (shotRayHit.collider && CheckPlayerHit(shotRayHit.collider)) break;
             }
             NetworkManager.Singleton.ResetPlayersPositions(player.Id);
         }
-        else shotRayHit = FilteredRaycast(playerShooting.playerCam.forward);
+        else shotRayHit = FilteredRaycast(playerShooting.cameraHolder.forward);
 
         ShootingTracer(shotRayHit.collider, shotRayHit.point);
 
@@ -117,7 +117,7 @@ public class BaseWeaponRifle : BaseWeapon
         tracer.transform.position = barrelTip.position;
         tracer.Clear();
 
-        Vector3 endPos = didHit ? pos : playerShooting.playerCam.forward * range + barrelTip.position;
+        Vector3 endPos = didHit ? pos : playerShooting.cameraHolder.forward * range + barrelTip.position;
 
         tracer.transform.DOMove(endPos, tracerLasts).SetEase(Ease.Linear);
         tracer.DOResize(tracerWidth, 0, 0.5f);

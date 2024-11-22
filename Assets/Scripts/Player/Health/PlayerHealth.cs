@@ -14,16 +14,15 @@ public class PlayerHealth : MonoBehaviour
 {
     [Header("Components")]
     [SerializeField] private Player player;
-    [SerializeField] private GameObject playerCameraHolder;
+    [SerializeField] private GameObject playerCharacter;
+    [SerializeField] private GameObject localPlayerCameraHolder;
     [SerializeField] private AudioSource playerAudioSource;
-    [SerializeField] private PlayerHud playerHud;
+    [SerializeField] private PlayerHud localPlayerHud;
     [SerializeField] private PlayerShooting playerShooting;
     [SerializeField] private PlayerMovement playerMovement;
-    [SerializeField] private GameObject playerModel;
-    [SerializeField] private Collider[] colliders;
 
     [Header("Particles/Effects")]
-    [SerializeField] DamageIndicator damageIndicator;
+    [SerializeField] private DamageIndicator netPlayerDamageIndicator;
     [SerializeField] private Sprite suicideIcon;
     [SerializeField] private ParticleSystem hurtParticles;
     [SerializeField] private ParticleSystem deathParticles;
@@ -50,7 +49,7 @@ public class PlayerHealth : MonoBehaviour
             // Taking Damage
             if (value < _currentHealth)
             {
-                if (player.IsLocal) playerHud.FadeHurtOverlay();
+                if (player.IsLocal) localPlayerHud.FadeHurtOverlay();
                 else hurtParticles.Play();
 
                 playerAudioSource.pitch = Utilities.GetRandomPitch();
@@ -60,7 +59,7 @@ public class PlayerHealth : MonoBehaviour
             // Healing
             if (value >= _currentHealth)
             {
-                if (player.IsLocal) playerHud.FadeHealOverlay();
+                if (player.IsLocal) localPlayerHud.FadeHealOverlay();
 
                 playerAudioSource.pitch = Utilities.GetRandomPitch();
                 playerAudioSource.PlayOneShot(scriptablePlayer.playerHealAudio, scriptablePlayer.playerHealAudioVolume);
@@ -68,7 +67,7 @@ public class PlayerHealth : MonoBehaviour
 
             _currentHealth = value > scriptablePlayer.maxHealth ? scriptablePlayer.maxHealth : value < 0 ? 0 : value;
 
-            if (player.IsLocal) playerHud.UpdateHealthDisplay(_currentHealth);
+            if (player.IsLocal) localPlayerHud.UpdateHealthDisplay(_currentHealth);
             if (NetworkManager.Singleton.Server.IsRunning) SendUpdatedHealth();
         }
     }
@@ -99,7 +98,7 @@ public class PlayerHealth : MonoBehaviour
         // Spectator
         if (player.IsLocal)
         {
-            playerCameraHolder.SetActive(false);
+            localPlayerCameraHolder.SetActive(false);
             SpectateCameraManager.Singleton.EnableDeathSpectateMode(id, GameManager.respawnTime);
         }
 
@@ -108,10 +107,9 @@ public class PlayerHealth : MonoBehaviour
         playerAudioSource.PlayOneShot(scriptablePlayer.playerDieAudio, scriptablePlayer.playerDieAudioVolume);
         deathParticles.Play();
 
-        playerModel.SetActive(false);
+        playerCharacter.SetActive(false);
         playerShooting.PlayerDied();
         playerMovement.PlayerDied();
-        EnableDisablePlayerColliders(false);
 
         if (NetworkManager.Singleton.Server.IsRunning)
         {
@@ -182,17 +180,12 @@ public class PlayerHealth : MonoBehaviour
     #region Effects
     public void PlayerHitEffects(int damage, bool critical)
     {
-        DamageIndicator indicator = Instantiate(damageIndicator);
+        DamageIndicator indicator = Instantiate(netPlayerDamageIndicator);
         indicator.transform.position = transform.position;
         indicator.transform.DOMove(indicator.transform.position + new Vector3(Random.Range(-2f, 2f), Random.Range(2f, 3f), Random.Range(-2f, 2f)), 0.4f).SetEase(Ease.OutSine);
         indicator.DisplayDamage((int)damage, critical);
     }
     #endregion
-
-    private void EnableDisablePlayerColliders(bool state)
-    {
-        for (int i = 0; i < colliders.Length; i++) colliders[i].enabled = state;
-    }
 
     #region ServerSenders
     private void SendPlayerDied(ushort? id)
@@ -275,18 +268,16 @@ public class PlayerHealth : MonoBehaviour
         // Spectator
         if (player.IsLocal)
         {
-            playerCameraHolder.SetActive(true);
+            localPlayerCameraHolder.SetActive(true);
             SpectateCameraManager.Singleton.DisableSpectateMode();
         }
-
-        playerModel.SetActive(true);
 
         shieldsHolder.SetActive(true);
         shieldAnimator.Play("ShieldRaise");
 
+        playerCharacter.SetActive(true);
         playerShooting.PlayerRespawned();
         playerMovement.PlayerRespawned();
-        EnableDisablePlayerColliders(true);
 
         // Finish Invincibility
         yield return new WaitForSeconds(scriptablePlayer.invincibilityTime);

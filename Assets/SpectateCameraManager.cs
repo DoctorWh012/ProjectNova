@@ -99,7 +99,7 @@ public class SpectateCameraManager : MonoBehaviour
 
     private int GetCameraOfPlayer(ushort id)
     {
-        for (int i = 0; i < availableCameras.Count; i++) if (availableCameras[i] == Player.list[id].spectatorCamBrain) return i;
+        for (int i = 0; i < availableCameras.Count; i++) if (availableCameras[i] == Player.list[id].netPlayerSpectatorCamBrain) return i;
         return 0;
     }
 

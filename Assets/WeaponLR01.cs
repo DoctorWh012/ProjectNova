@@ -164,7 +164,7 @@ public class WeaponLR01 : BaseWeaponRifle
         if (!player.IsLocal) return;
         ultimateSlider.value = (float)killsPerformed / killsNeeded;
 
-        ultimateIconImg.material = kills == killsNeeded ? playerShooting.ultGlowMat : null;
+        ultimateIconImg.material = kills == killsNeeded ? playerShooting.localPlayerUltGlowMat : null;
         ultimateIconImg.color = kills == killsNeeded ? Color.white : playerShooting.fadedUltColor;
     }
 
@@ -295,12 +295,12 @@ public class WeaponLR01 : BaseWeaponRifle
             {
                 NetworkManager.Singleton.SetAllPlayersPositionsTo(i, player.Id);
 
-                shotRayHit = FilteredRaycast(playerShooting.playerCam.forward, 0.2f);
+                shotRayHit = FilteredRaycast(playerShooting.cameraHolder.forward, 0.2f);
                 if (shotRayHit.collider && CheckPlayerHit(shotRayHit.collider)) break;
             }
             NetworkManager.Singleton.ResetPlayersPositions(player.Id);
         }
-        else shotRayHit = FilteredRaycast(playerShooting.playerCam.forward, 0.2f);
+        else shotRayHit = FilteredRaycast(playerShooting.cameraHolder.forward, 0.2f);
         ShootingTracer(shotRayHit.collider, shotRayHit.point);
 
         // If it's a player damages it

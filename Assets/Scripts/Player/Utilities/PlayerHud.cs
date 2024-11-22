@@ -44,7 +44,7 @@ public class PlayerHud : MonoBehaviour
     [Space(5)]
     [SerializeField] private GameObject[] crosshairs;
     [SerializeField] private Image[] hitmarkers;
-    [SerializeField] private Image reloadSlider;
+    [SerializeField] private Image ReloadIndicator;
 
     [Header("UI Texts")]
     [Space(5)]
@@ -211,12 +211,28 @@ public class PlayerHud : MonoBehaviour
     #region AbilitiesUI
     public void UpdateStamina(float stamina)
     {
+        print($"Stamina is {stamina}");
         for (int i = 0; i < staminaBars.Length; i++)
         {
-            staminaBars[i].color = stamina >= i ? highlitedColor : fadedColor;
-            staminaBars[i].fillAmount = stamina >= i ? 1 : stamina % 1;
-        }
+            if ((int)stamina == i)
+            {
+                staminaBars[(int)stamina].fillAmount = stamina % 1;
+                staminaBars[i].color = fadedColor;
+            }
 
+            else if ((int)stamina < i)
+            {
+                staminaBars[i].fillAmount = 0;
+                staminaBars[i].color = fadedColor;
+            }
+
+            else
+            {
+                staminaBars[i].fillAmount = 1;
+                staminaBars[i].color = highlitedColor;
+            }
+
+        }
     }
     #endregion
 
@@ -237,12 +253,12 @@ public class PlayerHud : MonoBehaviour
 
     public void ReloadIndicatorFill(float time)
     {
-        reloadSlider.DOFillAmount(1, time).SetEase(Ease.Linear).OnComplete(() => reloadSlider.fillAmount = 0);
+        ReloadIndicator.DOFillAmount(1, time).SetEase(Ease.Linear).OnComplete(() => ReloadIndicator.fillAmount = 0);
     }
 
     public void KillRealoadIndicatorFill()
     {
-        reloadSlider.DOComplete();
+        ReloadIndicator.DOComplete();
     }
 
     public void ScaleCrosshairShot()
