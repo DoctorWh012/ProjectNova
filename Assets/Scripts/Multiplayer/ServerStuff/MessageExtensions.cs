@@ -1,4 +1,5 @@
 using Riptide;
+using Unity.Mathematics;
 using UnityEngine;
 
 public static class MessageExtensions
@@ -73,6 +74,34 @@ public static class MessageExtensions
 
         Vector3[] values = new Vector3[length];
         for (int i = 0; i < length; i++) values[i] = message.GetVector3();
+        return values;
+    }
+
+    /// <summary>Adds an array of <see cref="Vector3"/> to the message.</summary>
+    /// <param name="values">The Array of <see cref="Vector3"/> to add.</param>
+    /// <returns>The message that the array of <see cref="Vector3"/> was added to.</returns>
+    public static Message AddQuaternions(this Message message, Quaternion[] values)
+    {
+        message.AddInt(values.Length);
+
+        for (int i = 0; i < values.Length; i++)
+        {
+            message.AddFloat(values[i].x);
+            message.AddFloat(values[i].y);
+            message.AddFloat(values[i].z);
+            message.AddFloat(values[i].w);
+        }
+        return message;
+    }
+
+    /// <summary>Retrieves an Array of <see cref="Vector3"/> from the message.</summary>
+    /// <returns>The array of <see cref="Vector3"/> that was retrieved.</returns>
+    public static Quaternion[] GetQuaternions(this Message message)
+    {
+        int length = message.GetInt();
+
+        Quaternion[] values = new Quaternion[length];
+        for (int i = 0; i < length; i++) values[i] = message.GetQuaternion();
         return values;
     }
     #endregion

@@ -1,7 +1,5 @@
 using System;
-using System.Collections.Generic;
 using Riptide;
-using Unity.Mathematics;
 using UnityEngine;
 
 [Serializable]
@@ -191,20 +189,6 @@ public class PlayerShooting : MonoBehaviour
         if ((int)currentWeapon.slot != slot) return;
 
         currentWeapon.HandleServerWeaponKill(kills, victimId, tick);
-    }
-
-    private List<DebugGhost> debugGhosts = new List<DebugGhost>();
-    private void ClearGhosts()
-    {
-        foreach (DebugGhost debugGhost in debugGhosts) Destroy(debugGhost.gameObject);
-        debugGhosts.Clear();
-    }
-
-    private void CreateDebugGhosts(Player player, bool rewound, uint tick)
-    {
-        DebugGhost debugGhost = Instantiate(NetworkManager.Singleton.debugGhost, player.playerMovement.playerCharacter.position, player.playerMovement.playerCharacter.rotation);
-        debugGhost.SetupGhost(rewound, tick);
-        debugGhosts.Add(debugGhost);
     }
     #endregion
 

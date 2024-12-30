@@ -1,7 +1,8 @@
-using System.Linq;
 using UnityEngine;
 using Riptide;
 using DG.Tweening;
+using UnityEditor;
+using System.Linq;
 
 public class SimulationState : IMessageSerializable
 {
@@ -11,7 +12,7 @@ public class SimulationState : IMessageSerializable
     public Vector3 cameraHolderForward;
     public bool alive;
     public Vector3[] characterColliderBonesPos;
-    public Vector3[] characterColliderBonesForward;
+    public Quaternion[] characterColliderBonesForward;
     public uint currentTick;
 
     public void Deserialize(Message message)
@@ -22,7 +23,7 @@ public class SimulationState : IMessageSerializable
         cameraHolderForward = message.GetVector3();
         alive = message.GetBool();
         characterColliderBonesPos = message.GetVector3s();
-        characterColliderBonesForward = message.GetVector3s();
+        characterColliderBonesForward = message.GetQuaternions();
         currentTick = message.GetUInt();
     }
 
@@ -34,7 +35,7 @@ public class SimulationState : IMessageSerializable
         message.AddVector3(cameraHolderForward);
         message.AddBool(alive);
         message.AddVector3s(characterColliderBonesPos);
-        message.AddVector3s(characterColliderBonesForward);
+        message.AddQuaternions(characterColliderBonesForward);
         message.AddUInt(currentTick);
     }
 }
@@ -69,6 +70,7 @@ public class PlayerMovement : MonoBehaviour
 
     [Header("Components")]
     [Space(5)]
+    [SerializeField] private Camera localPlayerCam;
     [SerializeField] private Player player;
     [SerializeField] private PlayerHealth playerHealth;
     [SerializeField] private PlayerHud localPlayerHud;
@@ -108,9 +110,6 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private ParticleSystem groundSlamParticles;
     [SerializeField] private ParticleSystem groundSlamAirParticles;
     [SerializeField] private ParticleSystem localPlayerSpeedLinesEffect;
-    [SerializeField] private float speedLineStartAtSpeed;
-    [SerializeField] private float speedLineMultiplier;
-    [SerializeField] private float speedLineSpoolSpeed;
     [SerializeField] private ParticleSystem dashParticles;
 
     [Header("Audio")]
@@ -118,10 +117,13 @@ public class PlayerMovement : MonoBehaviour
     [SerializeField] private AudioSource slideAudioSouce;
     [SerializeField] private AudioSource groundSlamAudioSource;
 
-    [Header("Debugging Serialized")]
-    [SerializeField] bool movingDumb = false;
+    [Header("Debuggin")]
+    [SerializeField] private Material transparentGreen;
+    [SerializeField] private Material transparentRed;
+    [SerializeField] private bool wannaMoveDumb;
 
     // Movement Variables
+    bool movingDumb = false;
     Vector3 netPlayerVelocity;
     private float cameraSideMovementTiltDir;
 
@@ -174,7 +176,7 @@ public class PlayerMovement : MonoBehaviour
         AnimatePlayer();
         if (!player.IsLocal) { Interpolate(); return; }
         RefillStamina();
-        CheckCameraTilt();
+        CameraEffects();
         if (!GameManager.Focused) { ZeroInput(); return; }
         GetInput();
     }
@@ -215,6 +217,11 @@ public class PlayerMovement : MonoBehaviour
 
     private void ZeroInput()
     {
+        if (wannaMoveDumb)
+        {
+            if (!movingDumb) MoveDumb();
+            return;
+        }
         verticalInput = 0;
         horizontalInput = 0;
         jumpBufferCounter = 0;
@@ -240,13 +247,14 @@ public class PlayerMovement : MonoBehaviour
 
     private void MoveDumb()
     {
+        print("SHIT");
         movingDumb = true;
         verticalInput = Random.Range(-1, 2);
         horizontalInput = Random.Range(-1, 2);
 
         jumpBufferCounter = Random.Range(0, 2) == 1 ? movementSettings.jumpBufferTime : 0;
 
-        Invoke("RestoreMoveDumb", Random.Range(2, 5));
+        Invoke(nameof(RestoreMoveDumb), Random.Range(2, 5));
     }
 
     private void RestoreMoveDumb()
@@ -422,13 +430,14 @@ public class PlayerMovement : MonoBehaviour
             cameraHolderForward = cameraHolder.forward,
             alive = playerHealth.currentPlayerState == PlayerState.Alive,
             characterColliderBonesPos = playerCharacterColliderBones.Select(a => a.position).ToArray(),
-            characterColliderBonesForward = playerCharacterColliderBones.Select(a => a.forward).ToArray(),
+            characterColliderBonesForward = playerCharacterColliderBones.Select(a => a.rotation).ToArray(),
             currentTick = NetworkManager.Singleton.serverTick
         };
     }
 
     public void SetPlayerPositionToTick(uint tick)
     {
+        SpawnGhost(true);
         uint cacheIndex = tick % NetworkManager.lagCompensationCacheSize;
 
         if (playerSimulationState[cacheIndex].currentTick != tick)
@@ -439,9 +448,11 @@ public class PlayerMovement : MonoBehaviour
 
         for (int i = 0; i < playerCharacterColliderBones.Length; i++)
         {
-            // playerCharacterColliderBones[i].position = playerSimulationState[cacheIndex].characterColliderBones[i].position;
-            // playerCharacterColliderBones[i].rotation = playerSimulationState[cacheIndex].characterColliderBones[i].rotation;
+            playerCharacterColliderBones[i].position = playerSimulationState[cacheIndex].characterColliderBonesPos[i];
+            playerCharacterColliderBones[i].rotation = playerSimulationState[cacheIndex].characterColliderBonesForward[i];
         }
+
+        SpawnGhost(false);
 
         // EditorApplication.isPaused = true;
     }
@@ -449,6 +460,20 @@ public class PlayerMovement : MonoBehaviour
     public void ResetPlayerPosition()
     {
         // playerCharacter.localPosition = playerCharacterDefaultPos;
+    }
+
+    private void SpawnGhost(bool pre)
+    {
+        Animator ghostAnimator = Instantiate(playerAnimator);
+        foreach (Transform tr in ghostAnimator.GetComponentsInChildren<Transform>()) tr.gameObject.layer = LayerMask.NameToLayer("Ignore Raycast");
+        ghostAnimator.transform.position = playerAnimator.transform.position;
+        ghostAnimator.transform.rotation = playerAnimator.transform.rotation;
+        ghostAnimator.enabled = false;
+
+        foreach (SkinnedMeshRenderer renderer in ghostAnimator.GetComponentsInChildren<SkinnedMeshRenderer>())
+        {
+            renderer.material = pre ? transparentGreen : transparentRed;
+        }
     }
     #endregion
 
@@ -774,11 +799,26 @@ public class PlayerMovement : MonoBehaviour
         groundSlamAudioSource.volume = movementSettings.groundSlamSoundVolume;
     }
 
+    private void CameraEffects()
+    {
+        // Camera Tilt
+        CheckCameraTilt();
+
+        // Fov Shift
+        Vector2 flatVel = new Vector2(rb.velocity.x, rb.velocity.z);
+        float magnitudeMultiplier = flatVel.magnitude / movementSettings.consideredFastMagnitude;
+        localPlayerCam.fieldOfView = Mathf.Lerp(localPlayerCam.fieldOfView, SettingsManager.playerPreferences.cameraFov + movementSettings.speedFovOffset * magnitudeMultiplier, movementSettings.speedFovOffsetSpeed * Time.deltaTime);
+
+        // Speed Lines
+        ParticleSystem.EmissionModule psEmission = localPlayerSpeedLinesEffect.emission;
+        psEmission.rateOverTime = Mathf.Lerp(localPlayerSpeedLinesEffect.emission.rateOverTime.constant, movementSettings.speedLinesRate * magnitudeMultiplier, movementSettings.speedLinesRateSpeed * Time.deltaTime);
+    }
+
     private void CheckCameraTilt()
     {
         float desiredTilt;
         if (currentMovementState == MovementStates.Wallrunning) desiredTilt = horizontalInput * movementSettings.cameraWallRunTilt;
-        else desiredTilt = horizontalInput * movementSettings.cameraSideMovementTilt;
+        else desiredTilt = -horizontalInput * movementSettings.cameraSideMovementTilt;
         if (cameraSideMovementTiltDir == desiredTilt) return;
         localPlayerCameraTilt.DOKill();
         localPlayerCameraTilt.DOLocalRotate(new Vector3(0, 0, desiredTilt), 0.5f);
@@ -793,6 +833,7 @@ public class PlayerMovement : MonoBehaviour
         if (currentMovementState == MovementStates.Inactive || playerHealth.currentPlayerState == PlayerState.Dead) return;
 
         netPlayerVelocity = simulationState.velocity;
+        moveDir = simulationState.velocity.normalized;
         cameraHolder.forward = simulationState.cameraHolderForward;
         orientation.forward = simulationState.orientationForward;
 
@@ -996,5 +1037,8 @@ public class PlayerMovement : MonoBehaviour
 
         Gizmos.color = Color.magenta;
         Gizmos.DrawRay(orientation.position, slideDir * movementSettings.slideWallBlockDistance);
+
+        Gizmos.color = Color.green;
+        Gizmos.DrawRay(cameraHolder.position, cameraHolder.forward * 50f);
     }
 }

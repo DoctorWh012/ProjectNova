@@ -15,6 +15,11 @@ public class PlayerMovementSettings : ScriptableObject
     [SerializeField] public float crouchedCameraHeight;
     [SerializeField] public float landCameraOffset;
     [SerializeField] public float landCameraOffsetTime;
+    [SerializeField] public float speedFovOffset;
+    [SerializeField] public float speedFovOffsetSpeed;
+    [SerializeField] public float speedLinesRate;
+    [SerializeField] public float speedLinesRateSpeed;
+    [SerializeField] public float consideredFastMagnitude;
     [SerializeField] public float cameraSideMovementTilt;
     [SerializeField] public float cameraWallRunTilt;
 

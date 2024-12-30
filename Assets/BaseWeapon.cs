@@ -348,7 +348,7 @@ public class BaseWeapon : MonoBehaviour
             playerShooting.armsAnimator.Play(animations.armAnimation, 0, 0);
             playerShooting.characterAnimator.Play(animations.armAnimation, 1, 0);
         }
-        else playerShooting.characterAnimator.Play(animations.armAnimation, 0, 0);
+        else playerShooting.characterAnimator.Play(animations.armAnimation, 1, 0);
 
         animator.Play(animations.weaponAnimation, 0, 0);
     }
@@ -494,6 +494,11 @@ public class BaseWeapon : MonoBehaviour
         if (!NetworkManager.Singleton.Server.IsRunning) return;
 
         Player hitPlayer = playerHit.GetComponentInParent<Player>();
+
+        print(hitPlayer.Id);
+        print((int)(damage * damageMultiplier));
+        print(damageMultiplier );
+        print(hitPlayer.playerHealth.currentPlayerState == PlayerState.Alive);
 
         playerShooting.SendHitPlayer(hitPlayer.Id, (int)(damage * damageMultiplier), damageMultiplier > 1, hitPlayer.playerHealth.currentPlayerState == PlayerState.Alive);
         if (hitPlayer.playerHealth.ReceiveDamage(damage * damageMultiplier, damageMultiplier > 1, player.Id))
